@@ -57,7 +57,6 @@ export function ChatPanel({ token, disabled }: { token: string; disabled?: boole
   const [surfaced, setSurfaced] = useState<string[]>([]);
   const [surfacing, setSurfacing] = useState(false);
   const [exhausted, setExhausted] = useState(false);
-  const [inputFocused, setInputFocused] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const canSurfaceMore = !exhausted;
@@ -220,6 +219,16 @@ export function ChatPanel({ token, disabled }: { token: string; disabled?: boole
                 )}
               </div>
             )}
+
+            <div className="border-t border-ink-200/40 pt-5">
+              <Composer
+                draft={draft}
+                setDraft={setDraft}
+                onSubmit={() => send(draft)}
+                disabled={disabled}
+                busy={busy}
+              />
+            </div>
           </div>
         </div>
       ) : (
@@ -283,18 +292,6 @@ export function ChatPanel({ token, disabled }: { token: string; disabled?: boole
           {error}
         </div>
       )}
-
-      {empty && (
-        <Composer
-          draft={draft}
-          setDraft={setDraft}
-          onSubmit={() => send(draft)}
-          disabled={disabled}
-          busy={busy}
-          inputFocused={inputFocused}
-          setInputFocused={setInputFocused}
-        />
-      )}
     </div>
   );
 }
@@ -305,60 +302,62 @@ function Composer({
   onSubmit,
   disabled,
   busy,
-  inputFocused,
-  setInputFocused,
 }: {
   draft: string;
   setDraft: (value: string) => void;
   onSubmit: () => void;
   disabled?: boolean;
   busy: boolean;
-  inputFocused: boolean;
-  setInputFocused: (value: boolean) => void;
 }) {
-  const ghostText = disabled ? "Workspace still ingesting" : "Start exploring your writing";
-  const showOverlay = !draft && !inputFocused;
+  const ghostText = disabled ? "Workspace still ingesting" : "Start exploring your writing ...";
+  const ref = useRef<HTMLTextAreaElement>(null);
+  const canSend = !disabled && !busy && draft.trim().length > 0;
+
+  // Auto-expand the textarea to fit content. CSS max-h-[160px] + overflow-y-auto
+  // caps the visible height — past that, the field scrolls internally.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [draft]);
+
+  // Autofocus on mount so the writer can start typing immediately on landing.
+  // The native placeholder stays visible until the first keystroke, so the
+  // affordance "Start exploring your writing ..." is still legible while
+  // focused — no custom caret overlay needed.
+  useEffect(() => {
+    ref.current?.focus({ preventScroll: true });
+  }, []);
 
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        onSubmit();
+        if (canSend) onSubmit();
       }}
-      className="panel flex items-end gap-3 px-4 py-3"
+      className="flex items-end gap-3"
     >
-      <div className="relative flex-1">
-        <textarea
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onFocus={() => setInputFocused(true)}
-          onBlur={() => setInputFocused(false)}
-          placeholder=" "
-          disabled={disabled || busy}
-          rows={2}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-              e.preventDefault();
-              onSubmit();
-            }
-          }}
-          aria-label={ghostText}
-          className="min-h-[52px] w-full resize-none border-0 bg-transparent px-1 py-1.5 font-serif text-[15px] leading-relaxed italic text-ink-900 placeholder-transparent focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
-        />
-        {showOverlay && (
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 flex items-start gap-[3px] px-1 py-1.5 font-serif text-[15px] leading-relaxed italic text-ink-400"
-          >
-            <span className="mt-[5px] inline-block h-[15px] w-[1.5px] bg-ink-700 animate-editorial-caret" />
-            <span>{ghostText}</span>
-          </div>
-        )}
-      </div>
+      <textarea
+        ref={ref}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        placeholder={ghostText}
+        disabled={disabled || busy}
+        rows={1}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            if (canSend) onSubmit();
+          }
+        }}
+        aria-label={ghostText}
+        className="block max-h-[160px] w-full flex-1 resize-none overflow-y-auto border-0 bg-transparent px-1 py-1.5 font-serif text-[15px] leading-relaxed italic text-ink-900 placeholder:font-serif placeholder:italic placeholder:text-ink-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+      />
       <button
         type="submit"
-        className="btn-ask group self-end"
-        disabled={disabled || busy || !draft.trim()}
+        className="btn-primary group shrink-0 gap-1.5 self-end"
+        disabled={!canSend}
       >
         <span>Send</span>
         <span aria-hidden="true" className="btn-ask-arrow">→</span>
