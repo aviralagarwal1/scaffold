@@ -3,18 +3,37 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import type { DraftFeedbackResponse } from "@/types/ai";
 import { api, ApiClientError } from "@/lib/client/api";
+import { cn } from "@/lib/client/cn";
 import { Markdown } from "./Markdown";
 import { SourceCitationList } from "./SourceCitation";
-import { EmptyState, LoadingState } from "./states";
+import { LoadingState } from "./states";
+
+// Six MECE editorial dimensions: three positional (where in the piece),
+// two stylistic (how the prose reads), one substantive (what it says).
+// Ids match the keys the backend's FOCUS_GUIDANCE table expects.
+const FOCUS_DIMENSIONS = [
+  { id: "hook", label: "Hook" },
+  { id: "structure", label: "Structure" },
+  { id: "ending", label: "Ending" },
+  { id: "voice", label: "Voice" },
+  { id: "clarity", label: "Clarity" },
+  { id: "originality", label: "Originality" },
+] as const;
 
 export function DraftFeedbackPanel({ token, disabled }: { token: string; disabled?: boolean }) {
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<DraftFeedbackResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [focus, setFocus] = useState<string[]>([]);
   const ref = useRef<HTMLTextAreaElement>(null);
 
   const wordCount = draft.trim() ? draft.trim().split(/\s+/).length : 0;
+  const canSubmit = !disabled && !busy && draft.trim().length > 0 && focus.length > 0;
+
+  const toggleFocus = (id: string) => {
+    setFocus((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
 
   // Auto-expand the textarea so it grows with the draft. CSS min-h sets the
   // floor (substantial enough to invite a real essay), max-h caps it at a
@@ -28,11 +47,11 @@ export function DraftFeedbackPanel({ token, disabled }: { token: string; disable
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!draft.trim() || busy) return;
+    if (!canSubmit) return;
     setBusy(true);
     setError(null);
     try {
-      const res = await api.draftFeedback(token, { draft });
+      const res = await api.draftFeedback(token, { draft, focus });
       setResult(res);
     } catch (err) {
       const msg = err instanceof ApiClientError ? err.message : "We couldn't read this draft. Try again.";
@@ -86,7 +105,7 @@ export function DraftFeedbackPanel({ token, disabled }: { token: string; disable
           <button
             type="submit"
             className="btn-primary group gap-1.5"
-            disabled={disabled || busy || !draft.trim()}
+            disabled={!canSubmit}
           >
             {busy ? (
               <>
@@ -110,11 +129,7 @@ export function DraftFeedbackPanel({ token, disabled }: { token: string; disable
 
       <div className="flex flex-col gap-4">
         {!result && !busy && (
-          <EmptyState
-            eyebrow="Editorial feedback"
-            title="No feedback yet."
-            description="Paste a draft on the left. We'll evaluate hook strength, voice fit, structure, similar previous posts, and suggested edits."
-          />
+          <FocusPanel focus={focus} toggleFocus={toggleFocus} />
         )}
         {busy && (
           <div className="panel p-5">
@@ -150,5 +165,59 @@ export function DraftFeedbackPanel({ token, disabled }: { token: string; disable
         )}
       </div>
     </div>
+  );
+}
+
+function FocusPanel({
+  focus,
+  toggleFocus,
+}: {
+  focus: string[];
+  toggleFocus: (id: string) => void;
+}) {
+  return (
+    <article className="relative flex flex-col overflow-hidden rounded-md border border-ink-200/80 bg-white shadow-soft">
+      <span
+        aria-hidden="true"
+        className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-accent-200/0 via-accent-300 to-accent-200/0"
+      />
+      <header className="flex items-center justify-between gap-3 border-b border-ink-200/60 bg-ink-50/40 px-5 py-2.5">
+        <span className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-accent-700">
+          Editorial focus
+        </span>
+        <span className="font-mono text-[10.5px] text-ink-500">
+          {focus.length}/{FOCUS_DIMENSIONS.length}
+        </span>
+      </header>
+      <div className="flex flex-col gap-5 p-6">
+        <div>
+          <h3 className="type-h3">Choose what to focus on.</h3>
+          <p className="mt-1.5 text-[14px] text-ink-500">
+            Select as many areas as you want your editor to prioritize.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {FOCUS_DIMENSIONS.map((d) => {
+            const selected = focus.includes(d.id);
+            return (
+              <button
+                key={d.id}
+                type="button"
+                onClick={() => toggleFocus(d.id)}
+                aria-pressed={selected}
+                className={cn(
+                  "rounded-full border px-3 py-1.5 text-[13px] transition-all duration-200 ease-editorial",
+                  selected
+                    ? "border-accent-300 bg-accent-50 text-accent-800 shadow-[0_0_0_3px_rgba(232,194,164,0.18)]"
+                    : "border-ink-200 bg-white text-ink-700 hover:-translate-y-px hover:border-accent-300 hover:bg-accent-50/50 hover:text-ink-900",
+                )}
+              >
+                {d.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </article>
   );
 }

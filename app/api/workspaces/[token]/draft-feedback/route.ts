@@ -10,7 +10,12 @@ export async function POST(request: Request, context: RouteContext) {
   try {
     const { token } = await context.params;
     const body = await readJson<DraftFeedbackRequest>(request);
-    return NextResponse.json(await generateDraftFeedback(token, requireString(body.draft, "Paste a draft.")));
+    const focus = Array.isArray(body.focus)
+      ? body.focus.filter((value): value is string => typeof value === "string")
+      : undefined;
+    return NextResponse.json(
+      await generateDraftFeedback(token, requireString(body.draft, "Paste a draft."), { focus }),
+    );
   } catch (error) {
     return apiError(error, "Could not generate draft feedback.");
   }

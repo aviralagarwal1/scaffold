@@ -174,7 +174,7 @@ function FeaturedLatestPost({
         <div className="mt-auto flex items-center justify-between border-t border-ink-200/60 pt-3">
           <span className="font-mono text-[11px] text-ink-500">{pluralize(post.wordCount, "word")}</span>
           <a href={post.url} target="_blank" rel="noreferrer" className="btn-link">
-            Read on Substack <span aria-hidden="true">↗</span>
+            Read on Substack <span aria-hidden="true">→</span>
           </a>
         </div>
       </div>

@@ -16,6 +16,7 @@ export interface AskResponse {
 
 export interface DraftFeedbackRequest {
   draft: string;
+  focus?: string[];
 }
 
 export interface DraftFeedbackResponse {

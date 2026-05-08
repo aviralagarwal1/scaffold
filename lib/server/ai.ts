@@ -227,7 +227,41 @@ export async function answerArchiveQuestion(token: string, message: string): Pro
   };
 }
 
-export async function generateDraftFeedback(token: string, draft: string): Promise<DraftFeedbackResponse> {
+// Editorial focus dimensions. Each entry is the writer-facing label and the
+// guidance the model receives when this dimension is selected. Six MECE one-
+// worders: three positional, two stylistic, one substantive.
+const FOCUS_GUIDANCE: Record<string, { label: string; guide: string }> = {
+  hook: {
+    label: "Hook",
+    guide: "Hook — does the opening earn the reader's attention without overpromising.",
+  },
+  structure: {
+    label: "Structure",
+    guide: "Structure — how the body is organized, including pacing and the through-line of the argument.",
+  },
+  ending: {
+    label: "Ending",
+    guide: "Ending — does the close resolve the piece without flattening it.",
+  },
+  voice: {
+    label: "Voice",
+    guide: "Voice — how the prose compares to the writer's archive in tone and rhythm.",
+  },
+  clarity: {
+    label: "Clarity",
+    guide: "Clarity — readability of the prose, where meaning is obscured, where sentences could be sharper.",
+  },
+  originality: {
+    label: "Originality",
+    guide: "Originality — freshness of the angle and the argument relative to the writer's prior work.",
+  },
+};
+
+export async function generateDraftFeedback(
+  token: string,
+  draft: string,
+  options: { focus?: string[] } = {},
+): Promise<DraftFeedbackResponse> {
   if (draft.trim().length < 80) throw new AppError("Paste a longer draft for meaningful feedback.", 400);
 
   const { posts, chunks } = await workspaceCorpus(token);
@@ -238,9 +272,24 @@ export async function generateDraftFeedback(token: string, draft: string): Promi
     .map(({ post, chunk }, index) => `[${index + 1}] ${post.title}\n${excerpt(chunk.content, 1000)}`)
     .join("\n\n");
 
+  // Resolve the focus list to known dimensions; ignore unknown values defensively.
+  const requested = (options.focus ?? [])
+    .map((id) => id.toLowerCase().trim())
+    .filter((id) => id in FOCUS_GUIDANCE);
+  const dimensions = requested.length > 0 ? requested : Object.keys(FOCUS_GUIDANCE);
+  const focusBlock = dimensions
+    .map((id) => `- ${FOCUS_GUIDANCE[id].guide}`)
+    .join("\n");
+  const focusFormat = dimensions
+    .map((id) => FOCUS_GUIDANCE[id].label)
+    .join(", ");
+  const onlySelected = requested.length > 0
+    ? "\n\nThe writer asked you to focus only on the dimensions above. Do not comment on dimensions they did not select."
+    : "";
+
   const generated = await generateText(
     editorialSystemPrompt,
-    `Evaluate this draft against the writer's archive. Do not rewrite the full draft by default.\n\nArchive context:\n${context}\n\nDraft:\n${draft}\n\nUse this format: Overall read, What feels most like your voice, What feels weakest, Structure feedback, Specific edits, Title/hook options.`
+    `Evaluate this draft against the writer's archive. Do not rewrite the full draft by default.\n\nArchive context:\n${context}\n\nDraft:\n${draft}\n\nFocus dimensions:\n${focusBlock}${onlySelected}\n\nFor each focus dimension above, write a short editorial section under that dimension's name as the heading. Use this section order: ${focusFormat}.`,
   );
 
   return {
