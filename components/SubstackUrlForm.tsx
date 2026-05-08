@@ -1,16 +1,21 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, ApiClientError } from "@/lib/client/api";
 import { cn } from "@/lib/client/cn";
 
 export function SubstackUrlForm({
   autoFocus = false,
   redirect = true,
+  captureGlobalKeystrokes = false,
 }: {
   autoFocus?: boolean;
   redirect?: boolean;
+  /** Capture printable keystrokes from anywhere on the page and route them
+   *  into this input. Used on the landing hero so visitors can just start
+   *  typing without clicking. Linear/Raycast-style. */
+  captureGlobalKeystrokes?: boolean;
 }) {
   const router = useRouter();
   const [url, setUrl] = useState("");
@@ -24,6 +29,55 @@ export function SubstackUrlForm({
   // caret sits on the LEFT (where typing actually begins) with the ghost
   // text trailing — visual position now matches the real cursor's reality.
   const showCue = url.length === 0 && !focused;
+
+  // Type-anywhere capture: when enabled, any printable keystroke on the page
+  // (when not already inside a different input) gets routed into this field
+  // and the input gains focus. The placeholder cue stays visible until the
+  // first keystroke, then hands off to the native caret.
+  useEffect(() => {
+    if (!captureGlobalKeystrokes) return;
+
+    const isTypeableTarget = (target: EventTarget | null): boolean => {
+      if (!(target instanceof HTMLElement)) return false;
+      const tag = target.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+      if (target.isContentEditable) return true;
+      return false;
+    };
+
+    const onKeydown = (e: KeyboardEvent) => {
+      if (busy) return;
+      if (isTypeableTarget(e.target)) return;
+      // Let modifier shortcuts (Cmd+R, Ctrl+F, etc.) pass through.
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      // Only capture single printable characters. Skip space (URLs don't
+      // contain it, and spacebar normally scrolls the page).
+      if (e.key.length !== 1 || e.key === " ") return;
+
+      e.preventDefault();
+      setUrl((prev) => prev + e.key);
+      inputRef.current?.focus();
+    };
+
+    const onPaste = (e: ClipboardEvent) => {
+      if (busy) return;
+      if (isTypeableTarget(e.target)) return;
+      const pasted = e.clipboardData?.getData("text") ?? "";
+      if (!pasted) return;
+
+      e.preventDefault();
+      const cleaned = pasted.trim();
+      setUrl((prev) => (prev ? prev + cleaned : cleaned));
+      inputRef.current?.focus();
+    };
+
+    window.addEventListener("keydown", onKeydown);
+    window.addEventListener("paste", onPaste);
+    return () => {
+      window.removeEventListener("keydown", onKeydown);
+      window.removeEventListener("paste", onPaste);
+    };
+  }, [busy, captureGlobalKeystrokes]);
 
   const triggerAlert = () => {
     // Reset, then re-trigger on the next frame so the animation replays

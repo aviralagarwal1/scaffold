@@ -67,7 +67,7 @@ export default function HomePage() {
             </p>
 
             <div className="animate-rise animate-delay-3 mt-10 max-w-xl">
-              <SubstackUrlForm />
+              <SubstackUrlForm captureGlobalKeystrokes />
             </div>
           </div>
 
