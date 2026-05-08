@@ -16,21 +16,28 @@ const STEPS = [
   },
 ];
 
-const SAMPLE_INSIGHTS = [
+// The §03 section reuses the SampleAnswerCard's archive — the three posts
+// the AI cites in its primary answer. Same titles, same dates as the hero
+// preview, so the brand world stays internally consistent: this is a real
+// archive that surfaces the same evidence wherever you encounter it.
+const CITED_POSTS = [
   {
-    quote:
-      "Across your archive, your strongest pieces tend to open with a personal observation before moving into a broader product or culture argument.",
-    source: "From Ask AI",
+    date: "Mar 14",
+    title: "The interface as ideology",
+    excerpt:
+      "begins with a small scene at a coffee shop before the argument widens out into product critique",
   },
   {
-    quote:
-      "Your last six essays all rely on the same three-act structure. The reader can feel the pattern. Try opening cold on a scene.",
-    source: "From Draft feedback",
+    date: "Feb 9",
+    title: "Notes from a quiet rewrite",
+    excerpt:
+      "opens on a memory of an old draft before the voice essay turns outward",
   },
   {
-    quote:
-      "Recurring pattern. Long opening sentences with multiple clauses before the main claim. Five posts in the last quarter do this.",
-    source: "From Grammar audit",
+    date: "Jan 5",
+    title: "Why I stopped writing reviews",
+    excerpt:
+      "personal admission anchors the broader critique of contemporary review culture",
   },
 ];
 
@@ -86,72 +93,211 @@ export default function HomePage() {
             <SectionMarker number="02" title="How it works" />
             <h2 className="mt-4 font-serif text-[34px] leading-[1.1] tracking-tightish text-ink-900 md:text-[44px]">
               Three steps.{" "}
-              <span className="italic text-ink-700">Less than a minute.</span>
+              {/* The italic phrase has a hairline accent rule that draws in
+                  after the headline lands — restrained motion that signals
+                  "this is the key promise of the section". */}
+              <span className="relative inline-block italic text-ink-700">
+                Less than a minute.
+                <span
+                  aria-hidden="true"
+                  className="animate-editorial-draw absolute -bottom-0.5 left-0 right-3 h-[1.5px] bg-accent-300/70"
+                  style={{ animationDelay: "0.7s" }}
+                />
+              </span>
             </h2>
           </header>
 
-          <ol className="grid gap-x-10 gap-y-12 md:grid-cols-3">
+          {/* Connector hairline behind the numerals. Draws in left → right
+              after the section settles, suggesting the eye moving across
+              the steps. The numerals "rest on" the line; their backgrounds
+              interrupt it so the line reads as a single continuous trace. */}
+          <ol className="relative grid gap-x-10 gap-y-12 md:grid-cols-3">
+            <span
+              aria-hidden="true"
+              className="animate-editorial-draw pointer-events-none absolute left-0 right-0 top-[22px] hidden h-px bg-gradient-to-r from-accent-200/0 via-accent-300/55 to-accent-200/0 md:block"
+              style={{ animationDelay: "0.45s" }}
+            />
             {STEPS.map((s, i) => (
               <li
                 key={s.title}
-                className={`relative flex flex-col gap-3 ${
+                className={`group relative flex flex-col gap-3 ${
                   i > 0 ? "md:border-l md:border-ink-200/60 md:pl-8" : ""
                 }`}
               >
-                <span className="font-serif text-[44px] leading-none text-accent-300/90">
+                {/* Numeral with paper-tone background to interrupt the
+                    connector line. Darkens on group hover. */}
+                <span className="relative -mx-1 inline-block w-fit bg-white px-1 font-serif text-[44px] leading-none text-accent-300/90 transition-colors duration-300 ease-editorial group-hover:text-accent-500">
                   {String(i + 1).padStart(2, "0")}
                 </span>
-                <h3 className="font-serif text-[19px] leading-snug tracking-tightish text-ink-900">{s.title}</h3>
-                <p className="text-[14.5px] leading-relaxed text-ink-600">{s.body}</p>
+                <h3 className="font-serif text-[19px] leading-snug tracking-tightish text-ink-900 transition-colors duration-300 ease-editorial">
+                  {s.title}
+                </h3>
+                <p className="text-[14.5px] leading-relaxed text-ink-600 transition-colors duration-300 ease-editorial group-hover:text-ink-700">
+                  {s.body}
+                </p>
               </li>
             ))}
           </ol>
         </div>
       </section>
 
-      {/* § 03 — Grounded answers */}
+      {/* § 03 — Grounded answers
+          The composition makes the editorial claim literal: a single AI
+          answer (left, primary) carries inline citation markers, and the
+          right column is the actual evidence — three numbered post-citations
+          pulled from the archive. The shared numbers tether the two sides
+          without needing a literal connector line. */}
       <section className="animate-rise animate-delay-5 border-b border-ink-200/60">
         <div className="mx-auto max-w-6xl px-6 py-24">
           <header className="mb-14">
             <SectionMarker number="03" title="Grounded answers" />
             <h2 className="mt-4 font-serif text-[34px] leading-[1.1] tracking-tightish text-ink-900 md:text-[44px]">
               Every answer is{" "}
-              <span className="italic text-ink-700">tethered to a post.</span>
+              <span className="relative inline-block italic text-ink-700">
+                tethered to a post.
+                <span
+                  aria-hidden="true"
+                  className="animate-editorial-draw absolute -bottom-0.5 left-0 right-3 h-[1.5px] bg-accent-300/70"
+                  style={{ animationDelay: "0.7s" }}
+                />
+              </span>
             </h2>
           </header>
 
-          <div className="grid gap-6 md:grid-cols-12">
-            {/* Featured insight — left, larger */}
-            <FeatureInsight insight={SAMPLE_INSIGHTS[0]} />
+          <div className="grid gap-x-8 gap-y-6 md:grid-cols-12">
+            <PrimaryAnswerCard />
+            <CitationColumn posts={CITED_POSTS} />
+          </div>
+        </div>
+      </section>
 
-            {/* Two supporting insights stacked on the right */}
-            <div className="flex flex-col gap-6 md:col-span-5">
-              <SupportingInsight insight={SAMPLE_INSIGHTS[1]} />
-              <SupportingInsight insight={SAMPLE_INSIGHTS[2]} />
+      {/* Closing — the realization moment.
+          The composition is a centered emotional anchor surrounded by
+          floating archive marginalia: small, low-contrast post fragments
+          that read as memory traces from the writer's own work. They
+          breathe in and out at slightly different rhythms via a subtle
+          shimmer, suggesting a quiet system that's already paying
+          attention. The CTA names what the user actually leaves with —
+          a memory of their archive — rather than a tool action. */}
+      <section className="animate-rise animate-delay-6 relative overflow-hidden bg-white">
+        {/* Soft accent wash anchored top-center, echoing the hero's bronze
+            warmth at the close. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 -z-10"
+          style={{
+            background:
+              "radial-gradient(720px 280px at 50% 0%, rgba(180, 94, 44, 0.045), transparent 70%)",
+          }}
+        />
+
+        <div className="relative mx-auto max-w-6xl px-6 py-32 md:py-40">
+          {/* Marginalia — fragments of the archive surrounding the moment.
+              Hidden below lg to keep the centered content uncrowded on
+              tablet/mobile. Each fragment shimmers on its own phase. */}
+          <ArchiveFragment
+            date="Mar 14"
+            excerpt="the small scene at a coffee shop, before the argument widens out"
+            className="left-[2%] top-12 lg:left-[4%]"
+            shimmerDelay="0s"
+          />
+          <ArchiveFragment
+            date="Feb 9"
+            excerpt="an old draft I almost finished, in a quieter voice"
+            className="right-[2%] top-20 lg:right-[5%]"
+            shimmerDelay="3s"
+          />
+          <ArchiveFragment
+            date="Jan 5"
+            excerpt="the same question, asked four different ways, across a year"
+            className="left-[3%] bottom-32 lg:left-[7%]"
+            shimmerDelay="6s"
+          />
+          <ArchiveFragment
+            date="Dec 22"
+            excerpt="a smaller voice returning, after months of arguing"
+            className="right-[3%] bottom-24 lg:right-[8%]"
+            shimmerDelay="9s"
+          />
+
+          {/* Center content */}
+          <div className="relative mx-auto max-w-2xl text-center">
+            <h2 className="font-serif text-[44px] leading-[1.04] tracking-tighter2 text-ink-900 md:text-[60px]">
+              Stop pasting your posts
+              <br />
+              into ChatGPT.
+            </h2>
+            <p className="mx-auto mt-7 max-w-prose font-serif text-[19px] leading-[1.55] text-ink-700 md:text-[20px]">
+              Everything is already in your archive. The patterns, the voice, the unfinished ideas.{" "}
+              <span className="relative inline-block whitespace-nowrap">
+                <em className="italic text-ink-900">We just give it a memory.</em>
+                <span
+                  aria-hidden="true"
+                  className="animate-editorial-draw absolute -bottom-0.5 left-0 right-0 h-[1.5px] bg-accent-300/70"
+                  style={{ animationDelay: "1.1s" }}
+                />
+              </span>
+            </p>
+
+            <div className="mt-12 flex justify-center">
+              <Link
+                href="/new"
+                className="btn-primary btn-primary-lg group px-7 text-[14px]"
+              >
+                <span className="relative inline-flex items-center gap-2.5">
+                  <span>Build my memory</span>
+                  <span
+                    aria-hidden="true"
+                    className="text-ink-300 transition-transform duration-200 ease-editorial group-hover:translate-x-0.5 group-hover:text-ink-50"
+                  >
+                    →
+                  </span>
+                </span>
+              </Link>
             </div>
           </div>
         </div>
       </section>
-
-      {/* Closing — typographic statement, no eyebrow chrome */}
-      <section className="animate-rise animate-delay-6 bg-white">
-        <div className="mx-auto max-w-4xl px-6 py-28 text-center">
-          <h2 className="font-serif text-[44px] leading-[1.04] tracking-tighter2 text-ink-900 md:text-[60px]">
-            Stop pasting your posts
-            <br />
-            into ChatGPT.
-          </h2>
-          <p className="mx-auto mt-6 max-w-prose font-serif text-[18px] leading-relaxed text-ink-600 md:text-[19px]">
-            Your archive turns into <em className="not-italic underline decoration-accent-300 decoration-1 underline-offset-[5px]">a memory that thinks back.</em>
-          </p>
-          <div className="mt-12 flex justify-center">
-            <Link href="/new" className="btn-primary btn-primary-lg px-7 text-[14px]">
-              Analyze my Substack
-            </Link>
-          </div>
-        </div>
-      </section>
     </>
+  );
+}
+
+/**
+ * Archive marginalia. Floats around the closing section's centered moment as
+ * fragments of the writer's own work — date in mono caps with an accent dot
+ * before it, italic excerpt beneath. No card chrome, no border, no fill —
+ * these read as notes drifting in the page margins, not UI surfaces.
+ *
+ * Each fragment receives a different `shimmerDelay` so the group breathes
+ * out of phase. Hidden below lg to keep the centered content uncrowded.
+ */
+function ArchiveFragment({
+  date,
+  excerpt,
+  className,
+  shimmerDelay,
+}: {
+  date: string;
+  excerpt: string;
+  className?: string;
+  shimmerDelay: string;
+}) {
+  return (
+    <aside
+      aria-hidden="true"
+      className={`pointer-events-none absolute hidden max-w-[200px] animate-editorial-shimmer lg:block ${className ?? ""}`}
+      style={{ animationDelay: shimmerDelay }}
+    >
+      <div className="flex items-center gap-2">
+        <span className="h-1 w-1 rounded-full bg-accent-400/80" aria-hidden="true" />
+        <span className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-ink-400">
+          {date}
+        </span>
+      </div>
+      <p className="mt-1.5 font-serif text-[13.5px] italic leading-snug text-ink-500/90">
+        &ldquo;{excerpt}…&rdquo;
+      </p>
+    </aside>
   );
 }
 
@@ -167,11 +313,34 @@ function SectionMarker({ number, title }: { number: string; title: string }) {
   );
 }
 
-function FeatureInsight({ insight }: { insight: { quote: string; source: string } }) {
+/**
+ * Inline citation marker. Tiny mono superscript in accent color, sits next
+ * to the phrase it supports. Numbers match the citation cards on the right
+ * — this is the visual tether the section headline names.
+ */
+function Cite({ n }: { n: number }) {
+  return (
+    <sup
+      aria-label={`Citation ${n}`}
+      className="ml-[1px] inline-block translate-y-[-0.15em] font-mono text-[0.5em] font-medium tracking-[0.06em] text-accent-700"
+    >
+      {String(n).padStart(2, "0")}
+    </sup>
+  );
+}
+
+/**
+ * Primary answer card — the AI's voice. Drop-cap quote mark, serif body,
+ * inline citation markers, and an editor footer that explicitly names how
+ * many posts grounded the response. The footer's "grounded in N posts"
+ * cross-references the citation column.
+ */
+function PrimaryAnswerCard() {
   return (
     <figure className="md:col-span-7">
-      <div className="relative rounded-md border border-ink-200/70 bg-white p-7 shadow-soft md:p-9">
-        {/* Hairline accent on top edge */}
+      <div className="group relative flex h-full flex-col rounded-md border border-ink-200/70 bg-white p-7 shadow-soft transition-shadow duration-300 ease-editorial hover:shadow-lift md:p-9">
+        {/* Hairline accent on top edge — the same signature used on the
+            hero's sample answer card. */}
         <span
           aria-hidden="true"
           className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-accent-200/0 via-accent-300 to-accent-200/0"
@@ -179,26 +348,76 @@ function FeatureInsight({ insight }: { insight: { quote: string; source: string 
         <span aria-hidden="true" className="font-serif text-[56px] leading-none text-accent-300">
           &ldquo;
         </span>
-        <blockquote className="-mt-2 font-serif text-[22px] leading-[1.4] tracking-tightish text-ink-900 md:text-[24px]">
-          {insight.quote}
+        <blockquote className="-mt-2 font-serif text-[22px] leading-[1.45] tracking-tightish text-ink-900 md:text-[24px]">
+          Across your archive, your strongest pieces open with a{" "}
+          <mark className="rounded-sm bg-accent-100/70 px-0.5 text-ink-900">personal observation</mark>
+          <Cite n={1} /> before moving into a broader product or culture argument
+          <Cite n={2} />. Your recent essays on AI tools use this structure less
+          <Cite n={3} />, which makes them feel more like commentary than your best work.
         </blockquote>
-        <figcaption className="mt-6 flex items-center gap-3">
-          <span className="h-px w-8 bg-accent-400" aria-hidden="true" />
-          <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-500">{insight.source}</span>
+        <figcaption className="mt-7 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-ink-200/60 pt-4">
+          <span className="flex items-center gap-2">
+            <span className="accent-rule" />
+            <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent-700">Editor</span>
+          </span>
+          <span className="text-ink-300" aria-hidden="true">
+            ·
+          </span>
+          <span className="font-mono text-[11px] tracking-tightish text-ink-500">Analyzed 6 posts</span>
+          <span className="text-ink-300" aria-hidden="true">
+            ·
+          </span>
+          <span className="font-mono text-[11px] tracking-tightish text-ink-500">3 cited below</span>
         </figcaption>
       </div>
     </figure>
   );
 }
 
-function SupportingInsight({ insight }: { insight: { quote: string; source: string } }) {
+/**
+ * The evidence column. An eyebrow names the relationship explicitly, then
+ * three numbered citation cards stack beneath. The numbers match the inline
+ * markers in the answer; that shared numbering is the connector motif.
+ */
+function CitationColumn({ posts }: { posts: typeof CITED_POSTS }) {
   return (
-    <figure className="rounded-md border border-ink-200/70 bg-ink-50/40 p-6">
-      <blockquote className="font-serif text-[15.5px] leading-relaxed text-ink-800">{insight.quote}</blockquote>
-      <figcaption className="mt-4 font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-500">
-        {insight.source}
-      </figcaption>
-    </figure>
+    <aside className="flex flex-col gap-3 md:col-span-5">
+      <div className="flex items-center justify-between gap-3">
+        <span className="flex items-center gap-2 type-eyebrow text-accent-700">
+          <span className="accent-rule" />
+          Cited from your archive
+        </span>
+        <span className="font-mono text-[10.5px] text-ink-400"></span>
+      </div>
+      {posts.map((post, i) => (
+        <CitationCard key={post.title} num={i + 1} post={post} />
+      ))}
+    </aside>
+  );
+}
+
+/**
+ * Single citation row. Numbered badge + date in monospace, post title in
+ * serif, italic excerpt below. On hover the card lifts a hair, the border
+ * shifts to accent, and the badge tone deepens — the visual rhyme with the
+ * inline marker becomes momentarily explicit.
+ */
+function CitationCard({ num, post }: { num: number; post: (typeof CITED_POSTS)[number] }) {
+  return (
+    <article className="group flex flex-col gap-1.5 rounded-md border border-ink-200/70 bg-white p-4 transition-all duration-200 ease-editorial hover:-translate-y-px hover:border-accent-300 hover:shadow-soft">
+      <div className="flex items-center gap-2.5">
+        <span className="grid h-5 min-w-7 place-items-center rounded-sm bg-accent-50 px-1 font-mono text-[10.5px] font-medium text-accent-700 transition-colors duration-200 ease-editorial group-hover:bg-accent-100">
+          {String(num).padStart(2, "0")}
+        </span>
+        <span className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-500">{post.date}</span>
+      </div>
+      <h4 className="font-serif text-[15.5px] leading-snug tracking-tightish text-ink-900">{post.title}</h4>
+      {post.excerpt && (
+        <p className="line-clamp-2 text-[12.5px] italic leading-snug text-ink-500">
+          &ldquo;{post.excerpt}…&rdquo;
+        </p>
+      )}
+    </article>
   );
 }
 

@@ -274,6 +274,38 @@ body {
   animation: editorial-caret 1.05s steps(1, end) infinite;
 }
 
+/* === Editorial shimmer ===
+   Very-low-amplitude opacity oscillation. Used on archive marginalia in
+   the closing section to suggest a quiet, breathing system without
+   crossing into animation noise. 12-second cycle, opacity 1 → 0.78 → 1.
+   Different elements receive different `animation-delay` values so the
+   group breathes out of phase, like memories surfacing at their own
+   rhythms.
+*/
+@keyframes editorial-shimmer {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.78; }
+}
+.animate-editorial-shimmer {
+  animation: editorial-shimmer 12s ease-in-out infinite;
+}
+
+/* === Editorial draw ===
+   Line scales out from its origin to suggest the eye is reading or the
+   editor is annotating. Used for connector hairlines and accent rules
+   that should "draw in" after the surrounding section settles. Always
+   pair with `transform-origin: left center` (or `top center` for
+   verticals) to control direction.
+*/
+@keyframes editorial-draw {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+.animate-editorial-draw {
+  animation: editorial-draw 1.6s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+  transform-origin: left center;
+}
+
 /* === Editorial nudge ===
    Calm, decaying validation feedback. Replaces the conventional red-text
    error string when the user submits an empty input. Four oscillations
@@ -326,7 +358,10 @@ body {
   .animate-fade,
   .animate-editorial-pulse,
   .animate-editorial-caret,
-  .animate-editorial-nudge {
+  .animate-editorial-nudge,
+  .animate-editorial-draw,
+  .animate-editorial-shimmer {
     animation: none;
+    transform: none;
   }
 }
