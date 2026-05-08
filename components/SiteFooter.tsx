@@ -15,8 +15,8 @@ export function SiteFooter() {
 
 function LandingFooter() {
   return (
-    <footer className="mt-24 border-t border-ink-200/50">
-      <div className="mx-auto max-w-3xl px-6 py-16 text-center">
+    <footer className="border-t border-ink-200/50">
+      <div className="mx-auto max-w-3xl px-6 py-10 text-center">
         {/* The mantra. Italic affirmation, roman negation — the editorial
             rhythm carries the emphasis without shouting. */}
         <p className="font-serif text-[20px] leading-[1.3] tracking-tightish md:text-[22px]">
