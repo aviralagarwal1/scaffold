@@ -8,8 +8,8 @@ import { Markdown } from "./Markdown";
 import { SourceCitationList } from "./SourceCitation";
 import { LoadingState } from "./states";
 
-// Six MECE editorial dimensions: three positional (where in the piece),
-// two stylistic (how the prose reads), one substantive (what it says).
+// Core dimensions stay first. Additional rows move from larger editorial
+// mechanics toward more granular line/argument controls.
 // Ids match the keys the backend's FOCUS_GUIDANCE table expects.
 const FOCUS_DIMENSIONS = [
   { id: "hook", label: "Hook" },
@@ -18,7 +18,25 @@ const FOCUS_DIMENSIONS = [
   { id: "voice", label: "Voice" },
   { id: "clarity", label: "Clarity" },
   { id: "originality", label: "Originality" },
+  { id: "argument", label: "Argument" },
+  { id: "insight", label: "Insight" },
+  { id: "evidence", label: "Evidence" },
+  { id: "nuance", label: "Nuance" },
+  { id: "framing", label: "Framing" },
+  { id: "stakes", label: "Stakes" },
+  { id: "narrative", label: "Narrative" },
+  { id: "tension", label: "Tension" },
+  { id: "pacing", label: "Pacing" },
+  { id: "transitions", label: "Transitions" },
+  { id: "rhythm", label: "Rhythm" },
+  { id: "specificity", label: "Specificity" },
+  { id: "cohesion", label: "Cohesion" },
+  { id: "compression", label: "Compression" },
 ] as const;
+
+const CORE_FOCUS_COUNT = 6;
+const FOCUS_REVEAL_STEPS = [CORE_FOCUS_COUNT, 11, FOCUS_DIMENSIONS.length] as const;
+const CORE_FOCUS_IDS = FOCUS_DIMENSIONS.slice(0, CORE_FOCUS_COUNT).map((dimension) => dimension.id);
 
 export function DraftFeedbackPanel({ token, disabled }: { token: string; disabled?: boolean }) {
   const [draft, setDraft] = useState("");
@@ -26,13 +44,30 @@ export function DraftFeedbackPanel({ token, disabled }: { token: string; disable
   const [result, setResult] = useState<DraftFeedbackResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [focus, setFocus] = useState<string[]>([]);
+  const [focusAlerting, setFocusAlerting] = useState(false);
   const ref = useRef<HTMLTextAreaElement>(null);
 
   const wordCount = draft.trim() ? draft.trim().split(/\s+/).length : 0;
-  const canSubmit = !disabled && !busy && draft.trim().length > 0 && focus.length > 0;
+  const canReview = !disabled && !busy && draft.trim().length > 0;
 
   const toggleFocus = (id: string) => {
     setFocus((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
+  const resetFocusExtras = () => {
+    setFocus((prev) => prev.filter((id) => CORE_FOCUS_IDS.includes(id as (typeof CORE_FOCUS_IDS)[number])));
+  };
+
+  const clearFocus = () => {
+    setFocus([]);
+  };
+
+  const triggerFocusAlert = () => {
+    setFocusAlerting(false);
+    requestAnimationFrame(() => {
+      setFocusAlerting(true);
+      window.setTimeout(() => setFocusAlerting(false), 450);
+    });
   };
 
   // Auto-expand the textarea so it grows with the draft. CSS min-h sets the
@@ -47,7 +82,11 @@ export function DraftFeedbackPanel({ token, disabled }: { token: string; disable
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmit) return;
+    if (!canReview) return;
+    if (focus.length === 0) {
+      triggerFocusAlert();
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -79,7 +118,23 @@ export function DraftFeedbackPanel({ token, disabled }: { token: string; disable
           <label htmlFor="draft" className="type-h3">
             Paste your draft
           </label>
-          <span className="type-meta">{wordCount.toLocaleString()} words</span>
+          <div className="flex items-center gap-2 type-meta">
+            <span>{wordCount.toLocaleString()} words</span>
+            {draft.trim().length > 0 && !busy && (
+              <>
+                <span aria-hidden="true" className="text-ink-300">
+                  ·
+                </span>
+                <button
+                  type="button"
+                  onClick={clearDraft}
+                  className="transition-colors hover:text-ink-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300"
+                >
+                  Clear draft
+                </button>
+              </>
+            )}
+          </div>
         </div>
         <textarea
           ref={ref}
@@ -90,22 +145,11 @@ export function DraftFeedbackPanel({ token, disabled }: { token: string; disable
           disabled={disabled || busy}
           className="input block max-h-[680px] min-h-[320px] resize-none overflow-y-auto font-serif text-[15.5px] leading-relaxed transition-colors duration-200 ease-editorial hover:border-ink-300"
         />
-        <div className="flex items-center justify-between gap-3 pt-1">
-          {draft.trim().length > 0 && !busy ? (
-            <button
-              type="button"
-              onClick={clearDraft}
-              className="text-[12.5px] text-ink-400 transition-colors hover:text-ink-700"
-            >
-              Clear draft
-            </button>
-          ) : (
-            <span aria-hidden="true" />
-          )}
+        <div className="flex items-center justify-end gap-3 pt-1">
           <button
             type="submit"
             className="btn-primary group gap-1.5"
-            disabled={!canSubmit}
+            disabled={!canReview}
           >
             {busy ? (
               <>
@@ -129,7 +173,13 @@ export function DraftFeedbackPanel({ token, disabled }: { token: string; disable
 
       <div className="flex flex-col gap-4">
         {!result && !busy && (
-          <FocusPanel focus={focus} toggleFocus={toggleFocus} />
+          <FocusPanel
+            focus={focus}
+            toggleFocus={toggleFocus}
+            clearFocus={clearFocus}
+            resetFocusExtras={resetFocusExtras}
+            alerting={focusAlerting}
+          />
         )}
         {busy && (
           <div className="panel p-5">
@@ -171,12 +221,35 @@ export function DraftFeedbackPanel({ token, disabled }: { token: string; disable
 function FocusPanel({
   focus,
   toggleFocus,
+  clearFocus,
+  resetFocusExtras,
+  alerting,
 }: {
   focus: string[];
   toggleFocus: (id: string) => void;
+  clearFocus: () => void;
+  resetFocusExtras: () => void;
+  alerting: boolean;
 }) {
+  const [visibleCount, setVisibleCount] = useState(CORE_FOCUS_COUNT);
+  const visibleDimensions = FOCUS_DIMENSIONS.slice(0, visibleCount);
+  const hasMore = visibleCount < FOCUS_DIMENSIONS.length;
+  const expanded = visibleCount > CORE_FOCUS_COUNT;
+  const showMore = () => {
+    setVisibleCount((count) => FOCUS_REVEAL_STEPS.find((step) => step > count) ?? FOCUS_DIMENSIONS.length);
+  };
+  const resetFocusRows = () => {
+    setVisibleCount(CORE_FOCUS_COUNT);
+    resetFocusExtras();
+  };
+
   return (
-    <article className="relative flex flex-col overflow-hidden rounded-md border border-ink-200/80 bg-white shadow-soft">
+    <article
+      className={cn(
+        "relative flex flex-col overflow-hidden rounded-md border border-ink-200/80 bg-white shadow-soft",
+        alerting && "animate-editorial-nudge border-ink-300",
+      )}
+    >
       <span
         aria-hidden="true"
         className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-accent-200/0 via-accent-300 to-accent-200/0"
@@ -185,9 +258,29 @@ function FocusPanel({
         <span className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-accent-700">
           Editorial focus
         </span>
-        <span className="font-mono text-[10.5px] text-ink-500">
-          {focus.length}/{FOCUS_DIMENSIONS.length}
-        </span>
+        <div className="flex items-center gap-3">
+          {focus.length > 0 && (
+            <button
+              type="button"
+              onClick={clearFocus}
+              className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-400 transition-colors hover:text-ink-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300"
+            >
+              Unselect
+            </button>
+          )}
+          {expanded && (
+            <button
+              type="button"
+              onClick={resetFocusRows}
+              className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-400 transition-colors hover:text-ink-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300"
+            >
+              Reset
+            </button>
+          )}
+          <span className="font-mono text-[10.5px] text-ink-500">
+            {focus.length}/{visibleDimensions.length}
+          </span>
+        </div>
       </header>
       <div className="flex flex-col gap-5 p-6">
         <div>
@@ -197,7 +290,7 @@ function FocusPanel({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {FOCUS_DIMENSIONS.map((d) => {
+          {visibleDimensions.map((d) => {
             const selected = focus.includes(d.id);
             return (
               <button
@@ -216,6 +309,18 @@ function FocusPanel({
               </button>
             );
           })}
+          {hasMore && (
+            <button
+              type="button"
+              onClick={showMore}
+              aria-label="Show more editorial focus options"
+              className="inline-flex h-[33px] w-[33px] items-center justify-center rounded-full border border-ink-200 bg-white font-serif text-[21px] leading-none text-accent-700 transition-all duration-200 ease-editorial hover:-translate-y-px hover:border-accent-300 hover:bg-accent-50/50 hover:text-accent-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+            >
+              <span aria-hidden="true" className="-translate-y-px">
+                +
+              </span>
+            </button>
+          )}
         </div>
       </div>
     </article>

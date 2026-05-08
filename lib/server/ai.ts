@@ -228,8 +228,8 @@ export async function answerArchiveQuestion(token: string, message: string): Pro
 }
 
 // Editorial focus dimensions. Each entry is the writer-facing label and the
-// guidance the model receives when this dimension is selected. Six MECE one-
-// worders: three positional, two stylistic, one substantive.
+// guidance the model receives when this dimension is selected. The order
+// moves from core editorial checks to more granular prose/argument controls.
 const FOCUS_GUIDANCE: Record<string, { label: string; guide: string }> = {
   hook: {
     label: "Hook",
@@ -254,6 +254,62 @@ const FOCUS_GUIDANCE: Record<string, { label: string; guide: string }> = {
   originality: {
     label: "Originality",
     guide: "Originality — freshness of the angle and the argument relative to the writer's prior work.",
+  },
+  argument: {
+    label: "Argument",
+    guide: "Argument — strength, specificity, and progression of the central claim and supporting claims.",
+  },
+  insight: {
+    label: "Insight",
+    guide: "Insight — whether the piece gives the reader a non-obvious realization, sharper understanding, or memorable idea.",
+  },
+  evidence: {
+    label: "Evidence",
+    guide: "Evidence — whether examples, facts, anecdotes, or archive-grounded proof adequately support the claims.",
+  },
+  nuance: {
+    label: "Nuance",
+    guide: "Nuance — whether the piece handles complexity, caveats, tensions, and fair opposing views without muddying the thesis.",
+  },
+  framing: {
+    label: "Framing",
+    guide: "Framing — the lens, promise, and context that tell the reader how to understand the piece.",
+  },
+  stakes: {
+    label: "Stakes",
+    guide: "Stakes — whether the piece makes clear why the subject matters now and what changes for the reader.",
+  },
+  narrative: {
+    label: "Narrative",
+    guide: "Narrative — how well scenes, anecdotes, chronology, or story movement carry the reader through the piece.",
+  },
+  tension: {
+    label: "Tension",
+    guide: "Tension — the unresolved question, contrast, or pressure that keeps the reader invested.",
+  },
+  pacing: {
+    label: "Pacing",
+    guide: "Pacing — macro speed of the piece: where it lingers too long, rushes, or needs a turn.",
+  },
+  transitions: {
+    label: "Transitions",
+    guide: "Transitions — how cleanly the piece moves between sections, examples, claims, and emotional registers.",
+  },
+  rhythm: {
+    label: "Rhythm",
+    guide: "Rhythm — sentence cadence, variation, and momentum at the paragraph and line level.",
+  },
+  specificity: {
+    label: "Specificity",
+    guide: "Specificity — where abstract language should become concrete, named, sensory, or example-driven.",
+  },
+  cohesion: {
+    label: "Cohesion",
+    guide: "Cohesion — whether paragraphs and ideas belong together and reinforce the same through-line.",
+  },
+  compression: {
+    label: "Compression",
+    guide: "Compression — places to tighten repetition, throat-clearing, hedging, or low-value exposition.",
   },
 };
 
