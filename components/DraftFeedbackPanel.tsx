@@ -36,7 +36,7 @@ export function DraftFeedbackPanel({ token, disabled }: { token: string; disable
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
         <div className="flex items-baseline justify-between">
           <label htmlFor="draft" className="type-h3">
-            Paste a draft
+            Paste your draft
           </label>
           <span className="type-meta">{wordCount.toLocaleString()} words</span>
         </div>
@@ -45,12 +45,11 @@ export function DraftFeedbackPanel({ token, disabled }: { token: string; disable
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           rows={20}
-          placeholder="Paste a draft here. Get feedback grounded in your existing voice, structure, and recurring themes."
+          placeholder="Paste a draft to begin..."
           disabled={disabled || busy}
           className="input min-h-[440px] resize-y font-serif text-[15.5px] leading-relaxed"
         />
         <div className="flex items-center justify-between">
-          <p className="type-meta">We compare against your archive: voice, structure, similarity, repeated arguments.</p>
           <button type="submit" className="btn-primary" disabled={disabled || busy || !draft.trim()}>
             {busy ? "Reading your draft" : "Get editorial feedback"}
           </button>

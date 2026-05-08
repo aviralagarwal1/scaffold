@@ -14,8 +14,8 @@ export default function DraftPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Editorial feedback on a draft."
-        meta={ready ? "Compared against your archive. Voice, structure, and similar posts. No full rewrites." : undefined}
+        title="Editorial feedback on your draft."
+        meta={ready ? "Grounded in the patterns already present in your writing." : undefined}
       />
       {!ready ? (
         <NotReadyNotice status={overview.status} token={token} feature="Draft feedback" />

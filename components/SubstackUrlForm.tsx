@@ -153,7 +153,7 @@ export function SubstackUrlForm({
           className="pointer-events-none absolute inset-y-0 left-5 flex items-center font-serif text-[17px] italic text-ink-400 transition-opacity duration-200 ease-editorial"
           style={{ opacity: showCue ? 1 : 0 }}
         >
-          <span className="inline-block h-[19px] w-[1.5px] -translate-y-[1px] bg-ink-900 animate-editorial-caret" />
+          <span className="inline-block h-[17px] w-[1.5px] bg-ink-900 animate-editorial-caret" />
           <span className="ml-[3px]">yourname.substack.com</span>
         </div>
       </div>
