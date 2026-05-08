@@ -123,21 +123,24 @@ function ArchiveRail({
   return (
     <div className="flex flex-col gap-5">
       {hasThemes && (
-        <div className="rounded-md border border-ink-200/70 bg-ink-50/40 p-5">
-          <div className="flex items-baseline justify-between gap-3">
-            <span className="type-eyebrow text-ink-400">Recurring themes</span>
-            <span className="font-mono text-[10.5px] text-ink-400">
+        <article className="relative flex flex-col overflow-hidden rounded-md border border-ink-200/80 bg-white shadow-soft">
+          <span aria-hidden="true" className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-accent-200/0 via-accent-300 to-accent-200/0" />
+          <header className="flex items-center justify-between gap-3 border-b border-ink-200/60 bg-ink-50/40 px-5 py-2.5">
+            <span className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-accent-700">Recurring themes</span>
+            <span className="font-mono text-[10.5px] text-ink-500">
               {pluralize(themes.length, "theme")}
             </span>
+          </header>
+          <div className="p-6">
+            <div className="flex flex-wrap gap-1.5">
+              {themes.map((t) => (
+                <span key={t} className="theme-chip">
+                  {t}
+                </span>
+              ))}
+            </div>
           </div>
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {themes.map((t) => (
-              <span key={t} className="theme-chip">
-                {t}
-              </span>
-            ))}
-          </div>
-        </div>
+        </article>
       )}
 
       {hasLatest && <FeaturedLatestPost post={latestPost} />}

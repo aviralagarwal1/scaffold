@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import type { DraftFeedbackResponse } from "@/types/ai";
 import { api, ApiClientError } from "@/lib/client/api";
 import { Markdown } from "./Markdown";
@@ -12,8 +12,19 @@ export function DraftFeedbackPanel({ token, disabled }: { token: string; disable
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<DraftFeedbackResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const ref = useRef<HTMLTextAreaElement>(null);
 
   const wordCount = draft.trim() ? draft.trim().split(/\s+/).length : 0;
+
+  // Auto-expand the textarea so it grows with the draft. CSS min-h sets the
+  // floor (substantial enough to invite a real essay), max-h caps it at a
+  // page-friendly height — past that the field scrolls internally.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [draft]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,6 +42,17 @@ export function DraftFeedbackPanel({ token, disabled }: { token: string; disable
     }
   };
 
+  const clearDraft = () => {
+    setDraft("");
+    setError(null);
+    ref.current?.focus();
+  };
+
+  const clearResult = () => {
+    setResult(null);
+    setError(null);
+  };
+
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
@@ -41,17 +63,42 @@ export function DraftFeedbackPanel({ token, disabled }: { token: string; disable
           <span className="type-meta">{wordCount.toLocaleString()} words</span>
         </div>
         <textarea
+          ref={ref}
           id="draft"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          rows={20}
-          placeholder="Paste a draft to begin..."
+          placeholder="Paste your draft to begin ..."
           disabled={disabled || busy}
-          className="input min-h-[440px] resize-y font-serif text-[15.5px] leading-relaxed"
+          className="input block max-h-[680px] min-h-[320px] resize-none overflow-y-auto font-serif text-[15.5px] leading-relaxed transition-colors duration-200 ease-editorial hover:border-ink-300"
         />
-        <div className="flex items-center justify-between">
-          <button type="submit" className="btn-primary" disabled={disabled || busy || !draft.trim()}>
-            {busy ? "Reading your draft" : "Get editorial feedback"}
+        <div className="flex items-center justify-between gap-3 pt-1">
+          {draft.trim().length > 0 && !busy ? (
+            <button
+              type="button"
+              onClick={clearDraft}
+              className="text-[12.5px] text-ink-400 transition-colors hover:text-ink-700"
+            >
+              Clear draft
+            </button>
+          ) : (
+            <span aria-hidden="true" />
+          )}
+          <button
+            type="submit"
+            className="btn-primary group gap-1.5"
+            disabled={disabled || busy || !draft.trim()}
+          >
+            {busy ? (
+              <>
+                <span aria-hidden="true" className="inline-block h-1.5 w-1.5 animate-editorial-pulse rounded-full bg-ink-50" />
+                <span>Reading your draft</span>
+              </>
+            ) : (
+              <>
+                <span>Review draft</span>
+                <span aria-hidden="true" className="btn-ask-arrow">→</span>
+              </>
+            )}
           </button>
         </div>
         {error && (
@@ -75,11 +122,20 @@ export function DraftFeedbackPanel({ token, disabled }: { token: string; disable
           </div>
         )}
         {result && (
-          <article className="panel-feature flex flex-col gap-5 p-6">
+          <article className="panel-feature animate-rise flex flex-col gap-5 p-6">
             <div>
-              <div className="flex items-center gap-2 type-eyebrow-accent">
-                <span className="accent-rule" />
-                Editorial read
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 type-eyebrow-accent">
+                  <span className="accent-rule" />
+                  Editorial read
+                </div>
+                <button
+                  type="button"
+                  onClick={clearResult}
+                  className="text-[12.5px] text-ink-400 transition-colors hover:text-ink-700"
+                >
+                  Clear read
+                </button>
               </div>
               <div className="mt-3 prose-editorial">
                 <Markdown text={result.feedback} />
