@@ -50,7 +50,7 @@ export function WorkspaceNav({
           <div className="flex min-w-0 flex-col gap-2">
             {/* Status + name */}
             <div className="flex items-center gap-3">
-              {status && <StatusDot tone={status.tone} />}
+              {status && <StatusDot tone={status.tone} label={status.label} />}
               <h1 className="font-serif text-[26px] leading-none tracking-tightish text-ink-900 md:text-[30px]">
                 {overview?.publicationName ?? "Your Substack"}
               </h1>
@@ -72,14 +72,6 @@ export function WorkspaceNav({
                   <>
                     <Dot />
                     <span>{pluralize(overview.topThemes.length, "theme")} detected</span>
-                  </>
-                )}
-                {status && (
-                  <>
-                    <Dot />
-                    <span className={cn("uppercase tracking-[0.12em]", toneTextClass(status.tone))}>
-                      {status.label}
-                    </span>
                   </>
                 )}
               </div>
@@ -130,7 +122,13 @@ export function WorkspaceNav({
   );
 }
 
-function StatusDot({ tone }: { tone: "live" | "working" | "idle" | "down" }) {
+function StatusDot({
+  tone,
+  label,
+}: {
+  tone: "live" | "working" | "idle" | "down";
+  label?: string;
+}) {
   const dotClass =
     tone === "live"
       ? "bg-positive-500"
@@ -150,9 +148,16 @@ function StatusDot({ tone }: { tone: "live" | "working" | "idle" | "down" }) {
   const animate = tone === "live" || tone === "working";
 
   return (
-    <span className="relative flex h-2 w-2 shrink-0" aria-hidden="true">
-      {animate && <span className={cn("absolute inline-flex h-full w-full animate-editorial-pulse rounded-full", halo)} />}
-      <span className={cn("relative inline-flex h-2 w-2 rounded-full", dotClass)} />
+    <span
+      className="relative flex h-2 w-2 shrink-0"
+      title={label}
+      role={label ? "status" : undefined}
+      aria-label={label}
+    >
+      {animate && (
+        <span aria-hidden="true" className={cn("absolute inline-flex h-full w-full animate-editorial-pulse rounded-full", halo)} />
+      )}
+      <span aria-hidden="true" className={cn("relative inline-flex h-2 w-2 rounded-full", dotClass)} />
     </span>
   );
 }
@@ -163,17 +168,4 @@ function Dot() {
       ·
     </span>
   );
-}
-
-function toneTextClass(tone: "live" | "working" | "idle" | "down"): string {
-  switch (tone) {
-    case "live":
-      return "text-positive-700";
-    case "working":
-      return "text-accent-700";
-    case "down":
-      return "text-critical-700";
-    default:
-      return "text-ink-500";
-  }
 }
