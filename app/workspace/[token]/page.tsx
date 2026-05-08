@@ -117,10 +117,6 @@ export default function OverviewPage() {
         </aside>
       </div>
 
-      {/* Disclaimer */}
-      <p className="animate-fade animate-delay-5 text-center text-[12px] leading-relaxed text-ink-500">
-        Reads only your public archive. Subscriber, open, and click data stay with Substack.
-      </p>
     </div>
   );
 }
