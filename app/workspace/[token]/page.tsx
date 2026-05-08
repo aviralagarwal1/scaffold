@@ -36,7 +36,7 @@ export default function OverviewPage() {
 
       {/* Asymmetric main composition */}
       <div className="grid gap-8 md:grid-cols-12 md:gap-x-10">
-        {/* Left: where to start + themes */}
+        {/* Left: where to start */}
         <section className="animate-rise animate-delay-3 flex flex-col gap-6 md:col-span-7">
           {ready && (
             <>
@@ -78,45 +78,69 @@ export default function OverviewPage() {
               </div>
             </>
           )}
-
-          {/* Recurring themes — inline below cards */}
-          {overview.topThemes.length > 0 && (
-            <div className="rounded-md border border-ink-200/70 bg-ink-50/40 p-5">
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="type-eyebrow text-ink-400">Recurring themes</span>
-                <span className="font-mono text-[10.5px] text-ink-400">
-                  {pluralize(overview.topThemes.length, "theme")}
-                </span>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {overview.topThemes.map((t) => (
-                  <span key={t} className="tag">
-                    {t}
-                  </span>
-                ))}
-              </div>
-              <p className="mt-3 text-[12.5px] leading-relaxed text-ink-500">
-                Detected qualitatively from your posts. Patterns, not performance metrics.
-              </p>
-            </div>
-          )}
         </section>
 
-        {/* Right: featured latest post */}
+        {/* Right: archive rail — themes above, latest post below, one composed surface */}
         <aside className="animate-rise animate-delay-4 md:col-span-5">
-          {overview.latestPost ? (
-            <FeaturedLatestPost post={overview.latestPost} />
-          ) : (
-            <div className="rounded-md border border-dashed border-ink-200 bg-white p-6 text-center">
-              <span className="type-eyebrow text-ink-400">Latest post</span>
-              <p className="mt-2 text-[14px] text-ink-500">
-                Once we finish reading your archive, your latest essay will live here.
-              </p>
-            </div>
-          )}
+          <ArchiveRail
+            themes={overview.topThemes}
+            latestPost={overview.latestPost}
+          />
         </aside>
       </div>
 
+    </div>
+  );
+}
+
+function ArchiveRail({
+  themes,
+  latestPost,
+}: {
+  themes: string[];
+  latestPost: {
+    title: string;
+    subtitle: string | null;
+    url: string;
+    publishedAt: string | null;
+    wordCount: number;
+  } | null;
+}) {
+  const hasThemes = themes.length > 0;
+  const hasLatest = !!latestPost;
+
+  if (!hasThemes && !hasLatest) {
+    return (
+      <div className="rounded-md border border-dashed border-ink-200 bg-white p-6 text-center">
+        <span className="type-eyebrow text-ink-400">Archive</span>
+        <p className="mt-2 text-[14px] text-ink-500">
+          Once we finish reading your archive, themes and your latest essay will live here.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      {hasThemes && (
+        <div className="rounded-md border border-ink-200/70 bg-ink-50/40 p-5">
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="type-eyebrow text-ink-400">Recurring themes</span>
+            <span className="font-mono text-[10.5px] text-ink-400">
+              {pluralize(themes.length, "theme")}
+            </span>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {themes.map((t) => (
+              <span key={t} className="theme-chip">
+                {t}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {hasLatest && <FeaturedLatestPost post={latestPost} />}
     </div>
   );
 }

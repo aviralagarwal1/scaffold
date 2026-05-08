@@ -191,6 +191,12 @@ body {
   .tag-accent {
     @apply inline-flex items-center rounded-full border border-accent-200 bg-accent-50 px-2.5 py-0.5 text-[11px] font-medium tracking-tightish text-accent-700;
   }
+  /* Recurring-theme chip. Calm at rest; on hover the archive quietly warms —
+     soft accent tint, a delicate ambient ring, and a barely-there lift. Motion
+     stays restrained so the panel still reads as a literary surface. */
+  .theme-chip {
+    @apply inline-flex cursor-default items-center rounded-full border border-ink-200 bg-ink-50 px-2.5 py-0.5 text-[11px] font-medium tracking-tightish text-ink-600 shadow-[0_0_0_0_rgba(232,194,164,0)] transition-all duration-200 ease-editorial hover:-translate-y-px hover:border-accent-200 hover:bg-accent-50 hover:text-accent-700 hover:shadow-[0_0_0_3px_rgba(232,194,164,0.18)];
+  }
 
   /* === Editorial accent rule ===
      RESERVED for AI voice moments only:
