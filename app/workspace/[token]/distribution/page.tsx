@@ -1,0 +1,50 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import type { PostSummary } from "@/types/post";
+import { useWorkspace } from "@/components/WorkspaceProvider";
+import { DistributionPanel } from "@/components/DistributionPanel";
+import { NotReadyNotice } from "@/components/NotReadyNotice";
+import { LoadingState } from "@/components/states";
+import { api } from "@/lib/client/api";
+import { PageHeader } from "@/components/PageHeader";
+
+export default function DistributionPage() {
+  const { token, overview } = useWorkspace();
+  const [posts, setPosts] = useState<PostSummary[] | null>(null);
+  const ready = overview?.status === "ready" || overview?.status === "partial";
+
+  useEffect(() => {
+    if (!ready) return;
+    let active = true;
+    api
+      .listPosts(token)
+      .then((list) => {
+        if (active) setPosts(list);
+      })
+      .catch(() => {
+        if (active) setPosts([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [ready, token]);
+
+  if (!overview) return null;
+
+  return (
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Repurposing drafts."
+        meta={ready ? "Platform-aware drafts for Twitter/X, LinkedIn, and Reddit. Saved here. Never auto-posted." : undefined}
+      />
+      {!ready ? (
+        <NotReadyNotice status={overview.status} token={token} feature="Distribution" />
+      ) : posts === null ? (
+        <LoadingState label="Loading posts" />
+      ) : (
+        <DistributionPanel token={token} posts={posts} />
+      )}
+    </div>
+  );
+}

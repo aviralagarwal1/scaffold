@@ -1,0 +1,266 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --selection-bg: #f4e1d2;
+  --selection-fg: #141311;
+}
+
+html,
+body {
+  background-color: theme("colors.ink.50");
+  color: theme("colors.ink.800");
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-family: theme("fontFamily.sans");
+  font-feature-settings: "kern", "liga", "calt", "ss01";
+}
+
+::selection {
+  background-color: var(--selection-bg);
+  color: var(--selection-fg);
+}
+
+/* Subtle paper texture on the page background. Almost invisible, but it lifts
+   flat surfaces away from looking like a default Tailwind canvas. */
+.page-grain {
+  background-image: radial-gradient(rgba(20, 18, 15, 0.025) 1px, transparent 1px);
+  background-size: 22px 22px;
+  background-position: -11px -11px;
+}
+
+@layer base {
+  h1,
+  h2,
+  h3 {
+    color: theme("colors.ink.900");
+    letter-spacing: -0.012em;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  button {
+    font-family: inherit;
+  }
+
+  ::placeholder {
+    color: theme("colors.ink.400");
+  }
+
+  input,
+  textarea,
+  select {
+    font-family: inherit;
+    font-feature-settings: "kern", "liga";
+  }
+
+  input[type="search"]::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+}
+
+@layer components {
+  /* === Type === */
+  .type-display {
+    @apply font-serif text-[40px] leading-[1.05] tracking-tighter2 text-ink-900;
+  }
+  .type-h1 {
+    @apply font-serif text-3xl leading-[1.1] tracking-tightish text-ink-900;
+  }
+  .type-h2 {
+    @apply font-serif text-2xl leading-[1.15] tracking-tightish text-ink-900;
+  }
+  .type-h3 {
+    @apply font-serif text-lg leading-snug text-ink-900;
+  }
+  .type-body {
+    @apply text-body text-ink-700;
+  }
+  .type-meta {
+    @apply text-meta text-ink-500;
+  }
+  .type-eyebrow {
+    @apply text-eyebrow font-medium uppercase text-ink-500;
+  }
+  .type-eyebrow-accent {
+    @apply text-eyebrow font-medium uppercase text-accent-700;
+  }
+
+  /* === Buttons === */
+  .btn-primary {
+    @apply inline-flex h-9 items-center justify-center rounded-md bg-ink-900 px-4 text-[13px] font-medium tracking-tightish text-ink-50 shadow-soft transition-colors duration-150 ease-editorial hover:bg-ink-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-50 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary-lg {
+    @apply h-11 px-5 text-sm;
+  }
+  .btn-secondary {
+    @apply inline-flex h-9 items-center justify-center rounded-md border border-ink-200 bg-white px-3.5 text-[13px] font-medium text-ink-800 transition-colors duration-150 ease-editorial hover:border-ink-300 hover:bg-ink-75 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-50 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-ghost {
+    @apply inline-flex h-9 items-center justify-center rounded-md px-3 text-[13px] font-medium text-ink-600 transition-colors duration-150 hover:bg-ink-100 hover:text-ink-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300;
+  }
+  .btn-link {
+    @apply inline-flex items-center gap-1 text-[13px] font-medium text-ink-800 underline-offset-[3px] transition-colors hover:text-accent-700 hover:underline;
+  }
+  .btn-danger-ghost {
+    @apply inline-flex h-9 items-center justify-center rounded-md px-3 text-[13px] font-medium text-critical-700 transition-colors hover:bg-critical-100/60;
+  }
+
+  /* === Form === */
+  .input {
+    @apply h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-[14px] text-ink-900 placeholder-ink-400 transition-colors duration-150 ease-editorial focus:border-ink-400 focus:outline-none focus:ring-2 focus:ring-accent-200/70 disabled:cursor-not-allowed disabled:bg-ink-75/50 disabled:text-ink-500;
+  }
+  .input-lg {
+    @apply h-12 px-4 text-[15px];
+  }
+  textarea.input {
+    @apply h-auto py-2.5 leading-[1.55];
+  }
+
+  /* === Surfaces === */
+  .panel {
+    @apply rounded-md border border-ink-200/80 bg-white shadow-soft;
+  }
+  .panel-feature {
+    @apply rounded-md border border-ink-200/80 bg-white shadow-lift;
+    background-image:
+      linear-gradient(to bottom, rgba(180, 94, 44, 0.04), rgba(180, 94, 44, 0) 64px),
+      linear-gradient(to bottom, #ffffff, #ffffff);
+  }
+  .panel-quiet {
+    @apply rounded-md border border-ink-200/60 bg-ink-50/40;
+  }
+  .hairline {
+    @apply border-ink-200/70;
+  }
+
+  /* Backwards-compat: pre-existing .card class still resolves cleanly. */
+  .card {
+    @apply panel p-5;
+  }
+
+  /* === Pills, tags, status === */
+  .tag {
+    @apply inline-flex items-center rounded-full border border-ink-200 bg-ink-50 px-2.5 py-0.5 text-[11px] font-medium tracking-tightish text-ink-600;
+  }
+  .tag-accent {
+    @apply inline-flex items-center rounded-full border border-accent-200 bg-accent-50 px-2.5 py-0.5 text-[11px] font-medium tracking-tightish text-accent-700;
+  }
+
+  /* === Editorial accent rule ===
+     RESERVED for AI voice moments only:
+       1. The "Editor" eyebrow above an AI response.
+       2. The "Cited from your archive" eyebrow above source citations.
+     Do NOT use as generic chrome before page headers, settings labels,
+     or section markers. The mark loses meaning when it appears everywhere.
+  */
+  .accent-rule {
+    @apply inline-block h-px w-6 bg-accent-400 align-middle;
+  }
+
+  /* === Section marker ===
+     Editorial chapter mark for landing-page sections. Echoes the §
+     in the wordmark; signals "this is a discrete passage of the page."
+     Use ONCE per top-level section, never inside cards or panels.
+  */
+  .section-marker {
+    @apply flex items-baseline gap-2 font-mono text-[11px] uppercase tracking-[0.16em];
+  }
+  .section-marker > .section-number {
+    @apply text-accent-700;
+  }
+  .section-marker > .section-divider {
+    @apply text-ink-300;
+  }
+  .section-marker > .section-title {
+    @apply text-ink-500;
+  }
+
+  /* === Anchored prose === */
+  .prose-editorial {
+    @apply text-body text-ink-800;
+  }
+  .prose-editorial > p {
+    @apply mb-3 last:mb-0;
+  }
+  .prose-editorial strong {
+    @apply font-semibold text-ink-900;
+  }
+  .prose-editorial em {
+    @apply italic;
+  }
+  .prose-editorial a {
+    @apply text-ink-900 underline decoration-accent-300 underline-offset-[3px] transition-colors hover:decoration-accent-500;
+  }
+  .prose-editorial h3 {
+    @apply mt-5 mb-2 font-serif text-[15px] font-semibold text-ink-900 first:mt-0;
+  }
+  .prose-editorial code {
+    @apply rounded bg-ink-100 px-1 py-0.5 font-mono text-[0.85em] text-ink-800;
+  }
+
+  /* === Editorial link in body copy === */
+  .link-soft {
+    @apply text-ink-800 underline decoration-ink-300 decoration-1 underline-offset-[3px] transition-colors hover:decoration-accent-500 hover:text-ink-900;
+  }
+}
+
+/* === Micro-animations (used sparingly) === */
+@keyframes editorial-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.55; transform: scale(0.92); }
+}
+.animate-editorial-pulse { animation: editorial-pulse 1.6s ease-in-out infinite; }
+
+@keyframes editorial-spin {
+  to { transform: rotate(360deg); }
+}
+.animate-editorial-spin { animation: editorial-spin 0.9s linear infinite; }
+
+/* === Page-load and tab-content entrance ===
+   Subtle, restrained. Used to give pages a sense of "settling" rather
+   than appearing instantly cold. Never animates on user interaction —
+   only on initial mount.
+*/
+@keyframes editorial-rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes editorial-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.animate-rise {
+  animation: editorial-rise 0.55s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+  will-change: opacity, transform;
+}
+.animate-fade {
+  animation: editorial-fade 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+  will-change: opacity;
+}
+
+.animate-delay-1 { animation-delay: 60ms; }
+.animate-delay-2 { animation-delay: 130ms; }
+.animate-delay-3 { animation-delay: 210ms; }
+.animate-delay-4 { animation-delay: 300ms; }
+.animate-delay-5 { animation-delay: 400ms; }
+.animate-delay-6 { animation-delay: 510ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise,
+  .animate-fade,
+  .animate-editorial-pulse {
+    animation: none;
+  }
+}

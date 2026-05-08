@@ -1,0 +1,78 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.*
+
+# Build output and framework caches
+.next/
+out/
+dist/
+build/
+.turbo/
+.vercel/
+
+# Runtime/local app data
+.data/
+tmp/
+temp/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+*.p12
+*.pfx
+*.crt
+*.csr
+key.json
+secrets.*
+
+# Local Python tooling
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# TypeScript and test caches
+*.tsbuildinfo
+.eslintcache
+.swc/
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+
+# Logs and process files
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.pid
+*.seed
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Local agent/private instruction files
+CLAUDE.MD
+CLAUDE.md
+CLAUDE.local.md
+.claude/
+AGENTS.local.md
+ToDo.txt
