@@ -1,0 +1,39 @@
+{
+  "name": "substack-ai",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "copy:audit": "node scripts/copy-audit.mjs",
+    "docs:check": "node scripts/docs-check.mjs",
+    "test": "node --experimental-strip-types --no-warnings --test \"tests/*.test.*\"",
+    "runtime:check": "node --env-file=.env scripts/check-runtime.mjs",
+    "check:static": "npm run copy:audit && npm test && npm run docs:check",
+    "check": "npm run check:static && npm run build",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "prod:env:check": "node scripts/check-cloud-run-env.mjs",
+    "start": "next start",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.2",
+    "next": "^16.3.5",
+    "next-auth": "^4.24.14",
+    "postgres": "^3.4.9",
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.15.3",
+    "@types/react": "19.0.10",
+    "@types/react-dom": "19.0.4",
+    "autoprefixer": "10.4.21",
+    "drizzle-kit": "^0.31.10",
+    "postcss": "8.5.6",
+    "tailwindcss": "3.4.17",
+    "typescript": "5.8.3"
+  }
+}

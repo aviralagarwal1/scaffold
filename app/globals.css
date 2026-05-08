@@ -1,0 +1,561 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --selection-bg: #f4e1d2;
+  --selection-fg: #141311;
+}
+
+html,
+body {
+  background-color: theme("colors.ink.50");
+  color: theme("colors.ink.800");
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-family: theme("fontFamily.sans");
+  font-feature-settings: "kern", "liga", "calt", "ss01";
+}
+
+::selection {
+  background-color: var(--selection-bg);
+  color: var(--selection-fg);
+}
+
+/* Subtle paper texture on the page background. Almost invisible, but it lifts
+   flat surfaces away from looking like a default Tailwind canvas. */
+.page-grain {
+  background-image: radial-gradient(rgba(20, 18, 15, 0.025) 1px, transparent 1px);
+  background-size: 22px 22px;
+  background-position: -11px -11px;
+}
+
+@layer base {
+  h1,
+  h2,
+  h3 {
+    color: theme("colors.ink.900");
+    letter-spacing: -0.012em;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  button {
+    font-family: inherit;
+  }
+
+  ::placeholder {
+    color: theme("colors.ink.400");
+  }
+
+  input,
+  textarea,
+  select {
+    font-family: inherit;
+    font-feature-settings: "kern", "liga";
+  }
+
+  input[type="search"]::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+}
+
+@layer components {
+  /* === Type === */
+  .type-h3 {
+    @apply font-serif text-lg leading-snug text-ink-900;
+  }
+  .type-body {
+    @apply text-body text-ink-700;
+  }
+  .type-meta {
+    @apply text-meta text-ink-500;
+  }
+  .type-eyebrow {
+    @apply text-eyebrow font-medium uppercase text-ink-500;
+  }
+  .type-eyebrow-accent {
+    @apply text-eyebrow font-medium uppercase text-accent-700;
+  }
+
+  /* === Buttons === */
+  .btn-primary {
+    @apply inline-flex h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-md bg-ink-900 px-4 text-[13px] font-medium tracking-tightish text-ink-50 shadow-soft transition-colors duration-150 ease-editorial hover:bg-ink-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-50 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary-lg {
+    @apply h-11 px-5 text-sm;
+  }
+  .btn-secondary {
+    @apply inline-flex h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-md border border-ink-200 bg-white px-3.5 text-[13px] font-medium text-ink-800 transition-colors duration-150 ease-editorial hover:border-ink-300 hover:bg-ink-75 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-50 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-link {
+    @apply inline-flex items-center gap-1 rounded-sm text-[13px] font-medium text-ink-800 underline-offset-[3px] transition-colors hover:text-accent-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-remove {
+    @apply hover:border-critical-100 hover:bg-critical-100/40 hover:text-critical-700;
+  }
+  /* === Composer / "Ask anything" button ===
+     Editorial submit affordance for writing surfaces. Serif, soft
+     border, generous padding. Reads more like a bookplate than a form button.
+     The arrow uses group-hover to translate; pair with `group` on this button.
+  */
+  .btn-ask {
+    @apply inline-flex items-center gap-2.5 rounded-md border border-ink-200 bg-white px-6 py-3 font-serif text-[15px] tracking-tightish text-ink-700 shadow-soft transition-all duration-200 ease-editorial hover:border-ink-300 hover:bg-ink-50/70 hover:text-ink-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-50 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-ask-arrow {
+    @apply inline-block transition-transform duration-200 ease-editorial group-hover:translate-x-0.5;
+  }
+
+  /* === Form === */
+  .input {
+    @apply h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-[14px] text-ink-900 placeholder-ink-400 transition-colors duration-150 ease-editorial focus:border-ink-400 focus:outline-none focus:ring-2 focus:ring-accent-200/70 disabled:cursor-not-allowed disabled:bg-ink-75/50 disabled:text-ink-500;
+  }
+  textarea.input {
+    @apply h-auto py-2.5 leading-[1.55];
+  }
+  /* Embedded fields inherit the chat bubble or theme chip's surface. */
+  .input-embedded {
+    @apply border-0 bg-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300;
+  }
+  /* Select-style controls use one geometry everywhere: left-aligned text,
+     a fixed right-side chevron, and enough inset that labels never crowd it. */
+  select.input,
+  .select-control {
+    @apply appearance-none bg-no-repeat pl-4 pr-11 text-ink-700;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 7.5L10 12.5L15 7.5' stroke='%236b665d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-position: right 1rem center;
+    background-size: 1rem 1rem;
+  }
+
+  /* === Writing-surface input ===
+     Used for the hero/onboarding form. Larger, serif, designed to feel like
+     a real surface a writer types onto rather than a generic form field.
+     Native placeholder is hidden (we overlay our own with a blinking caret).
+  */
+  .input-writing {
+    @apply h-14 w-full rounded-md border border-ink-200/80 bg-white/90 px-5 font-serif text-[17px] leading-none tracking-tightish text-ink-900 placeholder-transparent transition-all duration-200 ease-editorial focus:border-ink-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent-200/50 disabled:cursor-not-allowed disabled:bg-ink-75/50 disabled:text-ink-500;
+  }
+  /* Subtle paper-line underline that strengthens on focus. Implemented as a
+     pseudo-element via a wrapping div so we don't fight Tailwind's input ring. */
+  .writing-surface { position: relative; }
+  .writing-surface::after {
+    content: "";
+    position: absolute;
+    left: 1.25rem;
+    right: 1.25rem;
+    bottom: 0.5rem;
+    height: 1px;
+    background-color: theme("colors.ink.200");
+    opacity: 0;
+    transform: scaleX(0.85);
+    transform-origin: left center;
+    transition: opacity 0.25s ease, transform 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
+    pointer-events: none;
+  }
+  .writing-surface:focus-within::after {
+    opacity: 0;
+  }
+
+  /* === kbd chip ===
+     Minimal keyboard cue used in form micro-copy. Restrained, mono. */
+  .kbd {
+    @apply inline-flex h-5 min-w-5 items-center justify-center rounded-[4px] border border-ink-200 bg-white px-1 font-mono text-[10.5px] leading-none text-ink-600 shadow-soft;
+  }
+
+  /* === Surfaces === */
+  .panel {
+    @apply rounded-md border border-ink-200/80 bg-white shadow-soft;
+  }
+  .panel-feature {
+    @apply rounded-md border border-ink-200/80 bg-white shadow-lift;
+    background-image:
+      linear-gradient(to bottom, rgba(180, 94, 44, 0.04), rgba(180, 94, 44, 0) 64px),
+      linear-gradient(to bottom, #ffffff, #ffffff);
+  }
+  .hairline {
+    @apply border-ink-200/70;
+  }
+
+  /* Backwards-compat: pre-existing .card class still resolves cleanly. */
+  .card {
+    @apply panel p-5;
+  }
+
+  /* === Pills, tags, status === */
+  .tag {
+    @apply inline-flex items-center rounded-full border border-ink-200 bg-ink-50 px-2.5 py-0.5 text-[11px] font-medium tracking-tightish text-ink-600;
+  }
+  /* Recurring-theme chip. Calm at rest; on hover the library quietly warms —
+     soft accent tint, a delicate ambient ring, and a barely-there lift. Motion
+     stays restrained so the panel still reads as a literary surface. */
+  .theme-chip {
+    @apply inline-flex cursor-default items-center rounded-full border border-ink-200 bg-ink-50 px-2.5 py-0.5 text-[11px] font-medium tracking-tightish text-ink-600 shadow-[0_0_0_0_rgba(232,194,164,0)] transition-all duration-200 ease-editorial hover:-translate-y-px hover:border-accent-200 hover:bg-accent-50 hover:text-accent-700 hover:shadow-[0_0_0_3px_rgba(232,194,164,0.18)];
+  }
+
+  /* === Editorial accent rule ===
+     RESERVED for AI voice moments only:
+       1. The curator eyebrow above an AI response.
+       2. The source-citation eyebrow above cited material.
+     Do NOT use as generic chrome before page headers, settings labels,
+     or section markers. The mark loses meaning when it appears everywhere.
+  */
+
+  /* === Section marker ===
+     Editorial passage mark for landing-page sections. Echoes the §
+     in the wordmark without implying a missing first numbered chapter.
+     Use ONCE per top-level section, never inside cards or panels.
+  */
+  .section-marker {
+    @apply flex items-baseline gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-accent-700;
+  }
+  .section-marker > .section-symbol {
+    @apply font-serif text-[16px] leading-none;
+  }
+
+  /* === Anchored prose === */
+  .prose-editorial {
+    @apply text-body text-ink-800;
+  }
+  .prose-editorial > p {
+    @apply mb-3 last:mb-0;
+  }
+  .prose-editorial strong {
+    @apply font-semibold text-ink-900;
+  }
+  .prose-editorial em {
+    @apply italic;
+  }
+  .prose-editorial a {
+    @apply text-ink-900 underline decoration-accent-300 underline-offset-[3px] transition-colors hover:decoration-accent-500;
+  }
+  .prose-editorial h3 {
+    @apply mt-5 mb-2 font-serif text-[15px] font-semibold text-ink-900 first:mt-0;
+  }
+  .prose-editorial code {
+    @apply rounded bg-ink-100 px-1 py-0.5 font-mono text-[0.85em] text-ink-800;
+  }
+
+  /* A note's quote in the stored post. Bronze wash, not a highlighter. */
+  .note-mark {
+    @apply cursor-pointer rounded-[2px] bg-accent-100/80 box-decoration-clone transition-colors duration-150 ease-editorial;
+  }
+  .note-mark-active {
+    @apply bg-accent-200/90;
+  }
+
+  /* === Editorial link in body copy === */
+  .link-soft {
+    @apply text-ink-800 underline decoration-ink-300 decoration-1 underline-offset-[3px] transition-colors hover:decoration-accent-500 hover:text-ink-900;
+  }
+}
+
+/* === Micro-animations (used sparingly) === */
+@keyframes editorial-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.4; transform: scale(0.82); }
+}
+.animate-editorial-pulse { animation: editorial-pulse 1.6s ease-in-out infinite; }
+
+@keyframes editorial-spin {
+  to { transform: rotate(360deg); }
+}
+.animate-editorial-spin { animation: editorial-spin 0.9s linear infinite; }
+
+/* === Editorial caret ===
+   Hard-blinking terminal-style caret. Used inside the hero form's placeholder
+   overlay to signal "this is a writing surface" without animation noise.
+*/
+@keyframes editorial-caret {
+  0%, 49.99%   { opacity: 1; }
+  50%, 100%    { opacity: 0; }
+}
+.animate-editorial-caret {
+  animation: editorial-caret 1.05s steps(1, end) infinite;
+}
+
+/* === Editorial shimmer ===
+   Very-low-amplitude opacity oscillation. Used on library marginalia in
+   the closing section to suggest a quiet, breathing system without
+   crossing into animation noise. 12-second cycle, opacity 1 → 0.78 → 1.
+   Different elements receive different `animation-delay` values so the
+   group breathes out of phase, like memories surfacing at their own
+   rhythms.
+*/
+@keyframes editorial-shimmer {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.78; }
+}
+.animate-editorial-shimmer {
+  animation: editorial-shimmer 12s ease-in-out infinite;
+}
+
+/* === Editorial draw ===
+   Line scales out from its origin to suggest the eye is reading or the
+   curator is annotating. Used for connector hairlines and accent rules
+   that should "draw in" after the surrounding section settles. Always
+   pair with `transform-origin: left center` (or `top center` for
+   verticals) to control direction.
+*/
+@keyframes editorial-draw {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+.animate-editorial-draw {
+  animation: editorial-draw 1.6s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+  transform-origin: left center;
+}
+
+/* === Paper shimmer ===
+   Used by the search constellation while the backend is reading every post.
+   Quiet opacity oscillation, longer cycle than editorial-pulse so a wall of
+   16 papers reads as breathing rather than blinking. Each paper gets a
+   different animation-delay so the wave moves across the grid.
+*/
+@keyframes paper-shimmer {
+  0%, 100% { opacity: 0.5; }
+  50%      { opacity: 1; }
+}
+.animate-paper-shimmer {
+  animation: paper-shimmer 1.8s ease-in-out infinite;
+}
+
+/* === Editorial bloom ===
+   One-shot ring that scales out from a point and fades. Used as a
+   "certification" beat after a successful action settles — a single
+   ripple, distinct from the infinite editorial-pulse (which means
+   "still working"). Keep amplitude small; this is a quiet confirmation,
+   not a celebration.
+*/
+@keyframes editorial-bloom {
+  0%   { opacity: 0.55; transform: scale(0.6); }
+  60%  { opacity: 0.22; transform: scale(2.4); }
+  100% { opacity: 0;    transform: scale(2.9); }
+}
+.animate-editorial-bloom {
+  animation: editorial-bloom 1.1s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+
+/* === Editorial nudge ===
+   Calm, decaying validation feedback. Replaces the conventional red-text
+   error string when the user submits an empty input. Four oscillations
+   that fade in amplitude — refined, not playful.
+*/
+@keyframes editorial-nudge {
+  0%   { transform: translateX(0); }
+  18%  { transform: translateX(-4px); }
+  38%  { transform: translateX(3px); }
+  58%  { transform: translateX(-2px); }
+  78%  { transform: translateX(1px); }
+  100% { transform: translateX(0); }
+}
+.animate-editorial-nudge {
+  animation: editorial-nudge 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+/* === Page-load and tab-content entrance ===
+   Subtle, restrained. Used to give pages a sense of "settling" rather
+   than appearing instantly cold. Never animates on user interaction —
+   only on initial mount.
+*/
+@keyframes editorial-rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes editorial-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.animate-rise {
+  animation: editorial-rise 0.55s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+  will-change: opacity, transform;
+}
+.animate-fade {
+  animation: editorial-fade 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+  will-change: opacity;
+}
+
+.animate-delay-1 { animation-delay: 60ms; }
+.animate-delay-2 { animation-delay: 130ms; }
+.animate-delay-3 { animation-delay: 210ms; }
+.animate-delay-4 { animation-delay: 300ms; }
+.animate-delay-5 { animation-delay: 400ms; }
+.animate-delay-6 { animation-delay: 510ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise,
+  .animate-fade,
+  .animate-editorial-pulse,
+  .animate-editorial-caret,
+  .animate-editorial-nudge,
+  .animate-editorial-bloom,
+  .animate-editorial-draw,
+  .animate-editorial-shimmer,
+  .animate-paper-shimmer {
+    animation: none;
+    transform: none;
+  }
+}
+
+/* === Logo CTA ===
+   The § wordmark made interactive. Idle state breathes gently with a soft
+   accent halo and occasional sparkles around the glyph. Hover quickens the
+   rhythm and brightens the mark. Clicking fires a radial sparkle burst,
+   then the form's normal submit handler runs.
+
+   The accent token (#b45e2c = rgb(180, 94, 44)) is the same one used by
+   the wordmark in AppShell. The serif stack is hard-mirrored from
+   tailwind.config.ts so it stays in sync with the rest of the brand voice.
+*/
+.logo-cta {
+  position: relative;
+  display: inline-flex;
+  height: 6.5rem;
+  width: 6.5rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: transparent;
+  border: 0;
+  outline: none;
+  transition: transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.logo-cta:hover { transform: scale(1.06); }
+.logo-cta:active { transform: scale(0.96); }
+.logo-cta:disabled { cursor: not-allowed; opacity: 0.5; }
+.logo-cta:focus-visible {
+  box-shadow: 0 0 0 2px theme("colors.accent.300");
+}
+
+.logo-cta-glow {
+  pointer-events: none;
+  position: absolute;
+  inset: -14%;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(180, 94, 44, 0.20), rgba(180, 94, 44, 0) 65%);
+  animation: logo-glow 3s ease-in-out infinite;
+}
+.logo-cta:hover .logo-cta-glow {
+  animation-duration: 1.8s;
+  background: radial-gradient(circle, rgba(180, 94, 44, 0.32), rgba(180, 94, 44, 0) 65%);
+}
+@keyframes logo-glow {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50%      { opacity: 0.92; transform: scale(1.08); }
+}
+
+.logo-cta-mark {
+  position: relative;
+  z-index: 1;
+  display: inline-block;
+  width: 64px;
+  height: 64px;
+  color: theme("colors.accent.500");
+  transition: color 0.3s ease;
+  animation: logo-breathe 3s ease-in-out infinite;
+}
+.logo-cta:hover .logo-cta-mark {
+  color: theme("colors.accent.400");
+  animation-duration: 1.8s;
+}
+@keyframes logo-breathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.05); }
+}
+
+.logo-cta-sparkle {
+  pointer-events: none;
+  position: absolute;
+  font-family: "Iowan Old Style", "Charter", "Source Serif Pro", "Georgia", "Cambria", serif;
+  color: theme("colors.accent.400");
+  opacity: 0;
+  animation: logo-sparkle 3.0s ease-in-out infinite;
+}
+.logo-cta:hover .logo-cta-sparkle {
+  animation-duration: 2s;
+  color: theme("colors.accent.500");
+}
+@keyframes logo-sparkle {
+  0%, 82%, 100% { opacity: 0; transform: scale(0.4) rotate(0deg); }
+  35%           { opacity: 1; transform: scale(1) rotate(45deg); }
+  55%           { opacity: 0.85; transform: scale(1.2) rotate(70deg); }
+}
+
+.logo-cta-burst {
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+}
+.logo-cta-burst-particle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-family: "Iowan Old Style", "Charter", "Source Serif Pro", "Georgia", "Cambria", serif;
+  font-size: 14px;
+  color: theme("colors.accent.500");
+  opacity: 0;
+  animation: logo-burst 0.7s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+@keyframes logo-burst {
+  0%   { opacity: 1; transform: translate(calc(var(--bx) * 0.05), calc(var(--by) * 0.05)) scale(0.4); }
+  40%  { opacity: 1; transform: translate(calc(var(--bx) * 0.6),  calc(var(--by) * 0.6))  scale(1.2); }
+  100% { opacity: 0; transform: translate(var(--bx), var(--by)) scale(0.6); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo-cta-glow,
+  .logo-cta-mark,
+  .logo-cta-sparkle,
+  .logo-cta-burst-particle {
+    animation: none !important;
+  }
+  .logo-cta { transition: none !important; }
+}
+
+/* === Mobile input sizing ===
+   iOS Safari zooms the viewport whenever a focused input has a font size
+   below 16px. At 14px that meant tapping any field — name, email, password,
+   the reset code — jerked the page in and shifted the layout under the
+   reader's thumb mid-type. Desktop keeps the tighter 14px. */
+@media (max-width: 640px) {
+  .input,
+  .input-embedded,
+  textarea.input,
+  select.input {
+    font-size: 16px;
+  }
+}
+
+/* === Touch targets ===
+   36px control heights are comfortable with a cursor and unreliable with a
+   thumb. Coarse pointers get the 44px minimum. */
+@media (hover: none) and (pointer: coarse) {
+  .btn-primary,
+  .btn-secondary,
+  .btn-link,
+  .input,
+  textarea.input,
+  select.input {
+    min-height: 44px;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .site-wordmark-mark {
+    /* The mark is an outlined path now, not a typeset character, so it needs
+       no font pinning — it renders identically on every platform. */
+    display: inline-block;
+  }
+}
