@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Substack Agent">
+  <!-- Editorial bronze field. The same accent-700 used in the wordmark and
+       editorial moments throughout the product. -->
+  <rect width="32" height="32" rx="7" fill="#7d3d1a"/>
+
+  <!-- The wordmark anchor: § set in serif, cream on bronze. Same character
+       that opens the wordmark in the header. No second mark, no text — the
+       symbol alone carries the identity. -->
+  <text
+    x="16"
+    y="23.5"
+    text-anchor="middle"
+    font-family="'Iowan Old Style', Charter, 'Source Serif Pro', Georgia, Cambria, serif"
+    font-size="22"
+    font-weight="400"
+    fill="#fbf3ec"
+  >§</text>
+</svg>
