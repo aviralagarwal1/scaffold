@@ -3,9 +3,9 @@ import "./globals.css";
 import { AppShell } from "@/components/AppShell";
 
 export const metadata: Metadata = {
-  title: "Substack Agent · a working memory for everything you've written",
+  title: "Substack Agent",
   description:
-    "Paste your Substack URL, build a private writing workspace, and get grounded feedback, ideas, and distribution drafts based on your actual posts.",
+    "Paste your Substack URL, build a private AI-powered workspace, and get tailored feedback, ideas, and distribution drafts based on your Substack posts.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
