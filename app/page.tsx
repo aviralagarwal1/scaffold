@@ -67,7 +67,7 @@ export default function HomePage() {
             </p>
 
             <div className="animate-rise animate-delay-3 mt-10 max-w-xl">
-              <SubstackUrlForm autoFocus />
+              <SubstackUrlForm />
             </div>
           </div>
 
@@ -82,16 +82,12 @@ export default function HomePage() {
       {/* § 02 — How it works */}
       <section className="animate-rise animate-delay-4 border-b border-ink-200/60 bg-white">
         <div className="mx-auto max-w-6xl px-6 py-24">
-          <header className="mb-14 grid gap-6 md:grid-cols-12 md:items-end">
-            <div className="md:col-span-7">
-              <SectionMarker number="02" title="How it works" />
-              <h2 className="mt-4 font-serif text-[34px] leading-[1.1] tracking-tightish text-ink-900 md:text-[44px]">
-                Three steps.{" "}
-                <span className="italic text-ink-700">Less than a minute.</span>
-              </h2>
-            </div>
-            <p className="text-[15.5px] leading-relaxed text-ink-600 md:col-span-4 md:col-start-9 md:text-right">
-            </p>
+          <header className="mb-14">
+            <SectionMarker number="02" title="How it works" />
+            <h2 className="mt-4 font-serif text-[34px] leading-[1.1] tracking-tightish text-ink-900 md:text-[44px]">
+              Three steps.{" "}
+              <span className="italic text-ink-700">Less than a minute.</span>
+            </h2>
           </header>
 
           <ol className="grid gap-x-10 gap-y-12 md:grid-cols-3">
@@ -102,11 +98,9 @@ export default function HomePage() {
                   i > 0 ? "md:border-l md:border-ink-200/60 md:pl-8" : ""
                 }`}
               >
-                <div className="flex items-baseline gap-3">
-                  <span className="font-serif text-[44px] leading-none text-accent-300/90">
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                </div>
+                <span className="font-serif text-[44px] leading-none text-accent-300/90">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
                 <h3 className="font-serif text-[19px] leading-snug tracking-tightish text-ink-900">{s.title}</h3>
                 <p className="text-[14.5px] leading-relaxed text-ink-600">{s.body}</p>
               </li>
@@ -118,16 +112,12 @@ export default function HomePage() {
       {/* § 03 — Grounded answers */}
       <section className="animate-rise animate-delay-5 border-b border-ink-200/60">
         <div className="mx-auto max-w-6xl px-6 py-24">
-          <header className="mb-14 grid gap-6 md:grid-cols-12 md:items-end">
-            <div className="md:col-span-8">
-              <SectionMarker number="03" title="Grounded answers" />
-              <h2 className="mt-4 font-serif text-[34px] leading-[1.1] tracking-tightish text-ink-900 md:whitespace-nowrap md:text-[44px]">
-                Every answer is{" "}
-                <span className="italic text-ink-700">tethered to a post.</span>
-              </h2>
-            </div>
-            <p className="text-[15.5px] leading-relaxed text-ink-600 md:col-span-4 md:col-start-9 md:text-right">
-            </p>
+          <header className="mb-14">
+            <SectionMarker number="03" title="Grounded answers" />
+            <h2 className="mt-4 font-serif text-[34px] leading-[1.1] tracking-tightish text-ink-900 md:text-[44px]">
+              Every answer is{" "}
+              <span className="italic text-ink-700">tethered to a post.</span>
+            </h2>
           </header>
 
           <div className="grid gap-6 md:grid-cols-12">
@@ -154,12 +144,10 @@ export default function HomePage() {
           <p className="mx-auto mt-6 max-w-prose font-serif text-[18px] leading-relaxed text-ink-600 md:text-[19px]">
             Your archive turns into <em className="not-italic underline decoration-accent-300 decoration-1 underline-offset-[5px]">a memory that thinks back.</em>
           </p>
-          <div className="mt-12 flex flex-col items-center gap-3">
+          <div className="mt-12 flex justify-center">
             <Link href="/new" className="btn-primary btn-primary-lg px-7 text-[14px]">
               Analyze my Substack
             </Link>
-            <span className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-ink-400">
-            </span>
           </div>
         </div>
       </section>
@@ -241,9 +229,8 @@ function SampleAnswerCard() {
             </span>
             <span className="truncate font-mono text-[11px] text-ink-600">yourname.substack.com</span>
             <span className="text-ink-300" aria-hidden="true">
-              ·
             </span>
-            <span className="whitespace-nowrap text-[11px] text-ink-500">42 posts · 116k words</span>
+            <span className="whitespace-nowrap text-[11px] text-ink-500"></span>
           </div>
           <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-400">Ask</span>
         </header>
@@ -279,10 +266,9 @@ function SampleAnswerCard() {
               <span className="accent-rule" />
               <span className="text-eyebrow font-medium uppercase text-accent-700">Editor</span>
               <span className="text-ink-300" aria-hidden="true">
-                ·
               </span>
-              <span className="text-[11px] normal-case tracking-normal text-ink-500">grounded in 3 posts</span>
-              <span className="ml-auto text-[11px] normal-case tracking-normal text-ink-400">just now</span>
+              <span className="text-[11px] normal-case tracking-normal text-ink-500"></span>
+              <span className="ml-auto text-[11px] normal-case tracking-normal text-ink-400">Just now</span>
             </div>
 
             <div className="prose-editorial text-[14.5px] leading-[1.65]">
