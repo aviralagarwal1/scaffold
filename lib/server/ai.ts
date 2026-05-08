@@ -6,6 +6,7 @@ import type {
   GrammarIssue,
   Idea,
   IdeasResponse,
+  PromptSuggestionsResponse,
   RepurposeDraft,
   SourceCitation
 } from "@/types/ai";
@@ -110,7 +111,12 @@ function toSources(items: RetrievedChunk[]): SourceCitation[] {
   }));
 }
 
-async function generateWithAnthropic(system: string, user: string): Promise<string | null> {
+interface GenerateOptions {
+  temperature?: number;
+  maxTokens?: number;
+}
+
+async function generateWithAnthropic(system: string, user: string, options: GenerateOptions = {}): Promise<string | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
 
@@ -123,8 +129,8 @@ async function generateWithAnthropic(system: string, user: string): Promise<stri
     },
     body: JSON.stringify({
       model: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-5",
-      max_tokens: 1800,
-      temperature: 0.4,
+      max_tokens: options.maxTokens ?? 1800,
+      temperature: options.temperature ?? 0.4,
       system,
       messages: [{ role: "user", content: user }]
     })
@@ -143,7 +149,7 @@ async function generateWithAnthropic(system: string, user: string): Promise<stri
     .trim() ?? null;
 }
 
-async function generateWithOpenAI(system: string, user: string): Promise<string | null> {
+async function generateWithOpenAI(system: string, user: string, options: GenerateOptions = {}): Promise<string | null> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
 
@@ -155,7 +161,7 @@ async function generateWithOpenAI(system: string, user: string): Promise<string 
     },
     body: JSON.stringify({
       model: process.env.OPENAI_MODEL ?? "gpt-4.1-mini",
-      temperature: 0.4,
+      temperature: options.temperature ?? 0.4,
       messages: [
         { role: "system", content: system },
         { role: "user", content: user }
@@ -172,8 +178,8 @@ async function generateWithOpenAI(system: string, user: string): Promise<string 
   return data.choices?.[0]?.message?.content?.trim() ?? null;
 }
 
-async function generateText(system: string, user: string): Promise<string | null> {
-  return (await generateWithAnthropic(system, user)) ?? (await generateWithOpenAI(system, user));
+async function generateText(system: string, user: string, options: GenerateOptions = {}): Promise<string | null> {
+  return (await generateWithAnthropic(system, user, options)) ?? (await generateWithOpenAI(system, user, options));
 }
 
 const editorialSystemPrompt = [
@@ -277,6 +283,176 @@ export async function generateIdeas(token: string): Promise<IdeasResponse> {
       { name: "Posts to revisit", ideas: ideas.slice(4, 6) }
     ]
   };
+}
+
+// Curated server-side seeds. Used only when the model is unavailable. These
+// templates are theme/title-aware so the fallback still feels archive-grounded
+// rather than reading like generic chatbot prompts.
+const FALLBACK_PROMPT_TEMPLATES = [
+  (theme: string) => `What do I keep saying about ${theme} without quite landing it?`,
+  (theme: string) => `Where does my writing on ${theme} contradict itself?`,
+  (theme: string) => `Which post anchors my strongest take on ${theme}?`,
+  (theme: string) => `What angle on ${theme} have I circled but never written?`,
+  (theme: string) => `Which of my pieces on ${theme} should I revisit now?`,
+  (title: string) => `What would a sequel to "${title}" look like a year on?`,
+  (title: string) => `What argument did "${title}" leave on the table?`,
+  (title: string) => `Whose response to "${title}" am I most curious about?`
+];
+
+const STATIC_FALLBACK_PROMPTS = [
+  "Where do my recent posts diverge from my early voice?",
+  "Which posts feel most like me, and why?",
+  "What's the pattern in how I open my strongest essays?",
+  "What would surprise a long-time reader of my archive?",
+  "What topic does my archive suggest I've been quietly avoiding?"
+];
+
+function normalizePromptKey(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[\s ]+/g, " ")
+    .replace(/[‘’“”"']/g, "")
+    .replace(/[?.!]+$/g, "")
+    .trim();
+}
+
+function parsePromptList(raw: string): string[] {
+  return raw
+    .split(/\r?\n/)
+    .map((line) =>
+      line
+        // strip bullets, numbering, leading punctuation
+        .replace(/^\s*(?:[-*•]|\d+[.)])\s*/, "")
+        // strip surrounding quotes/braces the model sometimes adds
+        .replace(/^[\s"'‘’“”`(\[]+/, "")
+        .replace(/[\s"'‘’“”`)\]]+$/, "")
+        .trim()
+    )
+    .filter((line) => line.length >= 12 && /\?\s*$/.test(line));
+}
+
+function buildFallbackPrompts(themes: string[], posts: Post[], count: number): string[] {
+  const recentTitles = posts
+    .slice()
+    .sort((a, b) => Date.parse(b.publishedAt ?? b.createdAt) - Date.parse(a.publishedAt ?? a.createdAt))
+    .slice(0, 4)
+    .map((post) => post.title);
+
+  const candidates: string[] = [];
+  for (const theme of themes) {
+    for (const template of FALLBACK_PROMPT_TEMPLATES.slice(0, 5)) {
+      candidates.push(template(theme));
+    }
+  }
+  for (const title of recentTitles) {
+    for (const template of FALLBACK_PROMPT_TEMPLATES.slice(5)) {
+      candidates.push(template(title));
+    }
+  }
+  candidates.push(...STATIC_FALLBACK_PROMPTS);
+
+  // light shuffle so repeated calls don't return the same first N
+  return candidates
+    .map((value) => ({ value, sort: Math.random() }))
+    .sort((a, b) => a.sort - b.sort)
+    .map((item) => item.value)
+    .slice(0, count);
+}
+
+export async function generatePromptSuggestions(
+  token: string,
+  options: { excludePrompts?: string[]; count?: number } = {}
+): Promise<PromptSuggestionsResponse> {
+  const count = Math.min(Math.max(options.count ?? 3, 1), 6);
+  const excluded = new Set((options.excludePrompts ?? []).map(normalizePromptKey));
+
+  const { workspace, posts, chunks } = await workspaceCorpus(token);
+  if (posts.length === 0) {
+    throw new AppError("This workspace does not have any ingested posts yet.", 409);
+  }
+
+  const recentPosts = posts
+    .slice()
+    .sort((a, b) => Date.parse(b.publishedAt ?? b.createdAt) - Date.parse(a.publishedAt ?? a.createdAt))
+    .slice(0, 8);
+
+  const sampleChunks = recentPosts
+    .map((post) => {
+      const chunk = chunks.find((item) => item.postId === post.id);
+      return chunk ? `- ${post.title}: ${excerpt(chunk.content, 240)}` : `- ${post.title}`;
+    })
+    .join("\n");
+
+  const themesLine = workspace.topThemes.length
+    ? workspace.topThemes.join(", ")
+    : "no themes detected yet";
+
+  const excludedLine = excluded.size
+    ? `\n\nThe writer has already seen these prompts. Do not repeat or paraphrase them:\n${(options.excludePrompts ?? [])
+        .map((line) => `- ${line}`)
+        .join("\n")}`
+    : "";
+
+  const system = [
+    "You write archive-aware questions a writer might ask their own Substack archive.",
+    "Each question must be specific, intellectually interesting, and grounded in patterns the writer's archive could plausibly reveal.",
+    "Avoid generic chatbot prompts (no 'how do I improve my writing', no 'give me ideas').",
+    "Do not invent subscriber numbers, traffic, or performance claims.",
+    "Return ONLY the questions, one per line, no numbering, no bullets, no quotes, no commentary.",
+    "Each line must end with a question mark."
+  ].join("\n");
+
+  const user = [
+    `Publication: ${workspace.publicationName ?? workspace.publicationUrl}`,
+    `Recurring themes: ${themesLine}`,
+    "",
+    "Recent posts and excerpts:",
+    sampleChunks || "(no recent posts available)",
+    excludedLine,
+    "",
+    `Write ${count} new prompts the writer has not seen.`
+  ].join("\n");
+
+  const generated = await generateText(system, user, { temperature: 0.85, maxTokens: 600 });
+
+  if (generated) {
+    const parsed = parsePromptList(generated)
+      .filter((prompt) => !excluded.has(normalizePromptKey(prompt)));
+
+    // dedupe by normalized key
+    const seen = new Set<string>();
+    const deduped = parsed.filter((prompt) => {
+      const key = normalizePromptKey(prompt);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    if (deduped.length >= count) {
+      return { prompts: deduped.slice(0, count), source: "model" };
+    }
+
+    // The model returned something usable but short. Top up from the fallback
+    // pool so the client always gets the requested batch size.
+    const topUp = buildFallbackPrompts(workspace.topThemes, posts, count * 3)
+      .filter((prompt) => {
+        const key = normalizePromptKey(prompt);
+        if (excluded.has(key) || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+    const merged = [...deduped, ...topUp].slice(0, count);
+    if (merged.length > 0) {
+      return { prompts: merged, source: deduped.length > 0 ? "model" : "fallback" };
+    }
+  }
+
+  const fallback = buildFallbackPrompts(workspace.topThemes, posts, count * 3)
+    .filter((prompt) => !excluded.has(normalizePromptKey(prompt)))
+    .slice(0, count);
+
+  return { prompts: fallback, source: "fallback" };
 }
 
 export async function generateDistributionDrafts(

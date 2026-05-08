@@ -15,7 +15,7 @@ export default function AskPage() {
     <div className="flex flex-col gap-5">
       <PageHeader
         title="Ask your archive."
-        meta={ready ? "Citations link to the posts each answer drew from." : undefined}
+        meta={ready ? "Drawn only from your archive. Each answer cites the posts it drew from." : undefined}
       />
       {!ready ? <NotReadyNotice status={overview.status} token={token} feature="Chat" /> : <ChatPanel token={token} />}
     </div>

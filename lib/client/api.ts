@@ -14,6 +14,8 @@ import type {
   GrammarAuditResponse,
   GrammarIssue,
   IdeasResponse,
+  PromptSuggestionsRequest,
+  PromptSuggestionsResponse,
   RepurposeDraft,
   RepurposeDraftStatus,
   ApiError,
@@ -91,6 +93,15 @@ export const api = {
       method: "POST",
       body: JSON.stringify(body ?? {}),
     });
+  },
+  promptSuggestions(token: string, body?: PromptSuggestionsRequest) {
+    return request<PromptSuggestionsResponse>(
+      `/api/workspaces/${encodeURIComponent(token)}/prompt-suggestions`,
+      {
+        method: "POST",
+        body: JSON.stringify(body ?? {}),
+      },
+    );
   },
   generateDistribution(token: string, body: DistributionRequest) {
     return request<{ drafts: RepurposeDraft[] }>(

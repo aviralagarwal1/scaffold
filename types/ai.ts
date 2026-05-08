@@ -37,6 +37,16 @@ export interface IdeasResponse {
   }[];
 }
 
+export interface PromptSuggestionsRequest {
+  excludePrompts?: string[];
+  count?: number;
+}
+
+export interface PromptSuggestionsResponse {
+  prompts: string[];
+  source: "model" | "fallback";
+}
+
 export type DistributionPlatform = "twitter" | "linkedin" | "reddit";
 export type RepurposeDraftStatus = "generated" | "saved" | "approved" | "deleted";
 
