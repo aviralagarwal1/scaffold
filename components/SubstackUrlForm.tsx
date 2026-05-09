@@ -158,16 +158,7 @@ export function SubstackUrlForm({
         </div>
       </div>
 
-      {/* Asymmetric action row. The kbd cue surfaces only after the user has
-          started typing, signaling the keyboard shortcut at the moment it
-          becomes useful. */}
       <div className="flex items-center justify-end gap-4">
-        {!busy && url.length > 0 && (
-          <span className="hidden items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-[0.16em] text-ink-400 sm:inline-flex">
-            <kbd className="kbd">↵</kbd>
-            <span>to begin</span>
-          </span>
-        )}
         <button
           type="submit"
           className="btn-primary btn-primary-lg group relative px-6"
