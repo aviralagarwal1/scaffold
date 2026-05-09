@@ -143,7 +143,7 @@ export function DraftFeedbackPanel({ token, disabled }: { token: string; disable
           onChange={(e) => setDraft(e.target.value)}
           placeholder="Paste your draft to begin ..."
           disabled={disabled || busy}
-          className="input block max-h-[680px] min-h-[320px] resize-none overflow-y-auto font-serif text-[15.5px] leading-relaxed transition-colors duration-200 ease-editorial hover:border-ink-300"
+          className="input block max-h-[680px] min-h-[320px] resize-none overflow-y-auto font-serif text-[15.5px] leading-relaxed transition-colors duration-200 ease-editorial placeholder:italic hover:border-ink-300"
         />
         <div className="flex items-center justify-end gap-3 pt-1">
           <button

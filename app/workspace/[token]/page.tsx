@@ -62,16 +62,16 @@ export default function OverviewPage() {
                   cta="Open draft feedback"
                 />
                 <InsightCard
-                  eyebrow="Style audit"
-                  title="Run a style audit"
-                  description="Find recurring grammar and style patterns without flattening your voice."
+                  eyebrow="Proofreading"
+                  title="Run a grammar audit"
+                  description="Find grammar [] and inconsistencies without flattening your voice."
                   href={`/workspace/${token}/grammar`}
                   cta="Run audit"
                 />
                 <InsightCard
-                  eyebrow="Repurpose"
-                  title="Generate distribution drafts"
-                  description="Repurpose any post for Twitter/X, LinkedIn, or Reddit. You review and approve."
+                  eyebrow="Distribution"
+                  title="Draft for any platform"
+                  description="Repurpose any post for LinkedIn, X, or Reddit. You review and approve."
                   href={`/workspace/${token}/distribution`}
                   cta="Open distribution"
                 />
