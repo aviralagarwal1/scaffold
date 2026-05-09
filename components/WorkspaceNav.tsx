@@ -17,14 +17,6 @@ const TABS = [
   { slug: "settings", label: "Settings" },
 ] as const;
 
-const STATUS_LABEL: Record<WorkspaceOverview["status"], { label: string; tone: "live" | "working" | "idle" | "down" }> = {
-  ready: { label: "Live", tone: "live" },
-  partial: { label: "Partial", tone: "live" },
-  pending: { label: "Reading", tone: "working" },
-  ingesting: { label: "Reading", tone: "working" },
-  failed: { label: "Failed", tone: "down" },
-};
-
 export function WorkspaceNav({
   token,
   overview,
@@ -40,7 +32,6 @@ export function WorkspaceNav({
   };
 
   const onAsk = isActive("ask");
-  const status = overview ? STATUS_LABEL[overview.status] : null;
 
   return (
     <div className="border-b border-ink-200/70 bg-white">
@@ -48,18 +39,21 @@ export function WorkspaceNav({
         {/* Identity row */}
         <div className="flex flex-col gap-5 pb-5 md:flex-row md:items-start md:justify-between md:gap-8">
           <div className="flex min-w-0 flex-col gap-2">
-            {/* Status + name */}
-            <div className="flex items-center gap-3">
-              {status && <StatusDot tone={status.tone} label={status.label} />}
-              <h1 className="font-serif text-[26px] leading-none tracking-tightish text-ink-900 md:text-[30px]">
-                {overview?.publicationName ?? "Your Substack"}
-              </h1>
-            </div>
+            <h1 className="font-serif text-[26px] leading-none tracking-tightish text-ink-900 md:text-[30px]">
+              {overview?.publicationName ?? "Your Substack"}
+            </h1>
 
             {/* Stats line */}
             {overview && (
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[11px] text-ink-500">
-                <span className="text-ink-600">{hostnameOf(overview.publicationUrl)}</span>
+                <a
+                  href={overview.publicationUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-ink-600 transition-colors duration-150 ease-editorial hover:text-accent-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300"
+                >
+                  {hostnameOf(overview.publicationUrl)}
+                </a>
                 <Dot />
                 <span>{pluralize(overview.postCount, "post")}</span>
                 {overview.lastIngestedAt && (
@@ -92,8 +86,9 @@ export function WorkspaceNav({
           )}
         </div>
 
-        {/* Tabs */}
-        <nav className="-mb-px flex gap-0.5 overflow-x-auto" aria-label="Workspace sections">
+        {/* Tabs — strip is shifted left by the first tab's px-3 so "Overview"
+            sits flush with the H1 and metadata above. */}
+        <nav className="-mb-px -ml-3 flex gap-0.5 overflow-x-auto" aria-label="Workspace sections">
           {TABS.map((tab) => {
             const active = isActive(tab.slug);
             return (
@@ -119,46 +114,6 @@ export function WorkspaceNav({
         </nav>
       </div>
     </div>
-  );
-}
-
-function StatusDot({
-  tone,
-  label,
-}: {
-  tone: "live" | "working" | "idle" | "down";
-  label?: string;
-}) {
-  const dotClass =
-    tone === "live"
-      ? "bg-positive-500"
-      : tone === "working"
-        ? "bg-accent-500"
-        : tone === "down"
-          ? "bg-critical-500"
-          : "bg-ink-400";
-  const halo =
-    tone === "live"
-      ? "bg-positive-500/50"
-      : tone === "working"
-        ? "bg-accent-500/45"
-        : tone === "down"
-          ? "bg-critical-500/45"
-          : "bg-ink-400/40";
-  const animate = tone === "live" || tone === "working";
-
-  return (
-    <span
-      className="relative flex h-2 w-2 shrink-0"
-      title={label}
-      role={label ? "status" : undefined}
-      aria-label={label}
-    >
-      {animate && (
-        <span aria-hidden="true" className={cn("absolute inline-flex h-full w-full animate-editorial-pulse rounded-full", halo)} />
-      )}
-      <span aria-hidden="true" className={cn("relative inline-flex h-2 w-2 rounded-full", dotClass)} />
-    </span>
   );
 }
 
