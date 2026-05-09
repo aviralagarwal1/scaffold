@@ -6,7 +6,7 @@ import { updateRepurposeDraft } from "@/lib/server/store";
 
 type RouteContext = { params: Promise<{ token: string; draftId: string }> };
 
-const statuses: RepurposeDraftStatus[] = ["generated", "saved", "approved", "deleted"];
+const statuses: RepurposeDraftStatus[] = ["pending", "saved", "deleted"];
 
 export async function PATCH(request: Request, context: RouteContext) {
   try {

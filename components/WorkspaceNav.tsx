@@ -31,8 +31,6 @@ export function WorkspaceNav({
     return pathname === `${base}/${slug}` || pathname.startsWith(`${base}/${slug}/`);
   };
 
-  const onAsk = isActive("ask");
-
   return (
     <div className="border-b border-ink-200/70 bg-white">
       <div className="mx-auto max-w-6xl px-6 pt-7">
@@ -72,18 +70,6 @@ export function WorkspaceNav({
             )}
           </div>
 
-          {/* Quick action — only shown when ready and not already on Ask */}
-          {overview && (overview.status === "ready" || overview.status === "partial") && !onAsk && (
-            <Link
-              href={`${base}/ask`}
-              className="group inline-flex h-10 items-center gap-2 self-start rounded-md border border-ink-200 bg-white px-3.5 text-[13px] font-medium text-ink-800 shadow-soft transition-colors duration-150 ease-editorial hover:border-accent-300 hover:bg-accent-50/40"
-            >
-              <span className="font-serif italic text-ink-500 group-hover:text-ink-700">Ask anything</span>
-              <span aria-hidden="true" className="text-ink-400 transition-transform group-hover:translate-x-0.5 group-hover:text-accent-700">
-                →
-              </span>
-            </Link>
-          )}
         </div>
 
         {/* Tabs — strip is shifted left by the first tab's px-3 so "Overview"

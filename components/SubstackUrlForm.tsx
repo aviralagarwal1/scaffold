@@ -153,8 +153,8 @@ export function SubstackUrlForm({
           className="pointer-events-none absolute inset-y-0 left-5 flex items-center font-serif text-[17px] italic text-ink-400 transition-opacity duration-200 ease-editorial"
           style={{ opacity: showCue ? 1 : 0 }}
         >
-          <span className="inline-block h-[17px] w-[1.5px] bg-ink-900 animate-editorial-caret" />
-          <span className="ml-[3px]">yourname.substack.com</span>
+          <span className="inline-block h-[17px] w-[1.5px] translate-y-[1px] bg-ink-900 animate-editorial-caret" />
+          <span>yourname.substack.com</span>
         </div>
       </div>
 
@@ -171,7 +171,7 @@ export function SubstackUrlForm({
                   <span className="absolute inline-flex h-full w-full animate-editorial-pulse rounded-full bg-ink-50/50" />
                   <span className="relative inline-flex h-2 w-2 animate-editorial-pulse rounded-full bg-ink-50" />
                 </span>
-                <span>Reading your archive</span>
+                <span>Reading your archive...</span>
               </>
             ) : (
               <>

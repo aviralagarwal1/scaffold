@@ -309,7 +309,7 @@ function Composer({
   disabled?: boolean;
   busy: boolean;
 }) {
-  const ghostText = disabled ? "Workspace still ingesting" : "Start exploring your writing ...";
+  const ghostText = disabled ? "Workspace still ingesting" : "Start exploring your writing...";
   const ref = useRef<HTMLTextAreaElement>(null);
   const canSend = !disabled && !busy && draft.trim().length > 0;
 
@@ -324,7 +324,7 @@ function Composer({
 
   // Autofocus on mount so the writer can start typing immediately on landing.
   // The native placeholder stays visible until the first keystroke, so the
-  // affordance "Start exploring your writing ..." is still legible while
+  // affordance "Start exploring your writing..." is still legible while
   // focused — no custom caret overlay needed.
   useEffect(() => {
     ref.current?.focus({ preventScroll: true });
@@ -439,7 +439,7 @@ function ThinkingDots() {
         <span className="h-1.5 w-1.5 animate-editorial-pulse rounded-full bg-accent-400 [animation-delay:180ms]" />
         <span className="h-1.5 w-1.5 animate-editorial-pulse rounded-full bg-accent-400 [animation-delay:360ms]" />
       </div>
-      <span>Reading your archive</span>
+      <span>Reading your archive...</span>
     </div>
   );
 }

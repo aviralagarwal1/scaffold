@@ -15,7 +15,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   if (loading && !overview) {
     return (
       <div className="mx-auto max-w-6xl px-6 py-12">
-        <LoadingState label="Opening your workspace…" />
+        <LoadingState label="Opening your workspace..." />
       </div>
     );
   }

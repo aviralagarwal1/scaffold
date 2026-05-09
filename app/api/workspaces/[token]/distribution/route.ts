@@ -6,7 +6,7 @@ import { readJson, requireString } from "@/lib/server/http";
 
 type RouteContext = { params: Promise<{ token: string }> };
 
-const platforms: DistributionPlatform[] = ["twitter", "linkedin", "reddit"];
+const platforms: DistributionPlatform[] = ["twitter", "linkedin", "facebook", "instagram", "reddit"];
 
 export async function POST(request: Request, context: RouteContext) {
   try {
@@ -15,7 +15,7 @@ export async function POST(request: Request, context: RouteContext) {
     const postId = requireString(body.postId, "Choose a post to repurpose.");
     const platform = requireString(body.platform, "Choose a platform.") as DistributionPlatform;
     if (!platforms.includes(platform)) {
-      throw new AppError("Platform must be twitter, linkedin, or reddit.", 400);
+      throw new AppError("Platform must be twitter, linkedin, facebook, instagram, or reddit.", 400);
     }
 
     return NextResponse.json({ drafts: await generateDistributionDrafts(token, postId, platform) });

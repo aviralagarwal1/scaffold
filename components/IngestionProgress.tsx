@@ -5,10 +5,10 @@ import type { WorkspaceStatus } from "@/types/workspace";
 import { cn } from "@/lib/client/cn";
 
 const PHRASES = [
-  "Reading your archive.",
-  "Finding recurring themes.",
-  "Building your writing memory.",
-  "Preparing your AI editor.",
+  "Reading your archive...",
+  "Finding recurring themes...",
+  "Building your writing memory...",
+  "Preparing your AI editor...",
 ];
 
 export function IngestionProgress({
