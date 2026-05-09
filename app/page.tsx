@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LogoCTA } from "@/components/LogoCTA";
 import { SubstackUrlForm } from "@/components/SubstackUrlForm";
 
 const STEPS = [
@@ -230,7 +231,7 @@ export default function HomePage() {
             <p className="mx-auto mt-7 max-w-prose font-serif text-[19px] leading-[1.55] text-ink-700 md:text-[20px]">
               Everything is already in your archive. The patterns, the voice, the unfinished ideas.{" "}
               <span className="relative inline-block whitespace-nowrap">
-                <em className="italic text-ink-900">We just give it a memory.</em>
+                <em className="italic text-ink-900">We just give it memory.</em>
                 <span
                   aria-hidden="true"
                   className="animate-editorial-draw absolute -bottom-0.5 left-0 right-0 h-[1.5px] bg-accent-300/70"
@@ -240,20 +241,7 @@ export default function HomePage() {
             </p>
 
             <div className="mt-12 flex justify-center">
-              <Link
-                href="/new"
-                className="btn-primary btn-primary-lg group px-7 text-[14px]"
-              >
-                <span className="relative inline-flex items-center gap-2.5">
-                  <span>Build my memory</span>
-                  <span
-                    aria-hidden="true"
-                    className="text-ink-300 transition-transform duration-200 ease-editorial group-hover:translate-x-0.5 group-hover:text-ink-50"
-                  >
-                    →
-                  </span>
-                </span>
-              </Link>
+              <LogoCTA href="/new" label="Build my memory" />
             </div>
           </div>
         </div>

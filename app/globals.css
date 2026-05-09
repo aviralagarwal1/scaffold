@@ -382,3 +382,122 @@ body {
     transform: none;
   }
 }
+
+/* === Logo CTA ===
+   The § wordmark made interactive. Idle state breathes gently with a soft
+   accent halo and occasional sparkles around the glyph. Hover quickens the
+   rhythm and brightens the mark. Clicking fires a radial sparkle burst,
+   then the form's normal submit handler runs.
+
+   The accent token (#b45e2c = rgb(180, 94, 44)) is the same one used by
+   the wordmark in AppShell. The serif stack is hard-mirrored from
+   tailwind.config.ts so it stays in sync with the rest of the brand voice.
+*/
+.logo-cta {
+  position: relative;
+  display: inline-flex;
+  height: 6.5rem;
+  width: 6.5rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: transparent;
+  border: 0;
+  outline: none;
+  transition: transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.logo-cta:hover { transform: scale(1.06); }
+.logo-cta:active { transform: scale(0.96); }
+.logo-cta:disabled { cursor: not-allowed; opacity: 0.5; }
+.logo-cta:focus-visible {
+  box-shadow: 0 0 0 2px theme("colors.accent.300");
+}
+
+.logo-cta-glow {
+  pointer-events: none;
+  position: absolute;
+  inset: -14%;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(180, 94, 44, 0.20), rgba(180, 94, 44, 0) 65%);
+  animation: logo-glow 3s ease-in-out infinite;
+}
+.logo-cta:hover .logo-cta-glow {
+  animation-duration: 1.8s;
+  background: radial-gradient(circle, rgba(180, 94, 44, 0.32), rgba(180, 94, 44, 0) 65%);
+}
+@keyframes logo-glow {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50%      { opacity: 0.92; transform: scale(1.08); }
+}
+
+.logo-cta-mark {
+  position: relative;
+  z-index: 1;
+  display: inline-block;
+  font-family: "Iowan Old Style", "Charter", "Source Serif Pro", "Georgia", "Cambria", serif;
+  font-size: 64px;
+  line-height: 1;
+  color: theme("colors.accent.500");
+  transition: color 0.3s ease;
+  animation: logo-breathe 3s ease-in-out infinite;
+}
+.logo-cta:hover .logo-cta-mark {
+  color: theme("colors.accent.400");
+  animation-duration: 1.8s;
+}
+@keyframes logo-breathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.05); }
+}
+
+.logo-cta-sparkle {
+  pointer-events: none;
+  position: absolute;
+  font-family: "Iowan Old Style", "Charter", "Source Serif Pro", "Georgia", "Cambria", serif;
+  color: theme("colors.accent.400");
+  opacity: 0;
+  animation: logo-sparkle 3.0s ease-in-out infinite;
+}
+.logo-cta:hover .logo-cta-sparkle {
+  animation-duration: 2s;
+  color: theme("colors.accent.500");
+}
+@keyframes logo-sparkle {
+  0%, 82%, 100% { opacity: 0; transform: scale(0.4) rotate(0deg); }
+  35%           { opacity: 1; transform: scale(1) rotate(45deg); }
+  55%           { opacity: 0.85; transform: scale(1.2) rotate(70deg); }
+}
+
+.logo-cta-burst {
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+}
+.logo-cta-burst-particle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-family: "Iowan Old Style", "Charter", "Source Serif Pro", "Georgia", "Cambria", serif;
+  font-size: 14px;
+  color: theme("colors.accent.500");
+  opacity: 0;
+  animation: logo-burst 0.7s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+@keyframes logo-burst {
+  0%   { opacity: 1; transform: translate(calc(var(--bx) * 0.05), calc(var(--by) * 0.05)) scale(0.4); }
+  40%  { opacity: 1; transform: translate(calc(var(--bx) * 0.6),  calc(var(--by) * 0.6))  scale(1.2); }
+  100% { opacity: 0; transform: translate(var(--bx), var(--by)) scale(0.6); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo-cta-glow,
+  .logo-cta-mark,
+  .logo-cta-sparkle,
+  .logo-cta-burst-particle {
+    animation: none !important;
+  }
+  .logo-cta { transition: none !important; }
+}
