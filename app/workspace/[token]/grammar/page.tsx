@@ -35,11 +35,11 @@ export default function GrammarPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="An editor's pass over your archive."
-        meta={ready ? "Recurring patterns, not generic spellcheck. Voice preserved." : undefined}
+        title="Proofread your posts."
+        meta={ready ? "Notes are surfaced from across your archive, not from generic spellcheck. Your voice always stays intact." : undefined}
       />
       {!ready ? (
-        <NotReadyNotice status={overview.status} token={token} feature="Grammar audit" />
+        <NotReadyNotice status={overview.status} token={token} feature="Audit" />
       ) : posts === null ? (
         <LoadingState label="Loading posts" />
       ) : (

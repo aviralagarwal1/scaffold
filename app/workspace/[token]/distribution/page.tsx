@@ -35,8 +35,8 @@ export default function DistributionPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Repurposing drafts."
-        meta={ready ? "Platform-aware drafts for Twitter/X, LinkedIn, and Reddit. Saved here. Never auto-posted." : undefined}
+        title="Repurpose your writing."
+        meta={ready ? "Drafts are tuned for Facebook, Twitter, LinkedIn, and Reddit. Each helps your work find the readers it deserves." : undefined}
       />
       {!ready ? (
         <NotReadyNotice status={overview.status} token={token} feature="Distribution" />

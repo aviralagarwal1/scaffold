@@ -151,7 +151,7 @@ export function ChatPanel({ token, disabled }: { token: string; disabled?: boole
                 <span className="accent-rule" />
                 Editor
               </div>
-              <div className="mt-2 type-h3">Ask anything about your writing archive.</div>
+              <div className="mt-2 type-h3">Ask about anything from your writing history.</div>
               <p className="mt-1.5 text-[14px] text-ink-500">
                 Try one of these to get started, or ask your own question.
               </p>

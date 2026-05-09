@@ -14,10 +14,10 @@ export default function AskPage() {
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
-        title="Ask your archive."
-        meta={ready ? "Drawn only from your archive. Each answer cites the posts it drew from." : undefined}
+        title="Ask your memory."
+        meta={ready ? "Insights are drawn directly from your published work." : undefined}
       />
-      {!ready ? <NotReadyNotice status={overview.status} token={token} feature="Chat" /> : <ChatPanel token={token} />}
+      {!ready ? <NotReadyNotice status={overview.status} token={token} feature="Conversation" /> : <ChatPanel token={token} />}
     </div>
   );
 }

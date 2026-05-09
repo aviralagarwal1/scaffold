@@ -14,8 +14,8 @@ export default function IdeasPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="What to write next."
-        meta={ready ? "Sequels, contrarian angles, underexplored themes, and essays worth revisiting." : undefined}
+        title="Find your next idea."
+        meta={ready ? "Ideas rise from gaps and recurring patterns in your archive. Expect sequels, contrarian angles, and themes worth revisiting." : undefined}
       />
       {!ready ? <NotReadyNotice status={overview.status} token={token} feature="Ideas" /> : <IdeasPanel token={token} />}
     </div>

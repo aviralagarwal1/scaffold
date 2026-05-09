@@ -8,10 +8,10 @@ import { formatRelative, hostnameOf, pluralize } from "@/lib/client/format";
 
 const TABS = [
   { slug: "", label: "Overview" },
-  { slug: "ask", label: "Ask AI" },
-  { slug: "draft", label: "Draft feedback" },
-  { slug: "grammar", label: "Grammar audit" },
-  { slug: "ideas", label: "Ideas" },
+  { slug: "ask", label: "Conversation" },
+  { slug: "draft", label: "Feedback" },
+  { slug: "grammar", label: "Proofreading" },
+  { slug: "ideas", label: "Exploration" },
   { slug: "distribution", label: "Distribution" },
   { slug: "archive", label: "Archive" },
   { slug: "settings", label: "Settings" },

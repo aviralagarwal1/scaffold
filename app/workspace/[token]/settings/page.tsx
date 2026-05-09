@@ -13,8 +13,8 @@ export default function SettingsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Workspace settings."
-        meta="Manage how your archive is read and how you return to this workspace."
+        title="Configure your workspace."
+        meta="Refresh your archive, find your private link, and see what we never read."
       />
 
       <PrivateLinkBanner token={token} />

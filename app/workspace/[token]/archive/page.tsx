@@ -8,7 +8,6 @@ import { NotReadyNotice } from "@/components/NotReadyNotice";
 import { LoadingState, ErrorState } from "@/components/states";
 import { api, ApiClientError } from "@/lib/client/api";
 import { PageHeader } from "@/components/PageHeader";
-import { pluralize } from "@/lib/client/format";
 
 export default function ArchivePage() {
   const { token, overview } = useWorkspace();
@@ -37,8 +36,12 @@ export default function ArchivePage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Browse and search your posts."
-        meta={posts ? `${pluralize(posts.length, "post")} ingested.` : undefined}
+        title="Browse your library."
+        meta={
+          posts
+            ? `We're basking in the excellence of your ${posts.length.toLocaleString()} ${posts.length === 1 ? "post" : "posts"}.`
+            : undefined
+        }
       />
       {!ready ? (
         <NotReadyNotice status={overview.status} token={token} feature="Archive" />

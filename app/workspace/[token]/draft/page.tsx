@@ -14,11 +14,11 @@ export default function DraftPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Editorial feedback on your draft."
-        meta={ready ? "Grounded in the patterns already present in your writing." : undefined}
+        title="Evaluate your draft."
+        meta={ready ? "Feedback is grounded in your own writing, not generic best practices." : undefined}
       />
       {!ready ? (
-        <NotReadyNotice status={overview.status} token={token} feature="Draft feedback" />
+        <NotReadyNotice status={overview.status} token={token} feature="Feedback" />
       ) : (
         <DraftFeedbackPanel token={token} />
       )}

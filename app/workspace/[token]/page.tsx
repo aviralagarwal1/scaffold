@@ -49,29 +49,30 @@ export default function OverviewPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <InsightCard
                   eyebrow="Conversation"
-                  title="Ask your archive"
-                  description="An editor that has read every post. Themes, patterns, and what to write next."
+                  title="Ask your memory"
+                  description="Ask your memory anything. Themes, patterns, and what to write next."
                   href={`/workspace/${token}/ask`}
-                  cta="Open chat"
+                  cta="Start chat"
                 />
                 <InsightCard
-                  eyebrow="Editorial review"
-                  title="Get feedback on a draft"
-                  description="Paste an unpublished draft. Get notes against your existing voice and structure."
+                  eyebrow="Feedback"
+                  title="Evaluate your draft"
+                  description="Paste what you're working on. Get notes aligned with your voice and structure."
                   href={`/workspace/${token}/draft`}
-                  cta="Open draft feedback"
+                  cta="Get advice"
                 />
                 <InsightCard
                   eyebrow="Proofreading"
-                  title="Run a grammar audit"
-                  description="Find grammar [] and inconsistencies without flattening your voice."
+                  title="Proofread your posts"
+                  description="It's never too late to catch a typo. Run an audit to find any grammar issues."
                   href={`/workspace/${token}/grammar`}
                   cta="Run audit"
+
                 />
                 <InsightCard
                   eyebrow="Distribution"
-                  title="Draft for any platform"
-                  description="Repurpose any post for LinkedIn, X, or Reddit. You review and approve."
+                  title="Repurpose your writing"
+                  description="Generate posts for Facebook, Twitter, and more. You review and approve."
                   href={`/workspace/${token}/distribution`}
                   cta="Open distribution"
                 />
