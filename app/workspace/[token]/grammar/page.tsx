@@ -41,7 +41,7 @@ export default function GrammarPage() {
       {!ready ? (
         <NotReadyNotice status={overview.status} token={token} feature="Audit" />
       ) : posts === null ? (
-        <LoadingState label="Loading posts" />
+        <LoadingState label="Loading your posts..." />
       ) : (
         <GrammarAuditPanel token={token} posts={posts} />
       )}

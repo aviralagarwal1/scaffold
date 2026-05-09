@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { DraftFeedbackResponse } from "@/types/ai";
 import { api, ApiClientError } from "@/lib/client/api";
 import { cn } from "@/lib/client/cn";
@@ -46,6 +46,14 @@ export function DraftFeedbackPanel({ token, disabled }: { token: string; disable
   const [focus, setFocus] = useState<string[]>([]);
   const [focusAlerting, setFocusAlerting] = useState(false);
   const ref = useRef<HTMLTextAreaElement>(null);
+
+  // Autofocus on mount — this is a primary writing surface and the writer
+  // came here to paste a draft. Native cursor handles the invitation; no
+  // custom caret needed (which avoided alignment bugs and the can't-type
+  // problem when focus was sitting on the page tab).
+  useEffect(() => {
+    ref.current?.focus({ preventScroll: true });
+  }, []);
 
   const wordCount = draft.trim() ? draft.trim().split(/\s+/).length : 0;
   const canReview = !disabled && !busy && draft.trim().length > 0;
@@ -141,9 +149,9 @@ export function DraftFeedbackPanel({ token, disabled }: { token: string; disable
           id="draft"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="Paste your draft to begin ..."
+          placeholder="Paste your draft to begin..."
           disabled={disabled || busy}
-          className="input block max-h-[680px] min-h-[320px] resize-none overflow-y-auto font-serif text-[15.5px] leading-relaxed transition-colors duration-200 ease-editorial placeholder:italic hover:border-ink-300"
+          className="input block max-h-[680px] min-h-[320px] resize-none overflow-y-auto font-serif text-[15.5px] leading-relaxed text-ink-900 placeholder:font-serif placeholder:italic placeholder:text-ink-400 transition-colors duration-200 ease-editorial hover:border-ink-300"
         />
         <div className="flex items-center justify-end gap-3 pt-1">
           <button
@@ -157,7 +165,7 @@ export function DraftFeedbackPanel({ token, disabled }: { token: string; disable
                   <span className="absolute inline-flex h-full w-full animate-editorial-pulse rounded-full bg-ink-50/50" />
                   <span className="relative inline-flex h-2 w-2 animate-editorial-pulse rounded-full bg-ink-50" />
                 </span>
-                <span>Reading your draft</span>
+                <span>Reading your draft...</span>
               </>
             ) : (
               <>
@@ -186,7 +194,7 @@ export function DraftFeedbackPanel({ token, disabled }: { token: string; disable
         )}
         {busy && (
           <div className="panel p-5">
-            <LoadingState label="Comparing against your archive" />
+            <LoadingState label="Comparing against your archive..." />
           </div>
         )}
         {result && (

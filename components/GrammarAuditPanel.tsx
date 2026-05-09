@@ -72,10 +72,10 @@ export function GrammarAuditPanel({
   }, [issues, filterPostId, filterSeverity]);
 
   return (
-    <div className="flex flex-col gap-8">
-      {/* Compose row */}
+    <div className="flex flex-col">
+      {/* === Compose zone === */}
       <section className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-3">
           <button onClick={() => runAudit()} className="btn-primary group gap-1.5" disabled={disabled || busy !== null}>
             {busy === "audit" ? (
               <>
@@ -83,32 +83,15 @@ export function GrammarAuditPanel({
                   <span className="absolute inline-flex h-full w-full animate-editorial-pulse rounded-full bg-ink-50/50" />
                   <span className="relative inline-flex h-2 w-2 animate-editorial-pulse rounded-full bg-ink-50" />
                 </span>
-                <span>Auditing your archive</span>
+                <span>Auditing your archive...</span>
               </>
             ) : (
               <>
-                <span>Run archive-wide audit</span>
+                <span>Run audit</span>
                 <span aria-hidden="true" className="btn-ask-arrow">→</span>
               </>
             )}
           </button>
-          <span className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-400">or</span>
-          <select
-            className="input max-w-xs transition-colors duration-150 ease-editorial hover:border-ink-300"
-            value={filterPostId === "all" ? "" : filterPostId}
-            onChange={(e) => {
-              const v = e.target.value;
-              if (v) runAudit(v);
-            }}
-            disabled={disabled || busy !== null || posts.length === 0}
-          >
-            <option value="">Audit a single post</option>
-            {posts.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.title}
-              </option>
-            ))}
-          </select>
         </div>
         {summary && (
           <div className="animate-rise rounded-md border-l-2 border-accent-500 bg-accent-50/50 px-4 py-3 text-[14px] leading-relaxed text-ink-800">
@@ -119,65 +102,71 @@ export function GrammarAuditPanel({
             <p className="mt-1.5">{summary}</p>
           </div>
         )}
+        {error && <ErrorState description={error} />}
       </section>
 
-      {error && <ErrorState description={error} />}
+      {/* === Library zone ===
+          mt-14 same as Distribution and Exploration so the eye learns one
+          rhythm across the whole product: Compose at the top, big break,
+          Library below. */}
+      <div className="mt-14 flex flex-col gap-6">
+        {issues && issues.length > 0 && (
+          <section className="flex flex-col gap-3">
+            <div className="flex items-center gap-3">
+              <span className="type-eyebrow text-ink-400">Issues</span>
+              <span className="h-px flex-1 bg-ink-200/70" />
+              <span className="font-mono text-[10.5px] text-ink-400">
+                {filtered.length}/{issues.length}
+              </span>
+            </div>
 
-      {/* Library divider */}
-      {issues && issues.length > 0 && (
-        <div className="flex items-center gap-3">
-          <span className="type-eyebrow text-ink-400">Issues</span>
-          <span className="h-px flex-1 bg-ink-200/70" />
-          <span className="font-mono text-[10.5px] text-ink-400">
-            {filtered.length}/{issues.length}
-          </span>
-        </div>
-      )}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 type-meta">
+                <span>Filter</span>
+                <select
+                  className="input max-w-[200px] transition-colors duration-150 ease-editorial hover:border-ink-300"
+                  value={filterPostId}
+                  onChange={(e) => setFilterPostId(e.target.value)}
+                >
+                  <option value="all">All posts</option>
+                  {posts.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.title}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className="input max-w-[160px] transition-colors duration-150 ease-editorial hover:border-ink-300"
+                  value={filterSeverity}
+                  onChange={(e) => setFilterSeverity(e.target.value as typeof filterSeverity)}
+                >
+                  <option value="all">All severities</option>
+                  <option value="high">High</option>
+                  <option value="medium">Medium</option>
+                  <option value="low">Low</option>
+                </select>
+              </div>
+            </div>
+          </section>
+        )}
 
-      {issues && issues.length > 0 && (
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 type-meta">
-            <span>Filter</span>
-            <select
-              className="input max-w-[200px] transition-colors duration-150 ease-editorial hover:border-ink-300"
-              value={filterPostId}
-              onChange={(e) => setFilterPostId(e.target.value)}
-            >
-              <option value="all">All posts</option>
-              {posts.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.title}
-                </option>
-              ))}
-            </select>
-            <select
-              className="input max-w-[160px] transition-colors duration-150 ease-editorial hover:border-ink-300"
-              value={filterSeverity}
-              onChange={(e) => setFilterSeverity(e.target.value as typeof filterSeverity)}
-            >
-              <option value="all">All severities</option>
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
-            </select>
+        {busy === "load" && <LoadingState label="Loading your prior issues..." />}
+
+        {issues && issues.length === 0 && !busy && (
+          <EmptyState
+            eyebrow="Nothing audited yet"
+            title="Run an audit to begin."
+            description="We'll surface recurring grammar and style patterns across your archive. Once results land, you can filter them by post or severity."
+          />
+        )}
+
+        {filtered.length > 0 && (
+          <div className="grid gap-4">
+            {filtered.map((issue) => (
+              <GrammarIssueCard key={issue.id} issue={issue} />
+            ))}
           </div>
-        </div>
-      )}
-
-      {busy === "load" && <LoadingState label="Loading prior issues" />}
-
-      {issues && issues.length === 0 && !busy && (
-        <EmptyState
-          eyebrow="Nothing audited yet"
-          title="Run an archive-wide audit."
-          description="We'll surface recurring grammar and style patterns across your posts. You can also audit a single post."
-        />
-      )}
-
-      <div className="grid gap-4">
-        {filtered.map((issue) => (
-          <GrammarIssueCard key={issue.id} issue={issue} />
-        ))}
+        )}
       </div>
     </div>
   );

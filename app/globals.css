@@ -137,6 +137,11 @@ body {
   textarea.input {
     @apply h-auto py-2.5 leading-[1.55];
   }
+  /* Native <select> reserves room on the right for the chevron. Without this
+     override, long option labels collide with the chevron at the right edge. */
+  select.input {
+    @apply pr-9;
+  }
 
   /* === Writing-surface input ===
      Used for the hero/onboarding form. Larger, serif, designed to feel like
