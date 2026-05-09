@@ -153,7 +153,10 @@ export function DraftFeedbackPanel({ token, disabled }: { token: string; disable
           >
             {busy ? (
               <>
-                <span aria-hidden="true" className="inline-block h-1.5 w-1.5 animate-editorial-pulse rounded-full bg-ink-50" />
+                <span className="relative inline-flex h-2 w-2 shrink-0" aria-hidden="true">
+                  <span className="absolute inline-flex h-full w-full animate-editorial-pulse rounded-full bg-ink-50/50" />
+                  <span className="relative inline-flex h-2 w-2 animate-editorial-pulse rounded-full bg-ink-50" />
+                </span>
                 <span>Reading your draft</span>
               </>
             ) : (

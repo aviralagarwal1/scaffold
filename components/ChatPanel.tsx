@@ -191,11 +191,11 @@ export function ChatPanel({ token, disabled }: { token: string; disabled?: boole
                   >
                     {surfacing ? (
                       <>
-                        <span
-                          aria-hidden="true"
-                          className="h-1.5 w-1.5 animate-editorial-pulse rounded-full bg-accent-400"
-                        />
-                        Reading the archive
+                        <span className="relative inline-flex h-2 w-2 shrink-0" aria-hidden="true">
+                          <span className="absolute inline-flex h-full w-full animate-editorial-pulse rounded-full bg-accent-400/50" />
+                          <span className="relative inline-flex h-2 w-2 animate-editorial-pulse rounded-full bg-accent-400" />
+                        </span>
+                        Reading your archive
                       </>
                     ) : (
                       <>
@@ -439,7 +439,7 @@ function ThinkingDots() {
         <span className="h-1.5 w-1.5 animate-editorial-pulse rounded-full bg-accent-400 [animation-delay:180ms]" />
         <span className="h-1.5 w-1.5 animate-editorial-pulse rounded-full bg-accent-400 [animation-delay:360ms]" />
       </div>
-      <span>Reading the archive</span>
+      <span>Reading your archive</span>
     </div>
   );
 }
