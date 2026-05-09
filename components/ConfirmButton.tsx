@@ -15,6 +15,7 @@ export function ConfirmButton({
   label,
   confirmLabel = "Are you sure?",
   busyLabel,
+  armedClassName,
   disabled,
   busy,
 }: {
@@ -23,6 +24,7 @@ export function ConfirmButton({
   label: string;
   confirmLabel?: string;
   busyLabel?: string;
+  armedClassName?: string;
   disabled?: boolean;
   busy?: boolean;
 }) {
@@ -65,7 +67,7 @@ export function ConfirmButton({
       aria-pressed={armed || undefined}
       className={cn(
         className,
-        armed && "ring-2 ring-critical-500/40 bg-critical-100/60 text-critical-700",
+        armed && (armedClassName ?? "ring-2 ring-critical-500/40 bg-critical-100/60 text-critical-700"),
       )}
     >
       {busy && busyLabel ? busyLabel : armed ? confirmLabel : label}

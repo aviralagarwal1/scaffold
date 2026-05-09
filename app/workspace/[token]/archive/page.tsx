@@ -48,7 +48,7 @@ export default function ArchivePage() {
       ) : error ? (
         <ErrorState description={error} />
       ) : posts === null ? (
-        <LoadingState label="Loading posts" />
+        <LoadingState label="Loading your posts..." />
       ) : (
         <ArchiveBrowser posts={posts} />
       )}

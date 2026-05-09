@@ -622,6 +622,19 @@ function distributionVariants(platform: DistributionPlatform, post: Post): Pick<
     ];
   }
 
+  if (platform === "instagram") {
+    return [
+      {
+        title: "Caption",
+        content: `${post.title}\n\n${lead}\n\nRead the full piece at the link in bio.`
+      },
+      {
+        title: "Carousel outline",
+        content: `Slide 1: ${post.title}\n\nSlide 2: The core idea\n${lead}\n\nSlide 3: Why it matters\n\nSlide 4: What to consider next\n\nCaption: Full essay at the link in bio.`
+      }
+    ];
+  }
+
   return [
     {
       title: "Discussion prompt",

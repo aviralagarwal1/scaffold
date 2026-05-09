@@ -6,6 +6,17 @@ import { PrivateLinkBanner } from "@/components/PrivateLinkBanner";
 import { PageHeader } from "@/components/PageHeader";
 import { formatDate, hostnameOf, pluralize } from "@/lib/client/format";
 
+// Idle sparkle positions — same staggered delays as the LogoCTA so the
+// settings logo breathes on the same rhythm as the closing-CTA mark.
+const SPARKLES = [
+  { top: "8%", right: "16%", fontSize: "10px", delay: "0s" },
+  { top: "22%", left: "10%", fontSize: "8px", delay: "1.1s" },
+  { bottom: "14%", right: "8%", fontSize: "9px", delay: "2.2s" },
+  { bottom: "10%", left: "20%", fontSize: "7px", delay: "3.3s" },
+  { top: "48%", right: "-2%", fontSize: "8px", delay: "1.7s" },
+  { top: "38%", left: "-2%", fontSize: "6px", delay: "3.8s" },
+];
+
 export default function SettingsPage() {
   const { token, overview, reingest, reingesting } = useWorkspace();
   if (!overview) return null;
@@ -14,7 +25,7 @@ export default function SettingsPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Configure your workspace."
-        meta="Refresh your archive, find your private link, and see what we never read."
+        meta="Refresh your library, find your private link, and see what we never read."
       />
 
       <PrivateLinkBanner token={token} />
@@ -24,32 +35,36 @@ export default function SettingsPage() {
         <div className="font-serif text-[17px] leading-tight tracking-tightish text-ink-900">
           {overview.publicationName ?? hostnameOf(overview.publicationUrl)}
         </div>
-        <a
-          href={overview.publicationUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="break-all text-[12px] text-ink-500 transition-colors hover:text-ink-800"
-        >
-          {overview.publicationUrl}
-        </a>
         <dl className="mt-2 grid grid-cols-2 gap-y-2 text-[12.5px] text-ink-700">
           <dt className="text-ink-500">Status</dt>
           <dd className="capitalize">{overview.status}</dd>
-          <dt className="text-ink-500">Posts indexed</dt>
+          <dt className="text-ink-500">Number of posts</dt>
           <dd>{pluralize(overview.postCount, "post")}</dd>
-          <dt className="text-ink-500">Last ingested</dt>
+          <dt className="text-ink-500">Last indexed</dt>
           <dd>{overview.lastIngestedAt ? formatDate(overview.lastIngestedAt, { withTime: true }) : "Not yet"}</dd>
         </dl>
       </section>
 
       <section className="panel flex flex-col gap-3 p-5">
-        <h3 className="type-h3">Re-ingest archive</h3>
+        <h3 className="type-h3">Refresh library</h3>
         <p className="text-[14px] leading-relaxed text-ink-600">
           Pull your latest posts and refresh chunks. Existing chat history and saved drafts stay where they are.
         </p>
         <div>
-          <button onClick={reingest} className="btn-primary" disabled={reingesting}>
-            {reingesting ? "Re-ingesting" : "Re-ingest now"}
+          <button
+            type="button"
+            onClick={reingest}
+            disabled={reingesting}
+            className="group inline-flex h-10 items-center gap-2 self-start rounded-md border border-ink-200 bg-white px-3.5 text-[13px] font-medium text-ink-800 shadow-soft transition-colors duration-150 ease-editorial hover:border-accent-300 hover:bg-accent-50/40 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <span className="font-serif italic text-ink-500 group-hover:text-ink-700">
+              {reingesting ? "Syncing your workspace..." : "Sync workspace"}
+            </span>
+            {!reingesting && (
+              <span aria-hidden="true" className="text-ink-400 transition-transform duration-200 ease-editorial group-hover:translate-x-0.5 group-hover:text-accent-700">
+                →
+              </span>
+            )}
           </button>
         </div>
         {overview.ingestionError && (
@@ -59,19 +74,31 @@ export default function SettingsPage() {
         )}
       </section>
 
-      <section className="panel flex flex-col gap-3 p-5">
-        <h3 className="type-h3">Privacy</h3>
-        <p className="text-[14px] leading-relaxed text-ink-600">
-          There is no login. Anyone with the workspace link can access this workspace. Don't share it publicly. We only
-          read your public Substack archive. We never see private subscriber data, opens, clicks, or paid analytics.
-        </p>
+      {/* The space the privacy section once held. The § wordmark, breathing
+          and casting sparkles, becomes a quiet editorial signature at the
+          bottom of the settings shelf — purely atmospheric, not interactive. */}
+      <section className="flex justify-center py-12">
+        <div className="relative inline-flex h-[6.5rem] w-[6.5rem] items-center justify-center" aria-hidden="true">
+          <span className="logo-cta-glow" />
+          <span className="logo-cta-mark">§</span>
+          {SPARKLES.map((s, i) => (
+            <span
+              key={i}
+              className="logo-cta-sparkle"
+              style={{
+                top: s.top,
+                bottom: s.bottom,
+                left: s.left,
+                right: s.right,
+                fontSize: s.fontSize,
+                animationDelay: s.delay,
+              }}
+            >
+              ✦
+            </span>
+          ))}
+        </div>
       </section>
-
-      <div>
-        <Link href={`/workspace/${token}`} className="btn-link">
-          ← Back to overview
-        </Link>
-      </div>
     </div>
   );
 }

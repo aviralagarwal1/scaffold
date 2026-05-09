@@ -36,12 +36,12 @@ export default function DistributionPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Repurpose your writing."
-        meta={ready ? "Drafts are tuned for Facebook, Twitter, LinkedIn, and Reddit. Each helps your work find the readers it deserves." : undefined}
+        meta={ready ? "Drafts are tuned for Twitter, LinkedIn, Facebook, Instagram, and Reddit. Each helps your work find the readers it deserves." : undefined}
       />
       {!ready ? (
         <NotReadyNotice status={overview.status} token={token} feature="Distribution" />
       ) : posts === null ? (
-        <LoadingState label="Loading posts" />
+        <LoadingState label="Loading your posts..." />
       ) : (
         <DistributionPanel token={token} posts={posts} />
       )}

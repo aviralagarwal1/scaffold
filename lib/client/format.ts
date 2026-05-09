@@ -1,3 +1,5 @@
+import type { DistributionPlatform } from "@/types/ai";
+
 export function formatDate(value: string | null | undefined, opts?: { withTime?: boolean }): string {
   if (!value) return "";
   const d = new Date(value);
@@ -40,7 +42,7 @@ export function truncate(text: string, max: number): string {
   return text.slice(0, max - 1).trimEnd() + "…";
 }
 
-export function platformLabel(platform: "twitter" | "linkedin" | "reddit" | "facebook"): string {
+export function platformLabel(platform: DistributionPlatform): string {
   switch (platform) {
     case "twitter":
       return "Twitter / X";
@@ -50,14 +52,15 @@ export function platformLabel(platform: "twitter" | "linkedin" | "reddit" | "fac
       return "Reddit";
     case "facebook":
       return "Facebook";
+    case "instagram":
+      return "Instagram";
   }
 }
 
 // Practical character ceilings per platform. Used to flag over-limit drafts
-// in the UI without blocking the writer from editing past them — the limits
-// vary by platform tier (e.g. X Premium raises Twitter's), so these are the
-// conservative defaults a writer would target.
-export function platformCharLimit(platform: "twitter" | "linkedin" | "reddit" | "facebook"): number {
+// in the UI without blocking the writer from editing past them. The limits
+// vary by platform tier, so these are conservative defaults a writer can target.
+export function platformCharLimit(platform: DistributionPlatform): number {
   switch (platform) {
     case "twitter":
       return 280;
@@ -67,6 +70,8 @@ export function platformCharLimit(platform: "twitter" | "linkedin" | "reddit" | 
       return 40000;
     case "facebook":
       return 5000;
+    case "instagram":
+      return 2200;
   }
 }
 

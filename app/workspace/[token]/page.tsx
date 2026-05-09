@@ -72,7 +72,7 @@ export default function OverviewPage() {
                 <InsightCard
                   eyebrow="Distribution"
                   title="Repurpose your writing"
-                  description="Generate posts for Facebook, Twitter, and more. You review and approve."
+                  description="Generate posts for Facebook, Twitter, and more. You review and save."
                   href={`/workspace/${token}/distribution`}
                   cta="Open distribution"
                 />
