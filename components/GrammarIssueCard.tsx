@@ -14,7 +14,7 @@ function humanizeIssueType(t: string): string {
 export function GrammarIssueCard({ issue }: { issue: GrammarIssue }) {
   const sev = SEV[issue.severity];
   return (
-    <article className="panel flex flex-col gap-3 p-5">
+    <article className="panel animate-rise flex flex-col gap-3 p-5 transition-shadow duration-200 ease-editorial hover:shadow-lift">
       <header className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <span

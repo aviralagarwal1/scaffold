@@ -48,8 +48,10 @@ export interface PromptSuggestionsResponse {
   source: "model" | "fallback";
 }
 
-export type DistributionPlatform = "twitter" | "linkedin" | "reddit";
-export type RepurposeDraftStatus = "generated" | "saved" | "approved" | "deleted";
+export type DistributionPlatform = "twitter" | "linkedin" | "reddit" | "facebook";
+// "pending" replaces the older "generated" — same lifecycle slot, clearer
+// intent. Pending drafts auto-expire 24h after creation if not actioned.
+export type RepurposeDraftStatus = "pending" | "saved" | "approved" | "deleted";
 
 export interface DistributionRequest {
   postId: string;

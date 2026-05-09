@@ -5,14 +5,16 @@ import type { DistributionPlatform, RepurposeDraft, RepurposeDraftStatus } from 
 import type { PostSummary } from "@/types/post";
 import { api, ApiClientError } from "@/lib/client/api";
 import { RepurposeDraftCard } from "./RepurposeDraftCard";
+import { PlatformIcon } from "./PlatformIcon";
 import { EmptyState, LoadingState } from "./states";
 import { cn } from "@/lib/client/cn";
 import { platformLabel } from "@/lib/client/format";
 
-const PLATFORMS: DistributionPlatform[] = ["twitter", "linkedin", "reddit"];
+const PLATFORMS: DistributionPlatform[] = ["twitter", "linkedin", "facebook", "reddit"];
+
 const STATUS_TABS: { key: "all" | RepurposeDraftStatus; label: string }[] = [
   { key: "all", label: "All" },
-  { key: "generated", label: "Generated" },
+  { key: "pending", label: "Pending" },
   { key: "saved", label: "Saved" },
   { key: "approved", label: "Approved" },
 ];
@@ -82,6 +84,8 @@ export function DistributionPanel({
     });
   }, [drafts, statusFilter, platformFilter]);
 
+  const pendingCount = drafts?.filter((d) => d.status === "pending").length ?? 0;
+
   const onChange = (id: string, next: RepurposeDraft | null) => {
     setDrafts((prev) => {
       if (!prev) return prev;
@@ -94,7 +98,7 @@ export function DistributionPanel({
     <div className="flex flex-col gap-8">
       {/* Compose row — bare, not panel-wrapped, so it reads as a command bar
           rather than a heavy box. */}
-      <section className="flex flex-col gap-4">
+      <section className="flex flex-col gap-5">
         <div className="flex flex-col gap-2">
           <label htmlFor="post-select" className="type-eyebrow text-ink-400">
             Source post
@@ -116,16 +120,15 @@ export function DistributionPanel({
         </div>
         <div className="flex flex-col gap-2">
           <span className="type-eyebrow text-ink-400">Generate for</span>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
             {PLATFORMS.map((p) => (
-              <button
+              <PlatformGenerateButton
                 key={p}
-                onClick={() => generate(p)}
+                platform={p}
                 disabled={disabled || generating !== null || !selectedPostId}
-                className="btn-primary"
-              >
-                {generating === p ? "Drafting" : platformLabel(p)}
-              </button>
+                busy={generating === p}
+                onClick={() => generate(p)}
+              />
             ))}
           </div>
         </div>
@@ -136,10 +139,16 @@ export function DistributionPanel({
         )}
       </section>
 
-      {/* Library divider */}
+      {/* Library divider — pending count surfaces here so the writer knows
+          there's something awaiting review the moment they land. */}
       <div className="flex items-center gap-3">
         <span className="type-eyebrow text-ink-400">Library</span>
         <span className="h-px flex-1 bg-ink-200/70" />
+        {pendingCount > 0 && (
+          <span className="font-mono text-[10.5px] text-accent-700">
+            {pendingCount} pending
+          </span>
+        )}
         {drafts && drafts.length > 0 && (
           <span className="font-mono text-[10.5px] text-ink-400">
             {visible.length}/{drafts.length}
@@ -168,7 +177,7 @@ export function DistributionPanel({
         <EmptyState
           eyebrow="No drafts yet"
           title="Nothing to repurpose."
-          description="Pick a post above and generate Twitter, LinkedIn, or Reddit drafts. They'll save here so you can return."
+          description="Pick a post above and generate drafts for any platform. Pending drafts expire after 24 hours unless you save or approve them."
         />
       )}
 
@@ -184,6 +193,56 @@ export function DistributionPanel({
         ))}
       </div>
     </div>
+  );
+}
+
+/**
+ * Platform generate button. Editorial palette throughout — soft white surface
+ * with ink-200 border at rest, accent warmth on hover. The platform identity
+ * lives in the icon, not the button color, so a row of these reads as one
+ * cohesive control panel rather than four competing brand colors.
+ */
+function PlatformGenerateButton({
+  platform,
+  busy,
+  disabled,
+  onClick,
+}: {
+  platform: DistributionPlatform;
+  busy: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "group inline-flex items-center justify-center gap-2.5 rounded-md border border-ink-200 bg-white px-4 py-2.5 text-[13px] font-medium tracking-tightish text-ink-800 shadow-soft transition-all duration-200 ease-editorial",
+        "hover:-translate-y-px hover:border-accent-300 hover:bg-accent-50/40 hover:text-ink-900 hover:shadow-lift",
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-50",
+        "disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:border-ink-200 disabled:hover:bg-white disabled:hover:shadow-soft",
+      )}
+    >
+      {busy ? (
+        <>
+          <span className="relative inline-flex h-2 w-2 shrink-0" aria-hidden="true">
+            <span className="absolute inline-flex h-full w-full animate-editorial-pulse rounded-full bg-accent-400/50" />
+            <span className="relative inline-flex h-2 w-2 animate-editorial-pulse rounded-full bg-accent-400" />
+          </span>
+          <span>Drafting</span>
+        </>
+      ) : (
+        <>
+          <PlatformIcon
+            platform={platform}
+            className="h-4 w-4 text-ink-500 transition-colors duration-200 ease-editorial group-hover:text-accent-700"
+          />
+          <span>{platformLabel(platform)}</span>
+        </>
+      )}
+    </button>
   );
 }
 

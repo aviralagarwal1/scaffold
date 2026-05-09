@@ -76,12 +76,25 @@ export function GrammarAuditPanel({
       {/* Compose row */}
       <section className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center gap-2">
-          <button onClick={() => runAudit()} className="btn-primary" disabled={disabled || busy !== null}>
-            {busy === "audit" ? "Auditing your archive" : "Run archive-wide audit"}
+          <button onClick={() => runAudit()} className="btn-primary group gap-1.5" disabled={disabled || busy !== null}>
+            {busy === "audit" ? (
+              <>
+                <span className="relative inline-flex h-2 w-2 shrink-0" aria-hidden="true">
+                  <span className="absolute inline-flex h-full w-full animate-editorial-pulse rounded-full bg-ink-50/50" />
+                  <span className="relative inline-flex h-2 w-2 animate-editorial-pulse rounded-full bg-ink-50" />
+                </span>
+                <span>Auditing your archive</span>
+              </>
+            ) : (
+              <>
+                <span>Run archive-wide audit</span>
+                <span aria-hidden="true" className="btn-ask-arrow">→</span>
+              </>
+            )}
           </button>
           <span className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-400">or</span>
           <select
-            className="input max-w-xs"
+            className="input max-w-xs transition-colors duration-150 ease-editorial hover:border-ink-300"
             value={filterPostId === "all" ? "" : filterPostId}
             onChange={(e) => {
               const v = e.target.value;
@@ -98,7 +111,7 @@ export function GrammarAuditPanel({
           </select>
         </div>
         {summary && (
-          <div className="rounded-md border-l-2 border-accent-500 bg-accent-50/50 px-4 py-3 text-[14px] leading-relaxed text-ink-800">
+          <div className="animate-rise rounded-md border-l-2 border-accent-500 bg-accent-50/50 px-4 py-3 text-[14px] leading-relaxed text-ink-800">
             <div className="flex items-center gap-2">
               <span className="accent-rule" />
               <span className="text-eyebrow font-medium uppercase text-accent-700">Pattern detected</span>
@@ -125,7 +138,11 @@ export function GrammarAuditPanel({
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2 type-meta">
             <span>Filter</span>
-            <select className="input max-w-[200px]" value={filterPostId} onChange={(e) => setFilterPostId(e.target.value)}>
+            <select
+              className="input max-w-[200px] transition-colors duration-150 ease-editorial hover:border-ink-300"
+              value={filterPostId}
+              onChange={(e) => setFilterPostId(e.target.value)}
+            >
               <option value="all">All posts</option>
               {posts.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -134,7 +151,7 @@ export function GrammarAuditPanel({
               ))}
             </select>
             <select
-              className="input max-w-[160px]"
+              className="input max-w-[160px] transition-colors duration-150 ease-editorial hover:border-ink-300"
               value={filterSeverity}
               onChange={(e) => setFilterSeverity(e.target.value as typeof filterSeverity)}
             >

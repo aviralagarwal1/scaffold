@@ -223,13 +223,44 @@ export async function addRepurposeDrafts(token: string, drafts: Omit<RepurposeDr
   });
 }
 
+// Pending drafts that haven't been saved or approved within this window get
+// auto-deleted on the next read. Twenty-four hours matches the user's mental
+// model — a writer who comes back the next day shouldn't see stale drafts.
+const PENDING_LIFETIME_MS = 24 * 60 * 60 * 1000;
+
 export async function listRepurposeDrafts(token: string): Promise<RepurposeDraft[]> {
-  const db = await readDb();
-  const workspace = db.workspaces.find((item) => item.token === token);
-  if (!workspace) throw new AppError("Workspace not found.", 404);
-  return db.repurposeDrafts
-    .filter((draft) => draft.workspaceId === workspace.id && draft.status !== "deleted")
-    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+  return mutateDb((db) => {
+    const workspace = db.workspaces.find((item) => item.token === token);
+    if (!workspace) throw new AppError("Workspace not found.", 404);
+
+    const now = Date.now();
+    const nowIso = new Date().toISOString();
+
+    // Lazy migration: any "generated" status from the old taxonomy becomes
+    // "pending" so the rest of the app sees a single consistent vocabulary.
+    for (const draft of db.repurposeDrafts) {
+      if ((draft.status as string) === "generated") {
+        draft.status = "pending";
+      }
+    }
+
+    // Expire pending drafts older than the lifetime. Soft-delete (status
+    // becomes "deleted") so we never lose history mid-session.
+    for (const draft of db.repurposeDrafts) {
+      if (
+        draft.workspaceId === workspace.id &&
+        draft.status === "pending" &&
+        now - Date.parse(draft.createdAt) > PENDING_LIFETIME_MS
+      ) {
+        draft.status = "deleted";
+        draft.updatedAt = nowIso;
+      }
+    }
+
+    return db.repurposeDrafts
+      .filter((draft) => draft.workspaceId === workspace.id && draft.status !== "deleted")
+      .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+  });
 }
 
 export async function updateRepurposeDraft(token: string, draftId: string, patch: Partial<Pick<RepurposeDraft, "status" | "content" | "title">>) {

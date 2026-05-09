@@ -572,7 +572,7 @@ export async function generateDistributionDrafts(
     variants.map((variant) => ({
       postId: post.id,
       platform,
-      status: "generated",
+      status: "pending",
       title: variant.title,
       content: variant.content,
       sourcePostTitle: post.title,
@@ -605,6 +605,19 @@ function distributionVariants(platform: DistributionPlatform, post: Post): Pick<
       {
         title: "Concise professional post",
         content: `New essay: ${post.title}\n\n${lead}\n\nCurious how others are thinking about this.`
+      }
+    ];
+  }
+
+  if (platform === "facebook") {
+    return [
+      {
+        title: "Personal note",
+        content: `Just published: ${post.title}\n\n${lead}\n\nIf this resonates, I'd love to hear how you've thought about it. Full piece: ${post.url}`
+      },
+      {
+        title: "Conversational lead-in",
+        content: `Something I've been thinking about lately, written up in full:\n\n${post.title}\n\n${lead}\n\n${post.url}`
       }
     ];
   }

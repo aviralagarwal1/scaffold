@@ -2,17 +2,24 @@ import type { RepurposeDraftStatus } from "@/types/ai";
 import { cn } from "@/lib/client/cn";
 
 const STYLES: Record<RepurposeDraftStatus, string> = {
-  generated: "border-ink-200 bg-ink-75 text-ink-700",
+  pending: "border-accent-200 bg-accent-50/70 text-accent-700",
   saved: "border-warn-100 bg-warn-100/60 text-warn-700",
   approved: "border-positive-100 bg-positive-100/70 text-positive-700",
   deleted: "border-critical-100 bg-critical-100/60 text-critical-700",
 };
 
 const LABELS: Record<RepurposeDraftStatus, string> = {
-  generated: "Generated",
+  pending: "Pending",
   saved: "Saved",
   approved: "Approved",
   deleted: "Deleted",
+};
+
+const DOT: Record<RepurposeDraftStatus, string> = {
+  pending: "bg-accent-500",
+  saved: "bg-warn-500",
+  approved: "bg-positive-500",
+  deleted: "bg-critical-500",
 };
 
 export function DraftStatusBadge({ status }: { status: RepurposeDraftStatus }) {
@@ -23,15 +30,7 @@ export function DraftStatusBadge({ status }: { status: RepurposeDraftStatus }) {
         STYLES[status],
       )}
     >
-      <span
-        aria-hidden="true"
-        className={cn("h-1.5 w-1.5 rounded-full", {
-          "bg-ink-400": status === "generated",
-          "bg-warn-500": status === "saved",
-          "bg-positive-500": status === "approved",
-          "bg-critical-500": status === "deleted",
-        })}
-      />
+      <span aria-hidden="true" className={cn("h-1.5 w-1.5 rounded-full", DOT[status])} />
       {LABELS[status]}
     </span>
   );

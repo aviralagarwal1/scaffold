@@ -1,10 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { RepurposeDraft, RepurposeDraftStatus } from "@/types/ai";
 import { api, ApiClientError } from "@/lib/client/api";
+import { ConfirmButton } from "./ConfirmButton";
 import { DraftStatusBadge } from "./DraftStatusBadge";
-import { platformLabel } from "@/lib/client/format";
+import { PlatformIcon } from "./PlatformIcon";
+import { cn } from "@/lib/client/cn";
+import { formatRelative, platformCharLimit, platformLabel } from "@/lib/client/format";
+
+const PENDING_LIFETIME_MS = 24 * 60 * 60 * 1000;
 
 export function RepurposeDraftCard({
   token,
@@ -22,6 +27,14 @@ export function RepurposeDraftCard({
   const [busy, setBusy] = useState<null | "save" | "approve" | "delete" | "copy" | "edit">(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Tick once a minute so the "expires in X" countdown stays fresh on long sessions.
+  const [now, setNow] = useState<number>(() => Date.now());
+  useEffect(() => {
+    if (draft.status !== "pending") return;
+    const id = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(id);
+  }, [draft.status]);
 
   const update = async (patch: { status?: RepurposeDraftStatus; content?: string; title?: string | null }, kind: typeof busy) => {
     setBusy(kind);
@@ -67,14 +80,36 @@ export function RepurposeDraftCard({
     }
   };
 
+  const charCount = content.length;
+  const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
+  const limit = platformCharLimit(draft.platform);
+  const overLimit = charCount > limit;
+
+  const expiresAt = Date.parse(draft.createdAt) + PENDING_LIFETIME_MS;
+  const expiresIn = expiresAt - now;
+  const hoursLeft = Math.max(0, Math.floor(expiresIn / (60 * 60 * 1000)));
+  const minutesLeft = Math.max(0, Math.floor(expiresIn / (60 * 1000)));
+  const expiryText =
+    draft.status === "pending"
+      ? hoursLeft >= 1
+        ? `Expires in ${hoursLeft}h`
+        : `Expires in ${minutesLeft}m`
+      : null;
+
   return (
-    <article className="panel flex flex-col gap-3 p-5">
+    <article className="panel animate-rise flex flex-col gap-3 p-5 transition-shadow duration-200 ease-editorial hover:shadow-lift">
       <header className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 type-meta">
-          <span className="text-[12px] font-medium uppercase tracking-[0.08em] text-ink-700">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <PlatformIcon platform={draft.platform} className="h-4 w-4 text-ink-700" />
+          <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-700">
             {platformLabel(draft.platform)}
           </span>
-          {draft.title && <span className="truncate text-ink-500">· {draft.title}</span>}
+          {draft.title && (
+            <>
+              <span aria-hidden="true" className="text-ink-300">·</span>
+              <span className="truncate text-[12px] text-ink-500">{draft.title}</span>
+            </>
+          )}
         </div>
         <DraftStatusBadge status={draft.status} />
       </header>
@@ -92,8 +127,25 @@ export function RepurposeDraftCard({
         </pre>
       )}
 
+      {/* Meta line — generated timestamp, word/char count, platform limit */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10.5px] text-ink-400">
+        <span>Generated {formatRelative(draft.createdAt)}</span>
+        <span aria-hidden="true" className="text-ink-300">·</span>
+        <span>{wordCount.toLocaleString()} words</span>
+        <span aria-hidden="true" className="text-ink-300">·</span>
+        <span className={cn(overLimit && "text-critical-700")}>
+          {charCount.toLocaleString()}/{limit.toLocaleString()} chars
+        </span>
+        {expiryText && (
+          <>
+            <span aria-hidden="true" className="text-ink-300">·</span>
+            <span className="text-accent-700">{expiryText}</span>
+          </>
+        )}
+      </div>
+
       {draft.sourcePostTitle && (
-        <div className="type-meta">
+        <div className="text-[12px] text-ink-500">
           From{" "}
           {draft.sourcePostUrl ? (
             <a href={draft.sourcePostUrl} target="_blank" rel="noreferrer" className="link-soft">
@@ -131,11 +183,15 @@ export function RepurposeDraftCard({
         ) : (
           <>
             {draft.status !== "approved" && (
-              <button onClick={() => update({ status: "approved" }, "approve")} className="btn-primary" disabled={busy !== null}>
+              <button
+                onClick={() => update({ status: "approved" }, "approve")}
+                className="btn-primary"
+                disabled={busy !== null}
+              >
                 {busy === "approve" ? "Approving" : "Approve"}
               </button>
             )}
-            {draft.status === "generated" && (
+            {draft.status === "pending" && (
               <button onClick={() => update({ status: "saved" }, "save")} className="btn-secondary" disabled={busy !== null}>
                 {busy === "save" ? "Saving" : "Save"}
               </button>
@@ -151,9 +207,14 @@ export function RepurposeDraftCard({
                 Regenerate
               </button>
             )}
-            <button onClick={onDelete} className="btn-danger-ghost ml-auto" disabled={busy !== null}>
-              {busy === "delete" ? "Deleting" : "Delete"}
-            </button>
+            <ConfirmButton
+              onConfirm={onDelete}
+              label={busy === "delete" ? "Deleting" : "Dismiss"}
+              confirmLabel="Confirm dismiss"
+              busy={busy === "delete"}
+              disabled={busy !== null && busy !== "delete"}
+              className="btn-danger-ghost ml-auto transition-colors"
+            />
           </>
         )}
       </div>
