@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { getDb } from "@/lib/server/db";
-import { profiles, users } from "@/lib/server/db/schema";
+import { users } from "@/lib/server/db/schema";
 import { verifyPassword } from "./password";
 
 export const authOptions: NextAuthOptions = {
@@ -28,10 +28,8 @@ export const authOptions: NextAuthOptions = {
             email: users.email,
             name: users.name,
             passwordHash: users.passwordHash,
-            editorName: profiles.editorName,
           })
           .from(users)
-          .leftJoin(profiles, eq(profiles.userId, users.id))
           .where(eq(users.email, email))
           .limit(1);
 
@@ -40,7 +38,7 @@ export const authOptions: NextAuthOptions = {
         return {
           id: row.id,
           email: row.email,
-          name: row.editorName ?? row.name ?? row.email,
+          name: row.name ?? row.email,
         };
       },
     }),

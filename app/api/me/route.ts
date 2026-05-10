@@ -7,6 +7,7 @@ import { apiError, AppError } from "@/lib/server/errors";
 import { readJson } from "@/lib/server/http";
 
 type UpdateProfileRequest = {
+  creatorName?: unknown;
   editorName?: unknown;
 };
 
@@ -24,14 +25,28 @@ export async function PATCH(request: Request) {
   try {
     const userId = await requireCurrentUserId();
     const body = await readJson<UpdateProfileRequest>(request);
-    const editorName = requireEditorName(body.editorName);
     const db = getDb();
 
-    await db
-      .update(profiles)
-      .set({ editorName, updatedAt: new Date() })
-      .where(eq(profiles.userId, userId));
-    await db.update(users).set({ name: editorName }).where(eq(users.id, userId));
+    const patch: {
+      creatorName?: string;
+      editorName?: string;
+    } = {};
+
+    if ("creatorName" in body) patch.creatorName = requireCreatorName(body.creatorName);
+    if ("editorName" in body) patch.editorName = requireCuratorName(body.editorName);
+    if (patch.creatorName === undefined && patch.editorName === undefined) {
+      throw new AppError("Choose what to update.", 400);
+    }
+
+    if (patch.creatorName !== undefined) {
+      await db.update(users).set({ name: patch.creatorName }).where(eq(users.id, userId));
+    }
+    if (patch.editorName !== undefined) {
+      await db
+        .update(profiles)
+        .set({ editorName: patch.editorName, updatedAt: new Date() })
+        .where(eq(profiles.userId, userId));
+    }
 
     return NextResponse.json(await loadProfile(userId));
   } catch (error) {
@@ -45,6 +60,7 @@ async function loadProfile(userId: string) {
     .select({
       id: users.id,
       email: users.email,
+      creatorName: users.name,
       editorName: profiles.editorName,
     })
     .from(users)
@@ -56,13 +72,31 @@ async function loadProfile(userId: string) {
   return {
     id: row.id,
     email: row.email,
-    editorName: row.editorName ?? row.email ?? "Editor",
+    creatorName: row.creatorName ?? "",
+    editorName: row.editorName ?? "Curator",
   };
 }
 
-function requireEditorName(value: unknown): string {
-  if (typeof value !== "string") throw new AppError("Choose an editor name.", 400);
-  const editorName = value.replace(/\s+/g, " ").trim();
-  if (editorName.length < 2) throw new AppError("Choose an editor name.", 400);
-  return editorName.slice(0, 80);
+function requireCreatorName(value: unknown): string {
+  if (typeof value !== "string") throw new AppError("What should we call you?", 400);
+  const creatorName = value.replace(/\s+/g, " ").trim();
+  if (creatorName.length < 1) throw new AppError("What should we call you?", 400);
+  if (creatorName.length > 60) throw new AppError("Keep your name under 60 characters.", 400);
+  if (/[^\p{L}\s'-]/u.test(creatorName)) {
+    throw new AppError("Use letters, spaces, hyphens, or apostrophes.", 400);
+  }
+  return creatorName;
+}
+
+function requireCuratorName(value: unknown): string {
+  if (typeof value !== "string") throw new AppError("Choose a curator name.", 400);
+  const editorName = value.trim();
+  if (editorName.length < 2) throw new AppError("Choose a curator name.", 400);
+  if (editorName.length > 24) throw new AppError("Keep your curator name to 24 letters.", 400);
+  if (/[^\p{L}]/u.test(editorName)) {
+    throw new AppError("Letters only - no numbers or symbols.", 400);
+  }
+  if (!/^\p{Lu}/u.test(editorName)) throw new AppError("Start with a capital letter.", 400);
+  if (!/\p{Ll}$/u.test(editorName)) throw new AppError("End with a lowercase letter.", 400);
+  return editorName;
 }
