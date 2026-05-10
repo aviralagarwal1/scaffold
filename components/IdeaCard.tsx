@@ -1,12 +1,17 @@
+import type { ReactNode } from "react";
 import type { Idea } from "@/types/ai";
 import { SourceCitation } from "./SourceCitation";
 
-export function IdeaCard({ idea }: { idea: Idea }) {
+export function IdeaCard({ idea, action, meta }: { idea: Idea; action?: ReactNode; meta?: string }) {
   return (
     <article className="panel group flex flex-col gap-4 p-5 transition-all duration-200 ease-editorial hover:-translate-y-px hover:shadow-lift">
       <header>
-        <div className="mb-2 type-eyebrow text-ink-400">Lens: {idea.lens}</div>
+        <div className="mb-2 flex items-start justify-between gap-3">
+          <div className="type-eyebrow text-ink-400">Lens: {idea.lens}</div>
+          {action}
+        </div>
         <h3 className="type-h3 leading-snug">{idea.title}</h3>
+        {meta && <div className="mt-1 type-meta text-ink-400">{meta}</div>}
         <p className="mt-2 text-[14.5px] leading-relaxed text-ink-700">{idea.thesis}</p>
       </header>
       {idea.whyItFits && (

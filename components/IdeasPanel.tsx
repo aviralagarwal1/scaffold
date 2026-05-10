@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { IdeasResponse } from "@/types/ai";
+import type { Idea, IdeasResponse, SavedIdea } from "@/types/ai";
 import { api, ApiClientError } from "@/lib/client/api";
 import { cn } from "@/lib/client/cn";
+import { formatRelative, pluralize } from "@/lib/client/format";
 import { IdeaCard } from "./IdeaCard";
 import { LoadingState } from "./states";
 import { useWorkspace } from "./WorkspaceProvider";
@@ -15,12 +16,12 @@ const CUSTOM_THEME_MAX = 32;
 type CustomDraftMode = { type: "add" } | { type: "edit"; index: number };
 
 export function IdeasPanel({ token, disabled }: { token: string; disabled?: boolean }) {
-  const { overview } = useWorkspace();
+  const { overview, refetch } = useWorkspace();
 
   // Compose state.
   // - selectedLensLabel: the chip the user has committed to (single-select).
-  // - customThemes: user-added theme labels. Local-only — never persisted to
-  //   the workspace's recurring themes (those only refresh on archive sync).
+  // - customThemes: user-added theme labels. Persisted separately from the
+  //   workspace's recurring themes (those only refresh on archive sync).
   // - notes: required brainstorm/feeling text that grounds the theme.
   const [selectedLensLabel, setSelectedLensLabel] = useState<string | null>(null);
   const [customThemes, setCustomThemes] = useState<string[]>([]);
@@ -37,6 +38,11 @@ export function IdeasPanel({ token, disabled }: { token: string; disabled?: bool
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<IdeasResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [savedIdeas, setSavedIdeas] = useState<SavedIdea[]>([]);
+  const [savedLoading, setSavedLoading] = useState(true);
+  const [savedError, setSavedError] = useState<string | null>(null);
+  const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [removingIdeaId, setRemovingIdeaId] = useState<string | null>(null);
 
   const notesRef = useRef<HTMLTextAreaElement>(null);
 
@@ -62,6 +68,33 @@ export function IdeasPanel({ token, disabled }: { token: string; disabled?: bool
   useEffect(() => {
     notesRef.current?.focus({ preventScroll: true });
   }, []);
+
+  useEffect(() => {
+    setCustomThemes(overview?.customThemes ?? []);
+  }, [overview?.customThemes]);
+
+  useEffect(() => {
+    let active = true;
+    setSavedLoading(true);
+    api.listSavedIdeas(token)
+      .then((ideas) => {
+        if (!active) return;
+        setSavedIdeas(ideas);
+        setSavedError(null);
+      })
+      .catch((err) => {
+        if (!active) return;
+        setSavedError(err instanceof ApiClientError ? err.message : "Could not load saved ideas.");
+      })
+      .finally(() => {
+        if (active) setSavedLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [token]);
+
+  const savedIdeaKeys = useMemo(() => new Set(savedIdeas.map(ideaKey)), [savedIdeas]);
 
   const triggerAlert = (kind: "lens" | "notes") => {
     const setAlerting = kind === "lens" ? setLensAlerting : setNotesAlerting;
@@ -94,6 +127,20 @@ export function IdeasPanel({ token, disabled }: { token: string; disabled?: bool
     setCustomDraft("");
   };
 
+  const persistCustomThemes = async (next: string[]) => {
+    const previous = customThemes;
+    setCustomThemes(next);
+    try {
+      const res = await api.updateCustomThemes(token, next);
+      setCustomThemes(res.customThemes);
+      await refetch();
+      setError(null);
+    } catch (err) {
+      setCustomThemes(previous);
+      setError(err instanceof ApiClientError ? err.message : "Could not save custom themes.");
+    }
+  };
+
   const commitCustomDraft = () => {
     if (!customDraftMode) return;
     const trimmed = customDraft.trim();
@@ -107,7 +154,7 @@ export function IdeasPanel({ token, disabled }: { token: string; disabled?: bool
       if (existing) {
         setSelectedLensLabel(existing);
       } else {
-        setCustomThemes((prev) => [...prev, trimmed]);
+        void persistCustomThemes([...customThemes, trimmed]);
         setSelectedLensLabel(trimmed);
       }
       closeDraft();
@@ -129,13 +176,21 @@ export function IdeasPanel({ token, disabled }: { token: string; disabled?: bool
       return !(customIdx === editIndex);
     });
     if (collidesWithOther) {
-      setCustomThemes((prev) => prev.filter((_, i) => i !== editIndex));
+      void persistCustomThemes(customThemes.filter((_, i) => i !== editIndex));
       setSelectedLensLabel(collidesWithOther);
     } else {
-      setCustomThemes((prev) => prev.map((l, i) => (i === editIndex ? trimmed : l)));
+      void persistCustomThemes(customThemes.map((l, i) => (i === editIndex ? trimmed : l)));
       if (selectedLensLabel === oldLabel) setSelectedLensLabel(trimmed);
     }
     closeDraft();
+  };
+
+  const removeCustomTheme = (index: number) => {
+    if (disabled || busy) return;
+    const label = customThemes[index];
+    const next = customThemes.filter((_, i) => i !== index);
+    if (selectedLensLabel === label) setSelectedLensLabel(null);
+    void persistCustomThemes(next);
   };
 
   const cancelCustomDraft = () => {
@@ -178,6 +233,35 @@ export function IdeasPanel({ token, disabled }: { token: string; disabled?: bool
     () => (result ? result.sections.flatMap((s) => s.ideas) : []),
     [result],
   );
+
+  const saveIdea = async (idea: Idea) => {
+    const key = ideaKey(idea);
+    if (savedIdeaKeys.has(key) || savingKey) return;
+    setSavingKey(key);
+    setSavedError(null);
+    try {
+      const saved = await api.saveIdea(token, idea);
+      setSavedIdeas((prev) => (prev.some((item) => item.id === saved.id) ? prev : [saved, ...prev]));
+    } catch (err) {
+      setSavedError(err instanceof ApiClientError ? err.message : "Could not save idea.");
+    } finally {
+      setSavingKey(null);
+    }
+  };
+
+  const removeSavedIdea = async (ideaId: string) => {
+    if (removingIdeaId) return;
+    setRemovingIdeaId(ideaId);
+    setSavedError(null);
+    try {
+      await api.deleteSavedIdea(token, ideaId);
+      setSavedIdeas((prev) => prev.filter((idea) => idea.id !== ideaId));
+    } catch (err) {
+      setSavedError(err instanceof ApiClientError ? err.message : "Could not remove saved idea.");
+    } finally {
+      setRemovingIdeaId(null);
+    }
+  };
 
   // Inline input shared by add and edit modes. Same pattern as Feedback's
   // "Paste your draft" textarea: autofocused, native caret, and the wrapper's
@@ -243,22 +327,55 @@ export function IdeasPanel({ token, disabled }: { token: string; disabled?: bool
                 );
               }
 
+              if (isCustom) {
+                return (
+                  <span
+                    key={`c-${label}`}
+                    className={cn(
+                      "group/theme inline-flex items-center overflow-hidden rounded-full border text-[13px] transition-all duration-200 ease-editorial",
+                      selected
+                        ? "border-accent-300 bg-accent-50 text-accent-800 shadow-[0_0_0_3px_rgba(232,194,164,0.18)]"
+                        : "border-ink-200/60 bg-ink-50/60 text-ink-600 hover:-translate-y-px hover:border-accent-300 hover:bg-accent-50/50 hover:text-ink-900",
+                      lensAlerting && !selected && "!border-ink-400",
+                    )}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => onLensClick(label)}
+                      onDoubleClick={() => startEditingCustom(customIdx)}
+                      disabled={disabled || busy}
+                      aria-pressed={selected}
+                      title="Double-click to edit"
+                      className="px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {label}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeCustomTheme(customIdx)}
+                      disabled={disabled || busy}
+                      aria-label={`Remove ${label}`}
+                      title="Remove custom theme"
+                      className="grid self-stretch place-items-center pl-0 pr-2.5 text-ink-400 transition-colors hover:text-critical-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      &times;
+                    </button>
+                  </span>
+                );
+              }
+
               return (
                 <button
-                  key={`${isCustom ? "c" : "a"}-${label}`}
+                  key={`a-${label}`}
                   type="button"
                   onClick={() => onLensClick(label)}
-                  onDoubleClick={isCustom ? () => startEditingCustom(customIdx) : undefined}
                   disabled={disabled || busy}
                   aria-pressed={selected}
-                  title={isCustom ? "Double-click to edit" : undefined}
                   className={cn(
                     "rounded-full border px-3 py-1.5 text-[13px] transition-all duration-200 ease-editorial",
                     selected
                       ? "border-accent-300 bg-accent-50 text-accent-800 shadow-[0_0_0_3px_rgba(232,194,164,0.18)]"
-                      : isCustom
-                        ? "border-ink-200/60 bg-ink-50/60 text-ink-600 hover:-translate-y-px hover:border-accent-300 hover:bg-accent-50/50 hover:text-ink-900"
-                        : "border-ink-200 bg-white text-ink-700 hover:-translate-y-px hover:border-accent-300 hover:bg-accent-50/50 hover:text-ink-900",
+                      : "border-ink-200 bg-white text-ink-700 hover:-translate-y-px hover:border-accent-300 hover:bg-accent-50/50 hover:text-ink-900",
                     lensAlerting && !selected && "!border-ink-400",
                     "disabled:cursor-not-allowed disabled:opacity-50",
                   )}
@@ -357,13 +474,94 @@ export function IdeasPanel({ token, disabled }: { token: string; disabled?: bool
         )}
 
         {result && !busy && (
-          <div className="grid gap-4 lg:grid-cols-2">
-            {flatIdeas.map((idea, i) => (
-              <IdeaCard key={`${idea.title}-${i}`} idea={idea} />
-            ))}
-          </div>
+          <section className="flex flex-col gap-3">
+            <div className="flex items-center gap-3">
+              <span className="type-eyebrow text-ink-400">Generated ideas</span>
+              <span className="h-px flex-1 bg-ink-200/60" />
+            </div>
+            <div className="grid gap-4 lg:grid-cols-2">
+              {flatIdeas.map((idea, i) => {
+                const key = ideaKey(idea);
+                const saved = savedIdeaKeys.has(key);
+                return (
+                  <IdeaCard
+                    key={`${idea.title}-${i}`}
+                    idea={idea}
+                    action={
+                      <button
+                        type="button"
+                        onClick={() => void saveIdea(idea)}
+                        disabled={disabled || saved || savingKey !== null}
+                        className={cn(
+                          "inline-flex h-7 shrink-0 items-center rounded-md border px-2.5 text-[12px] font-medium transition-colors duration-150 ease-editorial",
+                          saved
+                            ? "border-positive-100 bg-positive-100/70 text-positive-700"
+                            : "border-ink-200 bg-white text-ink-700 hover:border-accent-300 hover:bg-accent-50/50 hover:text-accent-700",
+                          "disabled:cursor-not-allowed disabled:opacity-70",
+                        )}
+                      >
+                        {saved ? "Saved" : savingKey === key ? "Saving..." : "Save"}
+                      </button>
+                    }
+                  />
+                );
+              })}
+            </div>
+          </section>
         )}
+
+        <section className="flex flex-col gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex items-baseline gap-2">
+              <span className="type-eyebrow text-ink-400">Saved ideas</span>
+              {savedIdeas.length > 0 && (
+                <span className="type-meta text-ink-400">{pluralize(savedIdeas.length, "idea")}</span>
+              )}
+            </div>
+            <span className="h-px flex-1 bg-ink-200/60" />
+          </div>
+
+          {savedError && (
+            <div className="rounded-md border border-critical-100 bg-critical-100/40 px-3 py-2 text-[13px] text-critical-700">
+              {savedError}
+            </div>
+          )}
+
+          {savedLoading ? (
+            <div className="panel p-5">
+              <LoadingState label="Loading saved ideas..." />
+            </div>
+          ) : savedIdeas.length > 0 ? (
+            <div className="grid gap-4 lg:grid-cols-2">
+              {savedIdeas.map((idea) => (
+                <IdeaCard
+                  key={idea.id}
+                  idea={idea}
+                  meta={`Saved ${formatRelative(idea.createdAt)}`}
+                  action={
+                    <button
+                      type="button"
+                      onClick={() => void removeSavedIdea(idea.id)}
+                      disabled={disabled || removingIdeaId !== null}
+                      className="inline-flex h-7 shrink-0 items-center rounded-md px-2.5 text-[12px] font-medium text-ink-500 transition-colors duration-150 ease-editorial hover:bg-critical-100/50 hover:text-critical-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {removingIdeaId === idea.id ? "Removing..." : "Remove"}
+                    </button>
+                  }
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-md border border-dashed border-ink-200 bg-white px-5 py-6 text-[13px] leading-relaxed text-ink-500">
+              No saved ideas yet. Let’s find something worth revisiting.
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );
+}
+
+function ideaKey(idea: Pick<Idea, "title" | "thesis">): string {
+  return `${idea.title.trim().toLowerCase()}::${idea.thesis.trim().toLowerCase()}`;
 }
