@@ -127,10 +127,6 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
                 ? "Email delivery is not configured locally. The verification link was printed in the dev server terminal."
                 : "Fresh link sent. Check your inbox or spam folder."}
             </p>
-            <p className="mt-1 text-[12.5px] leading-relaxed text-ink-500">
-              Your account will be created after you confirm{" "}
-              <span className="font-mono text-[12px] text-ink-700">{email.trim().toLowerCase()}</span>.
-            </p>
           </div>
           <button type="button" className="btn-secondary self-start" onClick={() => setVerificationDelivery(null)}>
             Use a different email
