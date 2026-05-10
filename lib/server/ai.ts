@@ -11,6 +11,7 @@ import type {
   SourceCitation
 } from "@/types/ai";
 import type { Post, PostChunk } from "@/types/post";
+import type { ArchiveTheme } from "@/types/workspace";
 import {
   addRepurposeDrafts,
   getPost,
@@ -20,6 +21,53 @@ import {
 } from "./store";
 import { excerpt } from "./text";
 import { AppError } from "./errors";
+
+const NON_THEME_LABELS = new Set([
+  "decades",
+  "didn",
+  "doesn",
+  "even",
+  "excited",
+  "favorite",
+  "genuinely",
+  "just",
+  "like",
+  "major",
+  "more",
+  "only",
+  "spent",
+  "than",
+  "them",
+  "they",
+  "this",
+  "time",
+  "what",
+  "when",
+  "where",
+  "which",
+  "while",
+  "work",
+  "would"
+]);
+
+const SHORT_THEME_LABELS = new Set(["ai", "vc", "ml", "llm", "llms", "saas", "ipo", "ip"]);
+
+const ENTITY_THEME_TERMS = new Set([
+  "affleck",
+  "ben",
+  "bros",
+  "damon",
+  "david",
+  "eisenberg",
+  "jesse",
+  "kalanick",
+  "mark",
+  "matt",
+  "nolan",
+  "travis",
+  "warner",
+  "zuckerberg"
+]);
 
 interface RetrievedChunk {
   chunk: PostChunk;
@@ -120,21 +168,27 @@ async function generateWithAnthropic(system: string, user: string, options: Gene
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "anthropic-version": "2023-06-01",
-      "content-type": "application/json",
-      "x-api-key": apiKey
-    },
-    body: JSON.stringify({
-      model: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-5",
-      max_tokens: options.maxTokens ?? 1800,
-      temperature: options.temperature ?? 0.4,
-      system,
-      messages: [{ role: "user", content: user }]
-    })
-  });
+  let response: Response;
+  try {
+    response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+        "x-api-key": apiKey
+      },
+      body: JSON.stringify({
+        model: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-5",
+        max_tokens: options.maxTokens ?? 1800,
+        temperature: options.temperature ?? 0.4,
+        system,
+        messages: [{ role: "user", content: user }]
+      })
+    });
+  } catch (error) {
+    console.error("Anthropic request failed", error);
+    return null;
+  }
 
   if (!response.ok) {
     console.error("Anthropic request failed", await response.text());
@@ -153,21 +207,27 @@ async function generateWithOpenAI(system: string, user: string, options: Generat
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${apiKey}`,
-      "content-type": "application/json"
-    },
-    body: JSON.stringify({
-      model: process.env.OPENAI_MODEL ?? "gpt-4.1-mini",
-      temperature: options.temperature ?? 0.4,
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user }
-      ]
-    })
-  });
+  let response: Response;
+  try {
+    response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${apiKey}`,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_MODEL ?? "gpt-4.1-mini",
+        temperature: options.temperature ?? 0.4,
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: user }
+        ]
+      })
+    });
+  } catch (error) {
+    console.error("OpenAI request failed", error);
+    return null;
+  }
 
   if (!response.ok) {
     console.error("OpenAI request failed", await response.text());
@@ -179,7 +239,11 @@ async function generateWithOpenAI(system: string, user: string, options: Generat
 }
 
 async function generateText(system: string, user: string, options: GenerateOptions = {}): Promise<string | null> {
-  return (await generateWithAnthropic(system, user, options)) ?? (await generateWithOpenAI(system, user, options));
+  if (process.env.ANTHROPIC_API_KEY) {
+    const anthropic = await generateWithAnthropic(system, user, options);
+    if (anthropic || !process.env.OPENAI_API_KEY) return anthropic;
+  }
+  return generateWithOpenAI(system, user, options);
 }
 
 const editorialSystemPrompt = [
@@ -191,6 +255,602 @@ const editorialSystemPrompt = [
   "Preserve the writer's style and ambition.",
   "Avoid generic content marketing advice."
 ].join("\n");
+
+export async function analyzeArchiveThemes(
+  posts: Post[],
+  publicationName: string | null,
+): Promise<ArchiveTheme[]> {
+  if (posts.length === 0) return [];
+
+  const context = buildThemePostContext(posts);
+  const deterministicCandidates = buildDeterministicThemeCandidates(posts);
+  const modelCandidates = await generateThemeCandidates(context, publicationName);
+  const candidates = mergeThemeCandidates([...deterministicCandidates, ...modelCandidates]);
+  if (candidates.length === 0) {
+    console.warn("Archive theme candidate generation unavailable; using deterministic fallback.");
+    return [];
+  }
+
+  const themes = await curateArchiveThemes(context, publicationName, candidates, new Set(posts.map((post) => post.id)));
+  if (themes.length === 0) {
+    console.warn("Archive theme curation returned no usable themes; using deterministic fallback.");
+    return buildFallbackCuratedThemes(candidates);
+  }
+  if (themes.length < 8) {
+    console.warn("Archive theme curation returned fewer than 8 themes; topping up from deterministic fallback.");
+    return mergeArchiveThemes([...themes, ...buildFallbackCuratedThemes(candidates)]);
+  }
+  return themes;
+}
+
+function buildThemePostContext(posts: Post[]): string {
+  return posts
+    .slice()
+    .sort((a, b) => Date.parse(b.publishedAt ?? b.createdAt) - Date.parse(a.publishedAt ?? a.createdAt))
+    .slice(0, 30)
+    .map((post) => [
+      `Post ID: ${post.id}`,
+      `Title: ${post.title}`,
+      post.subtitle ? `Subtitle: ${post.subtitle}` : null,
+      `Published: ${post.publishedAt ?? "unknown"}`,
+      `Excerpt: ${excerpt(post.contentText, 800)}`
+    ].filter(Boolean).join("\n"))
+    .join("\n\n");
+}
+
+interface ThemeCandidate {
+  label: string;
+  rationale: string;
+  evidencePostIds: string[];
+  description?: string;
+  level?: ArchiveTheme["level"];
+  parentLabel?: string | null;
+  importance?: number;
+  breadth?: number;
+}
+
+const THEME_SEMANTIC_PATTERNS: {
+  label: string;
+  description: string;
+  level: ArchiveTheme["level"];
+  parentLabel?: string | null;
+  importance: number;
+  breadth: number;
+  pattern: RegExp;
+}[] = [
+  {
+    label: "Creative Control",
+    description: "You focus on the tension between commerce and artistic independence.",
+    level: "field",
+    importance: 0.94,
+    breadth: 0.9,
+    pattern: /\b(creative|artist|artists|studio|studios|hollywood|film|cinema|director|directors|artistic|commerce)\b/i
+  },
+  {
+    label: "AI and Human Judgment",
+    description: "You examine what happens when automation tries to replace taste, struggle, or human discernment.",
+    level: "field",
+    importance: 0.92,
+    breadth: 0.88,
+    pattern: /\b(ai|model|models|algorithm|algorithmic|automation|slop|data economy|human data)\b/i
+  },
+  {
+    label: "Silicon Valley Mythmaking",
+    description: "You question the stories tech culture tells about founders, genius, ambition, and power.",
+    level: "field",
+    importance: 0.88,
+    breadth: 0.84,
+    pattern: /\b(silicon valley|founder|founders|startup|startups|venture|vc|tech culture)\b/i
+  },
+  {
+    label: "Media Consolidation",
+    description: "You track how ownership, platforms, and dealmaking reshape creative industries.",
+    level: "field",
+    importance: 0.86,
+    breadth: 0.82,
+    pattern: /\b(media consolidation|merger|consolidation|private equity|equity|studio|studios|hollywood|streaming|ownership|dealmaking)\b/i
+  },
+  {
+    label: "Friction as Value",
+    description: "You argue that difficulty, constraint, and inconvenience can preserve meaning.",
+    level: "field",
+    importance: 0.82,
+    breadth: 0.76,
+    pattern: /\b(friction|struggle|anti-itinerary|itinerary|travel|different|script)\b/i
+  },
+  {
+    label: "Recruiting AI",
+    description: "You return to recruiting AI as a test case for what software can and cannot evaluate about people.",
+    level: "subtheme",
+    parentLabel: "AI and Human Judgment",
+    importance: 0.78,
+    breadth: 0.48,
+    pattern: /\b(recruiting|hiring|campus|talent|labor market)\b/i
+  },
+  {
+    label: "Algorithmic Taste",
+    description: "You critique systems that turn cultural judgment into optimization.",
+    level: "subtheme",
+    parentLabel: "AI and Human Judgment",
+    importance: 0.76,
+    breadth: 0.5,
+    pattern: /\b(algorithm|algorithmic|streaming|slop|taste|recommendation|patterns)\b/i
+  },
+  {
+    label: "Financialized Culture",
+    description: "You examine what changes when art, labor, or status becomes an asset class.",
+    level: "subtheme",
+    parentLabel: "Media Consolidation",
+    importance: 0.74,
+    breadth: 0.48,
+    pattern: /\b(private equity|wall street|compensation|equity|finance|financial|commerce)\b/i
+  },
+  {
+    label: "Performance and Authenticity",
+    description: "You notice the gap between public performance and genuine connection.",
+    level: "motif",
+    importance: 0.7,
+    breadth: 0.45,
+    pattern: /\b(performance|grief|authentic|connection|pain|suit|magic|identity)\b/i
+  }
+];
+
+function buildDeterministicThemeCandidates(posts: Post[]): ThemeCandidate[] {
+  const candidates: ThemeCandidate[] = [];
+  const addCandidate = (candidate: ThemeCandidate) => {
+    if (!isUsefulModelThemeLabel(candidate.label)) return;
+    candidates.push(candidate);
+  };
+
+  for (const semantic of THEME_SEMANTIC_PATTERNS) {
+    const evidencePostIds = posts
+      .filter((post) => semantic.pattern.test(`${post.title} ${post.subtitle ?? ""} ${excerpt(post.contentText, 500)}`))
+      .map((post) => post.id)
+      .slice(0, 5);
+    if (evidencePostIds.length > 0) {
+      addCandidate({
+        label: semantic.label,
+        rationale: semantic.description,
+        description: semantic.description,
+        evidencePostIds,
+        level: semantic.level,
+        parentLabel: semantic.parentLabel ?? null,
+        importance: semantic.importance,
+        breadth: semantic.breadth
+      });
+    }
+  }
+
+  for (const post of posts) {
+    const source = `${post.title}. ${post.subtitle ?? ""}`;
+    for (const label of extractTitleThemeCandidates(source)) {
+      addCandidate({
+        label,
+        rationale: `This candidate appears in the title or subtitle of "${post.title}".`,
+        evidencePostIds: [post.id],
+        level: label.split(/\s+/).length <= 2 ? "subtheme" : "motif",
+        importance: 0.45,
+        breadth: label.split(/\s+/).length <= 2 ? 0.5 : 0.38
+      });
+    }
+  }
+
+  return mergeThemeCandidates(candidates).slice(0, 80);
+}
+
+function extractTitleThemeCandidates(value: string): string[] {
+  const stop = new Set([
+    "also",
+    "with",
+    "from",
+    "into",
+    "what",
+    "when",
+    "where",
+    "which",
+    "will",
+    "does",
+    "doesn",
+    "didn",
+    "your",
+    "favorite",
+    "genuinely",
+    "excited",
+    "major",
+    "spent",
+    "decades"
+  ]);
+  const words = value
+    .replace(/[^\w\s-]/g, " ")
+    .split(/\s+/)
+    .map((word) => word.trim())
+    .filter(Boolean);
+  const candidates: string[] = [];
+
+  for (let size = 2; size <= 4; size += 1) {
+    for (let index = 0; index <= words.length - size; index += 1) {
+      const phraseWords = words.slice(index, index + size);
+      const normalized = phraseWords.map((word) => word.toLowerCase());
+      if (normalized.some((word) => stop.has(word) || word.length < 2)) continue;
+      if (!normalized.some((word) => word.length >= 4 || SHORT_THEME_LABELS.has(word))) continue;
+      const label = titleCaseThemeLabel(phraseWords.join(" "));
+      if (isUsefulModelThemeLabel(label)) candidates.push(label);
+    }
+  }
+
+  return candidates.slice(0, 24);
+}
+
+function titleCaseThemeLabel(value: string): string {
+  return cleanModelThemeText(value)
+    .split(/\s+/)
+    .map((word) => {
+      const lower = word.toLowerCase();
+      if (SHORT_THEME_LABELS.has(lower)) return lower === "llms" ? "LLMs" : lower.toUpperCase();
+      if (lower === "and" || lower === "of" || lower === "as") return lower;
+      return `${lower.charAt(0).toUpperCase()}${lower.slice(1)}`;
+    })
+    .join(" ");
+}
+
+function mergeThemeCandidates(candidates: ThemeCandidate[]): ThemeCandidate[] {
+  const byKey = new Map<string, ThemeCandidate>();
+  for (const candidate of candidates) {
+    const key = cleanModelThemeText(candidate.label).toLowerCase();
+    if (!key) continue;
+    const existing = byKey.get(key);
+    if (!existing) {
+      byKey.set(key, {
+        ...candidate,
+        label: cleanModelThemeText(candidate.label),
+        evidencePostIds: [...new Set(candidate.evidencePostIds)].slice(0, 5)
+      });
+      continue;
+    }
+    existing.evidencePostIds = [...new Set([...existing.evidencePostIds, ...candidate.evidencePostIds])].slice(0, 5);
+    existing.rationale = existing.rationale || candidate.rationale;
+    existing.description = existing.description || candidate.description;
+    existing.importance = Math.max(existing.importance ?? 0, candidate.importance ?? 0);
+    existing.breadth = Math.max(existing.breadth ?? 0, candidate.breadth ?? 0);
+  }
+
+  return [...byKey.values()].sort((a, b) => {
+    const byImportance = (b.importance ?? 0) - (a.importance ?? 0);
+    if (byImportance !== 0) return byImportance;
+    return b.evidencePostIds.length - a.evidencePostIds.length;
+  });
+}
+
+async function generateThemeCandidates(context: string, publicationName: string | null): Promise<ThemeCandidate[]> {
+  const system = [
+    "You analyze a writer's public archive and generate candidate recurring themes.",
+    "Prioritize recall over polish. A candidate can be broad, narrow, entity-based, stylistic, or thematic.",
+    "A candidate is a reusable editorial lens, preoccupation, recurring subject, or recurring tension; not a frequent filler word.",
+    "Use only the provided posts. Do not infer private metrics, audience data, or unpublished interests.",
+    "Return valid JSON only."
+  ].join("\n");
+
+  const user = [
+    `Publication: ${publicationName ?? "unknown"}`,
+    "",
+    "Posts:",
+    context,
+    "",
+    "Return JSON in this exact shape:",
+    JSON.stringify({
+      candidates: [
+        {
+          label: "Candidate theme label",
+          rationale: "Why this could be a recurring theme.",
+          evidencePostIds: ["post-id-1", "post-id-2"]
+        }
+      ]
+    }),
+    "",
+    "Rules:",
+    "- Return 40 to 80 candidates if the archive supports it; fewer is acceptable for small archives.",
+    "- Include both broad fields and narrower subthemes.",
+    "- Similar candidates are okay in this pass; a curator will merge or organize them later.",
+    "- evidencePostIds must use only Post ID values from the provided posts.",
+    "- Do not include markdown fences or commentary."
+  ].join("\n");
+
+  const generated = await generateText(system, user, { temperature: 0.45, maxTokens: 3000 });
+  if (!generated) return [];
+  return parseThemeCandidates(generated);
+}
+
+function parseThemeCandidates(raw: string): ThemeCandidate[] {
+  const jsonText = raw.match(/\{[\s\S]*\}/)?.[0] ?? raw;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(jsonText);
+  } catch {
+    return [];
+  }
+
+  if (!parsed || typeof parsed !== "object" || !("candidates" in parsed) || !Array.isArray(parsed.candidates)) {
+    return [];
+  }
+
+  const seen = new Set<string>();
+  return (parsed.candidates as unknown[])
+    .map((item): ThemeCandidate | null => {
+      if (!item || typeof item !== "object") return null;
+      const label = "label" in item && typeof item.label === "string" ? cleanModelThemeText(item.label) : "";
+      const rationale = "rationale" in item && typeof item.rationale === "string" ? cleanModelThemeText(item.rationale) : "";
+      const evidencePostIds =
+        "evidencePostIds" in item && Array.isArray(item.evidencePostIds)
+          ? (item.evidencePostIds as unknown[]).filter((id): id is string => typeof id === "string").slice(0, 5)
+          : [];
+      const key = label.toLowerCase();
+      if (!isUsefulModelThemeLabel(label) || seen.has(key)) return null;
+      seen.add(key);
+      return { label, rationale, evidencePostIds };
+    })
+    .filter((item): item is ThemeCandidate => Boolean(item))
+    .slice(0, 100);
+}
+
+async function curateArchiveThemes(
+  context: string,
+  publicationName: string | null,
+  candidates: ThemeCandidate[],
+  validPostIds: Set<string>
+): Promise<ArchiveTheme[]> {
+  const system = [
+    "You are a senior editor curating recurring themes from a writer's public archive.",
+    "Your job is quality control: merge accidental duplicates, keep useful parent/subtheme relationships, and remove weak labels.",
+    "Themes should be consistent in size and wording, but not forced to be mutually exclusive.",
+    "If two themes overlap, make the relationship explicit with level and parentLabel.",
+    "Prefer editorial lenses over raw tags. A raw entity can stay only when it represents a real recurring subject.",
+    "Descriptions must be writer-facing insight sentences, not definitions and not restatements of the label.",
+    "Use only the provided posts and candidates. Do not invent private metrics or audience claims.",
+    "Return valid JSON only."
+  ].join("\n");
+
+  const candidateContext = candidates
+    .map((candidate, index) => [
+      `${index + 1}. ${candidate.label}`,
+      `Rationale: ${candidate.rationale || "not provided"}`,
+      `Evidence post IDs: ${candidate.evidencePostIds.join(", ") || "none provided"}`
+    ].join("\n"))
+    .join("\n\n");
+
+  const user = [
+    `Publication: ${publicationName ?? "unknown"}`,
+    "",
+    "Posts:",
+    context,
+    "",
+    "Candidate themes:",
+    candidateContext,
+    "",
+    "Return JSON in this exact shape:",
+    JSON.stringify({
+      themes: [
+        {
+          label: "Creative Control",
+          description: "One sentence explaining the writer-level pattern.",
+          level: "field",
+          parentLabel: null,
+          aliases: ["Netflix", "major studios"],
+          evidencePostIds: ["post-id-1", "post-id-2"],
+          confidence: 0.86,
+          importance: 0.92,
+          breadth: 0.88
+        }
+      ]
+    }),
+    "",
+    "Rules:",
+    "- Produce 8 to 15 final themes when the archive supports it. Prefer fewer strong themes over padding, but do not stop at only the broadest buckets.",
+    "- The first 4 to 5 themes should be the broadest and most central archive lenses.",
+    "- Additional themes may be narrower subthemes only when they add a distinct lens.",
+    "- level must be one of: field, subtheme, motif.",
+    "- parentLabel must be null for field themes. For subthemes, use the exact label of a broader returned theme when applicable.",
+    "- Labels should usually be 2 to 5 words. Short domain labels like AI, VC, LLM, SaaS, or IPO are allowed.",
+    "- Avoid malformed fragments like 'Netflix didn' or generic filler like 'genuinely excited'.",
+    "- Specific people and companies do not count as themes. Convert them into broader ideas or omit them.",
+    "- Do not return labels like Travis Kalanick, Warner Bros, Netflix, Mark Zuckerberg, or Christopher Nolan.",
+    "- Avoid near-duplicates. Do not return both Silicon Valley and Silicon Valley Mythmaking; keep the stronger editorial lens.",
+    "- Keep useful hierarchy: AI and Recruiting AI can both appear if the second is a real subtheme.",
+    "- Convert raw tags into stronger lenses when the archive supports it: 'creative' can become 'Creative Control'; 'wall street' can become 'Financialized Culture'.",
+    "- Every description must start with 'You ' followed by a strong verb.",
+    "- Do not use the word 'often' in descriptions.",
+    "- Descriptions should sound like: 'You focus on the tension between commerce and artistic independence.'",
+    "- Do not write descriptions like: 'A recurring archive pattern around creative control.'",
+    "- Do not write descriptions like: 'This appears in your article.' That is a search result, not a theme insight.",
+    "- evidencePostIds must use only Post ID values from the provided posts.",
+    "- confidence, importance, and breadth must be numbers from 0 to 1.",
+    "- Do not include markdown fences or commentary."
+  ].join("\n");
+
+  const generated = await generateText(system, user, { temperature: 0.2, maxTokens: 2600 });
+  if (!generated) return [];
+  return parseArchiveThemes(generated, validPostIds);
+}
+
+function buildFallbackCuratedThemes(candidates: ThemeCandidate[]): ArchiveTheme[] {
+  const selected: ArchiveTheme[] = [];
+  const seen = new Set<string>();
+
+  for (const candidate of candidates) {
+    const label = cleanModelThemeText(candidate.label);
+    const key = normalizeThemeKey(label);
+    if (!isUsefulModelThemeLabel(label) || isEntityThemeLabel(label) || seen.has(key)) continue;
+    if (selected.some((theme) => areThemeLabelsTooSimilar(theme.label, label))) continue;
+    seen.add(key);
+    selected.push({
+      label,
+      description: normalizeThemeDescription(
+        candidate.description ||
+        candidate.rationale ||
+        `You return to ${label.toLowerCase()} as a recurring lens in your archive.`,
+        label
+      ),
+      evidencePostIds: candidate.evidencePostIds.slice(0, 5),
+      confidence: clampModelScore(candidate.importance ?? 0.55),
+      level: candidate.level ?? "subtheme",
+      parentLabel: candidate.parentLabel ?? null,
+      aliases: [],
+      importance: clampModelScore(candidate.importance ?? 0.55),
+      breadth: clampModelScore(candidate.breadth ?? 0.45)
+    });
+    if (selected.length >= 15) break;
+  }
+
+  return selected.sort(compareModelThemes);
+}
+
+function mergeArchiveThemes(themes: ArchiveTheme[]): ArchiveTheme[] {
+  const seen = new Set<string>();
+  const acceptedLabels: string[] = [];
+  return themes
+    .filter((theme) => {
+      const key = normalizeThemeKey(theme.label);
+      if (!key || isEntityThemeLabel(theme.label) || seen.has(key)) return false;
+      if (acceptedLabels.some((existing) => areThemeLabelsTooSimilar(existing, theme.label))) return false;
+      seen.add(key);
+      acceptedLabels.push(theme.label);
+      return true;
+    })
+    .sort(compareModelThemes)
+    .slice(0, 15);
+}
+
+function compareModelThemes(a: ArchiveTheme, b: ArchiveTheme): number {
+  const levelRank = (theme: ArchiveTheme) => theme.level === "field" ? 0 : theme.level === "subtheme" ? 1 : 2;
+  const byLevel = levelRank(a) - levelRank(b);
+  if (byLevel !== 0) return byLevel;
+  const byImportance = (b.importance ?? b.confidence) - (a.importance ?? a.confidence);
+  if (byImportance !== 0) return byImportance;
+  return (b.breadth ?? 0) - (a.breadth ?? 0);
+}
+
+function parseArchiveThemes(raw: string, validPostIds: Set<string>): ArchiveTheme[] {
+  const jsonText = raw.match(/\{[\s\S]*\}/)?.[0] ?? raw;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(jsonText);
+  } catch {
+    return [];
+  }
+
+  if (!parsed || typeof parsed !== "object" || !("themes" in parsed) || !Array.isArray(parsed.themes)) {
+    return [];
+  }
+
+  const seen = new Set<string>();
+  const acceptedLabels: string[] = [];
+  const themes: ArchiveTheme[] = [];
+  const rawThemes = parsed.themes as unknown[];
+  for (const item of rawThemes) {
+    if (!item || typeof item !== "object") continue;
+    const label = "label" in item && typeof item.label === "string" ? cleanModelThemeText(item.label) : "";
+    const description =
+      "description" in item && typeof item.description === "string"
+        ? cleanModelThemeText(item.description)
+        : "";
+    const confidence = "confidence" in item && typeof item.confidence === "number" ? item.confidence : 0.5;
+    const level = parseThemeLevel("level" in item ? item.level : null);
+    const parentLabel =
+      "parentLabel" in item && typeof item.parentLabel === "string" ? cleanModelThemeText(item.parentLabel) : null;
+    const aliases =
+      "aliases" in item && Array.isArray(item.aliases)
+        ? (item.aliases as unknown[])
+            .filter((alias): alias is string => typeof alias === "string")
+            .map(cleanModelThemeText)
+            .filter(Boolean)
+            .slice(0, 8)
+        : [];
+    const importance = "importance" in item && typeof item.importance === "number" ? item.importance : confidence;
+    const breadth = "breadth" in item && typeof item.breadth === "number" ? item.breadth : (level === "field" ? 0.75 : 0.45);
+    const evidencePostIds =
+      "evidencePostIds" in item && Array.isArray(item.evidencePostIds)
+        ? (item.evidencePostIds as unknown[]).filter((id): id is string => typeof id === "string" && validPostIds.has(id)).slice(0, 5)
+        : [];
+    const key = normalizeThemeKey(label);
+    if (!isUsefulModelThemeLabel(label) || isEntityThemeLabel(label) || seen.has(key)) continue;
+    if (acceptedLabels.some((accepted) => areThemeLabelsTooSimilar(accepted, label))) continue;
+    seen.add(key);
+    acceptedLabels.push(label);
+    themes.push({
+      label,
+      description: normalizeThemeDescription(description, label),
+      evidencePostIds,
+      confidence: clampModelScore(confidence),
+      level,
+      parentLabel,
+      aliases,
+      importance: clampModelScore(importance),
+      breadth: clampModelScore(breadth)
+    });
+  }
+
+  return themes.slice(0, 15);
+}
+
+function parseThemeLevel(value: unknown): ArchiveTheme["level"] {
+  return value === "field" || value === "subtheme" || value === "motif" ? value : "subtheme";
+}
+
+function clampModelScore(value: number): number {
+  if (!Number.isFinite(value)) return 0.5;
+  return Math.min(1, Math.max(0, value));
+}
+
+function cleanModelThemeText(value: string): string {
+  return value
+    .replace(/\s+/g, " ")
+    .replace(/^[\s"'`]+|[\s"'`.!?]+$/g, "")
+    .trim();
+}
+
+function isUsefulModelThemeLabel(label: string): boolean {
+  const words = cleanModelThemeText(label).toLowerCase().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return false;
+  if (words.some((word) => (word.length < 4 && !SHORT_THEME_LABELS.has(word)) || NON_THEME_LABELS.has(word))) return false;
+  return true;
+}
+
+function isEntityThemeLabel(label: string): boolean {
+  const words = cleanModelThemeText(label).toLowerCase().split(/\s+/).filter(Boolean);
+  if (words.some((word) => ENTITY_THEME_TERMS.has(word))) return true;
+  return false;
+}
+
+function normalizeThemeKey(label: string): string {
+  return cleanModelThemeText(label)
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function areThemeLabelsTooSimilar(a: string, b: string): boolean {
+  const aWords = new Set(normalizeThemeKey(a).split(/\s+/).filter((word) => !SHORT_THEME_LABELS.has(word)));
+  const bWords = new Set(normalizeThemeKey(b).split(/\s+/).filter((word) => !SHORT_THEME_LABELS.has(word)));
+  if (aWords.size === 0 || bWords.size === 0) return false;
+  const intersection = [...aWords].filter((word) => bWords.has(word)).length;
+  const smaller = Math.min(aWords.size, bWords.size);
+  const larger = Math.max(aWords.size, bWords.size);
+  return intersection === smaller || intersection / larger >= 0.67;
+}
+
+function normalizeThemeDescription(description: string, label: string): string {
+  const cleaned = cleanModelThemeText(description)
+    .replace(/\boften\s+/gi, "")
+    .replace(/^This (?:appears|shows up|recurs|is present)\b/i, "You return to")
+    .replace(/^A recurring archive pattern around .+$/i, "");
+  if (cleaned && /^You\b/.test(cleaned)) return ensureSentence(cleaned);
+  if (cleaned) return ensureSentence(`You ${cleaned.charAt(0).toLowerCase()}${cleaned.slice(1)}`);
+  return `You return to ${label.toLowerCase()} as a recurring lens in your archive.`;
+}
+
+function ensureSentence(value: string): string {
+  return /[.!?]$/.test(value) ? value : `${value}.`;
+}
 
 export async function answerArchiveQuestion(token: string, message: string): Promise<AskResponse> {
   if (!message.trim()) throw new AppError("Ask a question about the archive.", 400);
@@ -366,28 +1026,236 @@ export async function generateDraftFeedback(
   };
 }
 
-export async function generateIdeas(token: string): Promise<IdeasResponse> {
+export async function generateIdeas(token: string, options: { focus?: string } = {}): Promise<IdeasResponse> {
   const { workspace, posts, chunks } = await workspaceCorpus(token);
   if (posts.length === 0) throw new AppError("This workspace does not have any ingested posts yet.", 409);
-  const latest = retrieve(posts, chunks, workspace.topThemes.join(" "), 6);
-  const sources = toSources(latest);
+  const themes = archiveThemesForWorkspace(workspace);
+  const themeLabels = themes.map((theme) => theme.label);
+  const retrieved = retrieve(posts, chunks, themeLabels.join(" "), 8);
+  const sources = toSources(retrieved);
+  const postSources = new Map(posts.map((post) => [post.id, postToSource(post)]));
 
-  const ideas: Idea[] = (workspace.topThemes.length ? workspace.topThemes : ["your archive", "recent essays", "recurring argument"])
+  const generated = await generateThemeBoundIdeas({
+    publicationName: workspace.publicationName ?? workspace.publicationUrl,
+    themes,
+    posts,
+    focus: options.focus?.trim() ?? ""
+  });
+
+  if (generated) {
+    return {
+      sections: generated.sections.map((section) => ({
+        name: section.name,
+        ideas: section.ideas.map((idea) => {
+          const theme = themes.find((item) => item.label.toLowerCase() === idea.lens.toLowerCase()) ?? themes[0];
+          const relatedPosts = idea.relatedPostIds
+            .map((id) => postSources.get(id))
+            .filter((source): source is SourceCitation => Boolean(source));
+          return {
+            title: idea.title,
+            thesis: idea.thesis,
+            lens: theme?.label ?? idea.lens,
+            whyItFits: idea.whyItFits,
+            relatedPosts: relatedPosts.length ? relatedPosts : sources.slice(0, 2)
+          };
+        })
+      }))
+    };
+  }
+
+  const fallbackThemes = themes.length
+    ? themes
+    : ["your archive", "recent essays", "recurring argument"].map((label) => ({
+        label,
+        description: `A recurring archive pattern around ${label}.`,
+        evidencePostIds: [],
+        confidence: 0.4
+      }));
+  const ideas: Idea[] = fallbackThemes
     .slice(0, 6)
-    .map((theme, index) => ({
-      title: `What ${theme} still does not explain`,
-      thesis: `A sharper follow-up that revisits ${theme} through a more specific argument or lived example.`,
-      whyItFits: `This fits because ${theme} appears repeatedly in the public archive, without claiming private performance data.`,
-      relatedPosts: sources.slice(index % Math.max(sources.length, 1), index % Math.max(sources.length, 1) + 2)
-    }));
+    .map((theme, index) => {
+      const relatedPosts = theme.evidencePostIds
+        .map((id) => postSources.get(id))
+        .filter((source): source is SourceCitation => Boolean(source));
+      return {
+        title: `What ${theme.label} still does not explain`,
+        thesis: `A sharper follow-up that revisits ${theme.label} through a more specific argument or lived example.`,
+        lens: theme.label,
+        whyItFits: `This fits because ${theme.label} is part of the archive profile from the last sync, without claiming private performance data.`,
+        relatedPosts: relatedPosts.length ? relatedPosts : sources.slice(index % Math.max(sources.length, 1), index % Math.max(sources.length, 1) + 2)
+      };
+    });
 
   return {
     sections: [
       { name: "Natural sequels", ideas: ideas.slice(0, 2) },
-      { name: "Underexplored themes", ideas: ideas.slice(2, 4) },
+      { name: "Theme lenses", ideas: ideas.slice(2, 4) },
       { name: "Posts to revisit", ideas: ideas.slice(4, 6) }
     ]
   };
+}
+
+function archiveThemesForWorkspace(workspace: { topThemes: string[]; archiveThemes?: ArchiveTheme[] }): ArchiveTheme[] {
+  if (workspace.archiveThemes?.length) return workspace.archiveThemes.slice(0, 15);
+  return workspace.topThemes.slice(0, 15).map((label) => ({
+    label,
+    description: `A recurring archive pattern around ${label}.`,
+    evidencePostIds: [],
+    confidence: 0.45
+  }));
+}
+
+function postToSource(post: Post): SourceCitation {
+  return {
+    title: post.title,
+    url: post.url,
+    publishedAt: post.publishedAt,
+    snippet: excerpt(post.contentText, 260)
+  };
+}
+
+interface GeneratedIdeaPayload {
+  sections: {
+    name: string;
+    ideas: {
+      title: string;
+      thesis: string;
+      lens: string;
+      whyItFits: string;
+      relatedPostIds: string[];
+    }[];
+  }[];
+}
+
+async function generateThemeBoundIdeas({
+  publicationName,
+  themes,
+  posts,
+  focus
+}: {
+  publicationName: string;
+  themes: ArchiveTheme[];
+  posts: Post[];
+  focus: string;
+}): Promise<GeneratedIdeaPayload | null> {
+  if (themes.length === 0) return null;
+  const validThemeLabels = new Set(themes.map((theme) => theme.label.toLowerCase()));
+  const validPostIds = new Set(posts.map((post) => post.id));
+  const postContext = posts
+    .slice()
+    .sort((a, b) => Date.parse(b.publishedAt ?? b.createdAt) - Date.parse(a.publishedAt ?? a.createdAt))
+    .slice(0, 18)
+    .map((post) => [
+      `Post ID: ${post.id}`,
+      `Title: ${post.title}`,
+      post.subtitle ? `Subtitle: ${post.subtitle}` : null,
+      `Excerpt: ${excerpt(post.contentText, 360)}`
+    ].filter(Boolean).join("\n"))
+    .join("\n\n");
+  const themeContext = themes
+    .map((theme) => [
+      `Theme: ${theme.label}`,
+      `Description: ${theme.description}`,
+      `Evidence post IDs: ${theme.evidencePostIds.join(", ") || "none recorded"}`
+    ].join("\n"))
+    .join("\n\n");
+
+  const system = [
+    "You generate article ideas for a writer from their saved archive themes.",
+    "Every idea must channel one saved theme as its lens.",
+    "Do not introduce a topic unless it extends, recombines, or challenges a saved theme.",
+    "Use only the public archive context. Do not invent audience, revenue, traffic, subscriber, or performance claims.",
+    "Return valid JSON only."
+  ].join("\n");
+
+  const user = [
+    `Publication: ${publicationName}`,
+    focus ? `Writer's optional focus: ${focus}` : "Writer's optional focus: none",
+    "",
+    "Saved themes from the last library sync:",
+    themeContext,
+    "",
+    "Recent archive context:",
+    postContext,
+    "",
+    "Return JSON in this exact shape:",
+    JSON.stringify({
+      sections: [
+        {
+          name: "Natural sequels",
+          ideas: [
+            {
+              title: "Specific article title",
+              thesis: "One-sentence thesis.",
+              lens: themes[0]?.label ?? "Theme label",
+              whyItFits: "Why this follows from the archive theme and cited posts.",
+              relatedPostIds: ["post-id-1", "post-id-2"]
+            }
+          ]
+        }
+      ]
+    }),
+    "",
+    "Rules:",
+    "- Return exactly 3 sections: Natural sequels, Theme lenses, Posts to revisit.",
+    "- Return exactly 2 ideas per section.",
+    "- lens must exactly match one saved Theme label.",
+    "- relatedPostIds must use only provided Post ID values.",
+    "- If the optional focus does not fit the saved themes, ignore the focus and stay with the closest saved themes.",
+    "- Do not include markdown fences or commentary."
+  ].join("\n");
+
+  const generated = await generateText(system, user, { temperature: 0.55, maxTokens: 1800 });
+  if (!generated) return null;
+  return parseGeneratedIdeas(generated, validThemeLabels, validPostIds);
+}
+
+function parseGeneratedIdeas(
+  raw: string,
+  validThemeLabels: Set<string>,
+  validPostIds: Set<string>
+): GeneratedIdeaPayload | null {
+  const jsonText = raw.match(/\{[\s\S]*\}/)?.[0] ?? raw;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(jsonText);
+  } catch {
+    return null;
+  }
+
+  if (!parsed || typeof parsed !== "object" || !("sections" in parsed) || !Array.isArray(parsed.sections)) {
+    return null;
+  }
+
+  const sections = (parsed.sections as unknown[])
+    .map((section): GeneratedIdeaPayload["sections"][number] | null => {
+      if (!section || typeof section !== "object") return null;
+      const name = "name" in section && typeof section.name === "string" ? cleanModelThemeText(section.name) : "";
+      const rawIdeas = "ideas" in section && Array.isArray(section.ideas) ? (section.ideas as unknown[]) : [];
+      const ideas = rawIdeas
+        .map((idea): GeneratedIdeaPayload["sections"][number]["ideas"][number] | null => {
+          if (!idea || typeof idea !== "object") return null;
+          const title = "title" in idea && typeof idea.title === "string" ? cleanModelThemeText(idea.title) : "";
+          const thesis = "thesis" in idea && typeof idea.thesis === "string" ? cleanModelThemeText(idea.thesis) : "";
+          const lens = "lens" in idea && typeof idea.lens === "string" ? cleanModelThemeText(idea.lens) : "";
+          const whyItFits =
+            "whyItFits" in idea && typeof idea.whyItFits === "string" ? cleanModelThemeText(idea.whyItFits) : "";
+          const relatedPostIds =
+            "relatedPostIds" in idea && Array.isArray(idea.relatedPostIds)
+              ? (idea.relatedPostIds as unknown[]).filter((id): id is string => typeof id === "string" && validPostIds.has(id)).slice(0, 4)
+              : [];
+          if (!title || !thesis || !validThemeLabels.has(lens.toLowerCase())) return null;
+          return { title, thesis, lens, whyItFits, relatedPostIds };
+        })
+        .filter((idea): idea is GeneratedIdeaPayload["sections"][number]["ideas"][number] => Boolean(idea))
+        .slice(0, 2);
+      if (!name || ideas.length === 0) return null;
+      return { name, ideas };
+    })
+    .filter((section): section is GeneratedIdeaPayload["sections"][number] => Boolean(section))
+    .slice(0, 3);
+
+  return sections.length ? { sections } : null;
 }
 
 // Curated server-side seeds. Used only when the model is unavailable. These
