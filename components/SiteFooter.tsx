@@ -54,9 +54,9 @@ function LandingFooter() {
 
 function WorkspaceFooter() {
   return (
-    <footer className="mt-16 border-t border-ink-200/50">
-      <div className="mx-auto max-w-3xl px-6 py-8 text-center">
-        <p className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink-400">
+    <footer className="mt-8 border-t border-ink-200/40">
+      <div className="mx-auto max-w-6xl px-6 py-4 text-right">
+        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-300">
           © 2026 Aviral Agarwal
         </p>
       </div>
