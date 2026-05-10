@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useWorkspace } from "@/components/WorkspaceProvider";
 import { PrivateLinkBanner } from "@/components/PrivateLinkBanner";
@@ -19,6 +20,22 @@ const SPARKLES = [
 
 export default function SettingsPage() {
   const { token, overview, reingest, reingesting } = useWorkspace();
+
+  // Certification beat: when a sync transitions from running → done with no
+  // fresh error, hold the button in a "Synced." state for ~2.2s so the user
+  // gets clear visual confirmation that wasn't otherwise apparent.
+  const [justSynced, setJustSynced] = useState(false);
+  const wasReingesting = useRef(false);
+  useEffect(() => {
+    if (!reingesting && wasReingesting.current && !overview?.ingestionError) {
+      setJustSynced(true);
+      const t = setTimeout(() => setJustSynced(false), 2200);
+      wasReingesting.current = reingesting;
+      return () => clearTimeout(t);
+    }
+    wasReingesting.current = reingesting;
+  }, [reingesting, overview?.ingestionError]);
+
   if (!overview) return null;
 
   return (
@@ -54,16 +71,46 @@ export default function SettingsPage() {
           <button
             type="button"
             onClick={reingest}
-            disabled={reingesting}
-            className="group inline-flex h-10 items-center gap-2 self-start rounded-md border border-ink-200 bg-white px-3.5 text-[13px] font-medium text-ink-800 shadow-soft transition-colors duration-150 ease-editorial hover:border-accent-300 hover:bg-accent-50/40 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={reingesting || justSynced}
+            className={`group inline-flex h-10 items-center gap-2 self-start rounded-md border bg-white px-3.5 text-[13px] font-medium shadow-soft transition-colors duration-300 ease-editorial disabled:cursor-not-allowed ${
+              justSynced
+                ? "border-positive-100 text-positive-700"
+                : "border-ink-200 text-ink-800 hover:border-accent-300 hover:bg-accent-50/40 disabled:opacity-60"
+            }`}
           >
-            <span className="font-serif italic text-ink-500 group-hover:text-ink-700">
-              {reingesting ? "Syncing your workspace..." : "Sync workspace"}
-            </span>
-            {!reingesting && (
-              <span aria-hidden="true" className="text-ink-400 transition-transform duration-200 ease-editorial group-hover:translate-x-0.5 group-hover:text-accent-700">
-                →
-              </span>
+            {justSynced ? (
+              <>
+                <span className="relative inline-flex h-3 w-3 shrink-0 items-center justify-center" aria-hidden="true">
+                  <span className="absolute inline-flex h-3 w-3 animate-editorial-bloom rounded-full bg-positive-500/40" />
+                  <svg
+                    viewBox="0 0 12 12"
+                    className="relative h-[11px] w-[11px] animate-fade text-positive-700"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.75"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M2.5 6.4 L5 8.8 L9.6 3.6" />
+                  </svg>
+                </span>
+                <span className="animate-fade font-serif italic text-positive-700">Synced.</span>
+              </>
+            ) : reingesting ? (
+              <>
+                <span className="relative inline-flex h-2 w-2 shrink-0" aria-hidden="true">
+                  <span className="absolute inline-flex h-full w-full animate-editorial-pulse rounded-full bg-ink-400/40" />
+                  <span className="relative inline-flex h-2 w-2 animate-editorial-pulse rounded-full bg-ink-400" />
+                </span>
+                <span className="font-serif italic text-ink-500">Syncing your workspace...</span>
+              </>
+            ) : (
+              <>
+                <span className="font-serif italic text-ink-500 group-hover:text-ink-700">Sync workspace</span>
+                <span aria-hidden="true" className="text-ink-400 transition-transform duration-200 ease-editorial group-hover:translate-x-0.5 group-hover:text-accent-700">
+                  →
+                </span>
+              </>
             )}
           </button>
         </div>
