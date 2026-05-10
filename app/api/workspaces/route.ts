@@ -20,7 +20,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await readJson<CreateWorkspaceRequest>(request);
-    const publicationUrl = normalizePublicationUrl(requireString(body.publicationUrl, "Enter a Substack URL."));
+    const publicationUrl = normalizePublicationUrl(requireString(body.publicationUrl, "Enter a publication URL."));
     const workspace = await createWorkspace(publicationUrl);
     await ingestWorkspace(workspace.token);
     const overview = await getWorkspaceOverview(workspace.token);

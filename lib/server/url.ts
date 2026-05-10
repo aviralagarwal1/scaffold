@@ -3,7 +3,7 @@ import { AppError } from "./errors";
 export function normalizePublicationUrl(input: string): string {
   const trimmed = input.trim();
   if (!trimmed) {
-    throw new AppError("Enter a Substack URL.", 400);
+    throw new AppError("Enter a publication URL.", 400);
   }
 
   const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
