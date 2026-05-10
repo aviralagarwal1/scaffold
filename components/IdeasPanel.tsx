@@ -1,32 +1,44 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { IdeasResponse } from "@/types/ai";
 import { api, ApiClientError } from "@/lib/client/api";
 import { cn } from "@/lib/client/cn";
 import { IdeaCard } from "./IdeaCard";
 import { LoadingState } from "./states";
+import { useWorkspace } from "./WorkspaceProvider";
 
 // Six curated lenses for the null state. Each one is a different angle the AI
 // can take on the writer's archive. Clicking a chip pre-fills the focus input
 // AND fires generate immediately — same one-tap pattern as the Conversation
 // panel's curated prompts.
-const IDEA_LENSES = [
+type IdeaLens = { id: string; label: string; focus: string };
+
+const DEFAULT_IDEA_LENSES: IdeaLens[] = [
   { id: "sequels", label: "Sequels", focus: "natural sequels to my recent posts" },
   { id: "contrarian", label: "Contrarian", focus: "contrarian angles that argue against my past takes" },
   { id: "themes", label: "Underexplored themes", focus: "underexplored themes hinted at in my archive" },
   { id: "revisit", label: "Revisit", focus: "older posts worth revisiting with new framing" },
   { id: "personal", label: "Personal", focus: "personal essay angles drawn from patterns in my voice" },
   { id: "timely", label: "Timely", focus: "timely extensions of arguments already in my work" },
-] as const;
+];
 
 export function IdeasPanel({ token, disabled }: { token: string; disabled?: boolean }) {
+  const { overview } = useWorkspace();
   const [focus, setFocus] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<IdeasResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeLens, setActiveLens] = useState<string | null>(null);
   const ref = useRef<HTMLTextAreaElement>(null);
+  const ideaLenses = useMemo<IdeaLens[]>(() => {
+    const archiveLenses = overview?.archiveThemes.slice(0, 6).map((theme) => ({
+      id: `theme-${theme.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+      label: theme.label,
+      focus: `extend the archive theme "${theme.label}": ${theme.description}`
+    })) ?? [];
+    return archiveLenses.length ? archiveLenses : DEFAULT_IDEA_LENSES;
+  }, [overview?.archiveThemes]);
 
   // Auto-expand the textarea so it grows with the writer's focus, capped so
   // the result zone below stays in view. Same recipe as the chat composer.
@@ -59,7 +71,7 @@ export function IdeasPanel({ token, disabled }: { token: string; disabled?: bool
     }
   };
 
-  const onLens = (lens: (typeof IDEA_LENSES)[number]) => {
+  const onLens = (lens: IdeaLens) => {
     if (disabled || busy) return;
     setActiveLens(lens.id);
     setFocus(lens.focus);
@@ -129,6 +141,7 @@ export function IdeasPanel({ token, disabled }: { token: string; disabled?: bool
         {!result && !busy && (
           <LensPanel
             disabled={disabled}
+            lenses={ideaLenses}
             activeLens={activeLens}
             onLens={onLens}
           />
@@ -171,12 +184,14 @@ export function IdeasPanel({ token, disabled }: { token: string; disabled?: bool
  */
 function LensPanel({
   disabled,
+  lenses,
   activeLens,
   onLens,
 }: {
   disabled?: boolean;
+  lenses: IdeaLens[];
   activeLens: string | null;
-  onLens: (lens: (typeof IDEA_LENSES)[number]) => void;
+  onLens: (lens: IdeaLens) => void;
 }) {
   return (
     <article className="relative flex flex-col overflow-hidden rounded-md border border-ink-200/80 bg-white shadow-soft">
@@ -188,7 +203,7 @@ function LensPanel({
         <span className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-accent-700">
           Idea lenses
         </span>
-        <span className="font-mono text-[10.5px] text-ink-500">{IDEA_LENSES.length} lenses</span>
+        <span className="font-mono text-[10.5px] text-ink-500">{lenses.length} lenses</span>
       </header>
       <div className="flex flex-col gap-5 p-6">
         <div>
@@ -198,7 +213,7 @@ function LensPanel({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {IDEA_LENSES.map((lens) => {
+          {lenses.map((lens) => {
             const selected = activeLens === lens.id;
             return (
               <button

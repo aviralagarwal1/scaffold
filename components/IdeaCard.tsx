@@ -5,6 +5,7 @@ export function IdeaCard({ idea }: { idea: Idea }) {
   return (
     <article className="panel group flex flex-col gap-4 p-5 transition-all duration-200 ease-editorial hover:-translate-y-px hover:shadow-lift">
       <header>
+        <div className="mb-2 type-eyebrow text-ink-400">Lens: {idea.lens}</div>
         <h3 className="type-h3 leading-snug">{idea.title}</h3>
         <p className="mt-2 text-[14.5px] leading-relaxed text-ink-700">{idea.thesis}</p>
       </header>

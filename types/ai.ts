@@ -27,6 +27,7 @@ export interface DraftFeedbackResponse {
 export interface Idea {
   title: string;
   thesis: string;
+  lens: string;
   whyItFits: string;
   relatedPosts: SourceCitation[];
 }
