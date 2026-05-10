@@ -115,26 +115,16 @@ function ArchiveRail({
   // Two layers of state on the chip strip:
   //   pinnedLabel — the chip the user has explicitly clicked to keep visible.
   //   hoveredLabel — transient preview while the cursor is on a chip.
-  // dismissed flips true once the user has clicked the pinned chip a second
-  // time, which suppresses the soft default that auto-shows the first chip's
-  // tagline on mount. Without it, "click to dismiss" would flash the tagline
-  // back as soon as the cursor left.
+  // Mount state: nothing pinned, no chip highlighted, no tagline showing. The
+  // user has to actively hover or click to engage — no auto-default.
   const [pinnedLabel, setPinnedLabel] = useState<string | null>(null);
   const [hoveredLabel, setHoveredLabel] = useState<string | null>(null);
-  const [dismissed, setDismissed] = useState(false);
 
-  const effectivePinnedLabel = pinnedLabel ?? (dismissed ? null : themes[0]?.label ?? null);
-  const activeLabel = hoveredLabel ?? effectivePinnedLabel;
+  const activeLabel = hoveredLabel ?? pinnedLabel;
   const activeTheme = activeLabel ? themes.find((theme) => theme.label === activeLabel) ?? null : null;
 
   const togglePin = (label: string) => {
-    if (effectivePinnedLabel === label) {
-      setPinnedLabel(null);
-      setDismissed(true);
-    } else {
-      setPinnedLabel(label);
-      setDismissed(false);
-    }
+    setPinnedLabel((prev) => (prev === label ? null : label));
   };
 
   // Hover intent. The first engagement waits HOVER_OPEN_MS so a quick mouse
@@ -219,7 +209,7 @@ function ArchiveRail({
                   onFocus={() => setHoveredLabel(theme.label)}
                   onBlur={() => setHoveredLabel(null)}
                   onClick={() => togglePin(theme.label)}
-                  aria-pressed={effectivePinnedLabel === theme.label}
+                  aria-pressed={pinnedLabel === theme.label}
                   className={`theme-chip cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300 focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
                     activeLabel === theme.label
                       ? "border-accent-200 bg-accent-50 text-accent-700 shadow-[0_0_0_3px_rgba(232,194,164,0.18)]"
