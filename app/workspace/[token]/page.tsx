@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { useWorkspace } from "@/components/WorkspaceProvider";
 import { PrivateLinkBanner } from "@/components/PrivateLinkBanner";
 import { IngestionProgress } from "@/components/IngestionProgress";
 import { InsightCard } from "@/components/InsightCard";
 import { formatDate, pluralize } from "@/lib/client/format";
+import type { ArchiveTheme } from "@/types/workspace";
 
 export default function OverviewPage() {
   const { token, overview, reingest } = useWorkspace();
@@ -84,7 +86,7 @@ export default function OverviewPage() {
         {/* Right: archive rail — themes above, latest post below, one composed surface */}
         <aside className="animate-rise animate-delay-4 md:col-span-5">
           <ArchiveRail
-            themes={overview.topThemes}
+            themes={overview.archiveThemes}
             latestPost={overview.latestPost}
           />
         </aside>
@@ -98,7 +100,7 @@ function ArchiveRail({
   themes,
   latestPost,
 }: {
-  themes: string[];
+  themes: ArchiveTheme[];
   latestPost: {
     title: string;
     subtitle: string | null;
@@ -109,6 +111,80 @@ function ArchiveRail({
 }) {
   const hasThemes = themes.length > 0;
   const hasLatest = !!latestPost;
+
+  // Two layers of state on the chip strip:
+  //   pinnedLabel — the chip the user has explicitly clicked to keep visible.
+  //   hoveredLabel — transient preview while the cursor is on a chip.
+  // dismissed flips true once the user has clicked the pinned chip a second
+  // time, which suppresses the soft default that auto-shows the first chip's
+  // tagline on mount. Without it, "click to dismiss" would flash the tagline
+  // back as soon as the cursor left.
+  const [pinnedLabel, setPinnedLabel] = useState<string | null>(null);
+  const [hoveredLabel, setHoveredLabel] = useState<string | null>(null);
+  const [dismissed, setDismissed] = useState(false);
+
+  const effectivePinnedLabel = pinnedLabel ?? (dismissed ? null : themes[0]?.label ?? null);
+  const activeLabel = hoveredLabel ?? effectivePinnedLabel;
+  const activeTheme = activeLabel ? themes.find((theme) => theme.label === activeLabel) ?? null : null;
+
+  const togglePin = (label: string) => {
+    if (effectivePinnedLabel === label) {
+      setPinnedLabel(null);
+      setDismissed(true);
+    } else {
+      setPinnedLabel(label);
+      setDismissed(false);
+    }
+  };
+
+  // Hover intent. The first engagement waits HOVER_OPEN_MS so a quick mouse
+  // flick across the chip strip doesn't flash the tagline. Once "warm,"
+  // chip-to-chip switches are instant. Leaving a chip schedules a short
+  // HOVER_CLOSE_MS grace so adjacent-chip transitions don't flicker.
+  // Keyboard focus bypasses the delay — Tab is explicit intent.
+  const HOVER_OPEN_MS = 160;
+  const HOVER_CLOSE_MS = 90;
+  const showTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const warmRef = useRef(false);
+
+  useEffect(
+    () => () => {
+      if (showTimerRef.current) clearTimeout(showTimerRef.current);
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    },
+    []
+  );
+
+  const handleChipHoverEnter = (label: string) => {
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+    if (warmRef.current) {
+      setHoveredLabel(label);
+      return;
+    }
+    if (showTimerRef.current) clearTimeout(showTimerRef.current);
+    showTimerRef.current = setTimeout(() => {
+      warmRef.current = true;
+      setHoveredLabel(label);
+      showTimerRef.current = null;
+    }, HOVER_OPEN_MS);
+  };
+
+  const handleChipHoverLeave = () => {
+    if (showTimerRef.current) {
+      clearTimeout(showTimerRef.current);
+      showTimerRef.current = null;
+    }
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = setTimeout(() => {
+      warmRef.current = false;
+      setHoveredLabel(null);
+      hideTimerRef.current = null;
+    }, HOVER_CLOSE_MS);
+  };
 
   if (!hasThemes && !hasLatest) {
     return (
@@ -132,14 +208,38 @@ function ArchiveRail({
               {pluralize(themes.length, "theme")}
             </span>
           </header>
-          <div className="p-6">
+          <div className="flex flex-col gap-5 p-6">
             <div className="flex flex-wrap gap-1.5">
-              {themes.map((t) => (
-                <span key={t} className="theme-chip">
-                  {t}
-                </span>
+              {themes.map((theme) => (
+                <button
+                  key={theme.label}
+                  type="button"
+                  onMouseEnter={() => handleChipHoverEnter(theme.label)}
+                  onMouseLeave={handleChipHoverLeave}
+                  onFocus={() => setHoveredLabel(theme.label)}
+                  onBlur={() => setHoveredLabel(null)}
+                  onClick={() => togglePin(theme.label)}
+                  aria-pressed={effectivePinnedLabel === theme.label}
+                  className={`theme-chip cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300 focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
+                    activeLabel === theme.label
+                      ? "border-accent-200 bg-accent-50 text-accent-700 shadow-[0_0_0_3px_rgba(232,194,164,0.18)]"
+                      : ""
+                  }`}
+                >
+                  {theme.label}
+                </button>
               ))}
             </div>
+            {activeTheme && (
+              <div key={activeTheme.label} className="animate-fade rounded-md border border-ink-200/60 bg-ink-50/60 px-3 py-2.5">
+                <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-400">
+                  {activeTheme.label}
+                </div>
+                <p className="mt-1 text-[13px] leading-relaxed text-ink-600">
+                  {activeTheme.description}
+                </p>
+              </div>
+            )}
           </div>
         </article>
       )}
