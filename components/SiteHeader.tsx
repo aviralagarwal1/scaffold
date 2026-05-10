@@ -24,11 +24,12 @@ export function SiteHeader() {
   );
 }
 
-// Nav button is contextual:
-//   /workspace/[token]/(any non-settings page) → "Sync Workspace" → that workspace's settings.
-//   anywhere else                              → no nav action.
+// Nav item is contextual:
+//   /workspace/[token]/(any non-settings page) → "Sync Workspace" → settings.
+//   /about                                      → no nav item (already there).
+//   anywhere else on the landing side (/, /new) → "About" link.
 // /new still exists as a route (the sparkly logo on the landing page links
-// there) — we just don't surface it from the nav bar.
+// there) — we just don't surface a button for it from the nav bar.
 function renderNavItem(pathname: string | null): ReactNode {
   if (!pathname) return null;
 
@@ -45,7 +46,16 @@ function renderNavItem(pathname: string | null): ReactNode {
     );
   }
 
-  return null;
+  if (pathname === "/about") return null;
+
+  return (
+    <Link
+      href="/about"
+      className="text-[13px] font-medium text-ink-700 transition-colors duration-150 ease-editorial hover:text-accent-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-50"
+    >
+      About
+    </Link>
+  );
 }
 
 /**
