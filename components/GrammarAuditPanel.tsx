@@ -150,7 +150,7 @@ export function GrammarAuditPanel({
           </section>
         )}
 
-        {busy === "load" && <LoadingState label="Loading your prior issues..." />}
+        {busy === "load" && <LoadingState label="Loading your notes..." />}
 
         {issues && issues.length === 0 && !busy && (
           <EmptyState
