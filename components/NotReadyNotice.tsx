@@ -20,11 +20,11 @@ export function NotReadyNotice({
     <div className={cn("panel flex flex-col gap-3 p-5", className)}>
       <span className="type-eyebrow text-ink-400">Not yet available</span>
       <div className="type-h3">
-        {isFailed ? `${feature} needs an ingested archive.` : `${feature} unlocks once ingestion finishes.`}
+        {isFailed ? `${feature} needs an ingested library.` : `${feature} unlocks once ingestion finishes.`}
       </div>
       <p className="type-body">
         {isWorking
-          ? "We're still reading your archive in the background."
+          ? "We're still reading your library in the background."
           : "Head back to the overview to retry ingestion."}
       </p>
       <div className="pt-1">

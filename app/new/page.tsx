@@ -10,7 +10,7 @@ export default function NewWorkspacePage() {
           Build your private writing workspace.
         </h1>
         <p className="animate-rise animate-delay-2 mt-5 max-w-prose font-serif text-[17px] leading-relaxed text-ink-600">
-          Paste your Substack URL. We read your public archive in the background and open a private workspace for you.
+          Paste your Substack URL. We read your public library in the background and open a private workspace for you.
         </p>
         <div className="animate-rise animate-delay-3 mt-10">
           <SubstackUrlForm autoFocus />

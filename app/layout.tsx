@@ -5,7 +5,7 @@ import { AppShell } from "@/components/AppShell";
 export const metadata: Metadata = {
   title: "Scaffold",
   description:
-    "Build a private AI-powered workspace around your publication archive, then get tailored feedback, ideas, and distribution drafts grounded in your writing.",
+    "Build a private AI-powered workspace around your library, then get tailored feedback, ideas, and distribution drafts grounded in your writing.",
 };
 
 export const viewport: Viewport = {

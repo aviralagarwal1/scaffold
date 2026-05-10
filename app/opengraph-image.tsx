@@ -38,7 +38,7 @@ export default async function OpenGraphImage() {
   const wordmarkRoman = "§ Scaffold";
   const headlineRoman = "Agents that know your ";
   const headlineItalic = "entire";
-  const headlineTail = " Substack archive.";
+  const headlineTail = " library.";
   const tagline = "A working memory for everything you've written.";
 
   const [serifRegular, serifItalic, serifSemibold] = await Promise.all([
@@ -132,7 +132,7 @@ export default async function OpenGraphImage() {
                 }}
               />
             </span>
-            <span>&nbsp;Substack archive.</span>
+            <span>&nbsp;library.</span>
           </div>
         </div>
 

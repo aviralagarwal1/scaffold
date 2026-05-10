@@ -33,9 +33,9 @@ const FALLBACK_POOL = [
   "Which older essays would land differently today?",
   "What's the pattern in how I open my strongest posts?",
   "Where am I underwriting an idea that deserves a longer treatment?",
-  "What would surprise a long-time reader of my archive?",
-  "Which one-liner from my archive could anchor a new essay?",
-  "What topic does my archive suggest I've been quietly avoiding?",
+  "What would surprise a long-time reader of my library?",
+  "Which one-liner from my library could anchor a new essay?",
+  "What topic does my library suggest I've been quietly avoiding?",
 ];
 
 const SURFACE_BATCH = 3;
@@ -195,7 +195,7 @@ export function ChatPanel({ token, disabled }: { token: string; disabled?: boole
                           <span className="absolute inline-flex h-full w-full animate-editorial-pulse rounded-full bg-accent-400/50" />
                           <span className="relative inline-flex h-2 w-2 animate-editorial-pulse rounded-full bg-accent-400" />
                         </span>
-                        Reading your archive
+                        Reading your library
                       </>
                     ) : (
                       <>
@@ -439,7 +439,7 @@ function ThinkingDots() {
         <span className="h-1.5 w-1.5 animate-editorial-pulse rounded-full bg-accent-400 [animation-delay:180ms]" />
         <span className="h-1.5 w-1.5 animate-editorial-pulse rounded-full bg-accent-400 [animation-delay:360ms]" />
       </div>
-      <span>Reading your archive...</span>
+      <span>Reading your library...</span>
     </div>
   );
 }

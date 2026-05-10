@@ -32,9 +32,9 @@ export function ArchiveBrowser({ posts }: { posts: PostSummary[] }) {
   if (posts.length === 0) {
     return (
       <EmptyState
-        eyebrow="Archive"
+        eyebrow="Library"
         title="No posts ingested yet."
-        description="Once your archive finishes ingesting, your posts will show up here. Browse, search, and use them as the basis for distribution drafts."
+        description="Once your library finishes ingesting, your posts will show up here. Browse, search, and use them as the basis for distribution drafts."
       />
     );
   }

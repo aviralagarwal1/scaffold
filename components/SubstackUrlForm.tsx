@@ -171,7 +171,7 @@ export function SubstackUrlForm({
                   <span className="absolute inline-flex h-full w-full animate-editorial-pulse rounded-full bg-ink-50/50" />
                   <span className="relative inline-flex h-2 w-2 animate-editorial-pulse rounded-full bg-ink-50" />
                 </span>
-                <span>Reading your archive...</span>
+                <span>Reading your library...</span>
               </>
             ) : (
               <>

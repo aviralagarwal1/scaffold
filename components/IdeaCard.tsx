@@ -17,7 +17,7 @@ export function IdeaCard({ idea }: { idea: Idea }) {
       )}
       {idea.relatedPosts.length > 0 && (
         <div className="flex flex-col gap-2">
-          <div className="type-eyebrow text-ink-400">Related from your archive</div>
+          <div className="type-eyebrow text-ink-400">Related from your library</div>
           <div className="grid gap-2 sm:grid-cols-2">
             {idea.relatedPosts.slice(0, 4).map((p, i) => (
               <SourceCitation key={`${p.url}-${i}`} source={p} />

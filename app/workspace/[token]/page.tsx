@@ -45,7 +45,7 @@ export default function OverviewPage() {
               <div className="flex items-baseline justify-between">
                 <h3 className="font-serif text-[20px] tracking-tightish text-ink-900">Where to start</h3>
                 <Link href={`/workspace/${token}/archive`} className="btn-link">
-                  Browse archive <span aria-hidden="true">→</span>
+                  Browse library <span aria-hidden="true">→</span>
                 </Link>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -179,9 +179,9 @@ function ArchiveRail({
   if (!hasThemes && !hasLatest) {
     return (
       <div className="rounded-md border border-dashed border-ink-200 bg-white p-6 text-center">
-        <span className="type-eyebrow text-ink-400">Archive</span>
+        <span className="type-eyebrow text-ink-400">Library</span>
         <p className="mt-2 text-[14px] text-ink-500">
-          Once we finish reading your archive, themes and your latest essay will live here.
+          Once we finish reading your library, themes and your latest essay will live here.
         </p>
       </div>
     );

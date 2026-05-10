@@ -5,7 +5,7 @@ import type { WorkspaceStatus } from "@/types/workspace";
 import { cn } from "@/lib/client/cn";
 
 const PHRASES = [
-  "Reading your archive...",
+  "Reading your library...",
   "Finding recurring themes...",
   "Building your writing memory...",
   "Preparing your AI editor...",
@@ -34,7 +34,7 @@ export function IngestionProgress({
     return (
       <div className="panel flex flex-col gap-3 border-critical-100 bg-critical-100/30 p-5">
         <span className="type-eyebrow text-critical-700">Ingestion failed</span>
-        <div className="type-h3">We couldn't read this Substack.</div>
+        <div className="type-h3">We couldn't read this publication.</div>
         <p className="type-body text-ink-700">
           {error ?? "Try double-checking the URL. If the publication is brand new, it may not have a public RSS feed yet."}
         </p>
@@ -59,8 +59,8 @@ export function IngestionProgress({
   const headline = isWorking
     ? PHRASES[phraseIndex]
     : status === "ready"
-      ? "Your archive is ready."
-      : "Partial archive ingested.";
+      ? "Your library is ready."
+      : "Partial library ingested.";
 
   return (
     <div className="panel flex flex-col gap-2.5 p-5">

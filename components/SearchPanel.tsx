@@ -158,7 +158,7 @@ export function SearchPanel({ token, disabled }: { token: string; disabled?: boo
           <div className="panel flex flex-col gap-2 p-5">
             <span className="type-eyebrow text-ink-400">No matches</span>
             <p className="text-[14px] leading-relaxed text-ink-600">
-              Nothing in your archive matches{" "}
+              Nothing in your library matches{" "}
               <span className="font-semibold italic text-ink-700">&ldquo;{committedQuery}&rdquo;</span>. Try a shorter phrase or
               different spelling.
             </p>

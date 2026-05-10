@@ -44,7 +44,7 @@ export default function ArchivePage() {
         }
       />
       {!ready ? (
-        <NotReadyNotice status={overview.status} token={token} feature="Archive" />
+        <NotReadyNotice status={overview.status} token={token} feature="Library" />
       ) : error ? (
         <ErrorState description={error} />
       ) : posts === null ? (

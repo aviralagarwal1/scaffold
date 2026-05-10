@@ -14,7 +14,7 @@ const TABS = [
   { slug: "ideas", label: "Exploration" },
   { slug: "distribution", label: "Distribution" },
   { slug: "search", label: "Search" },
-  { slug: "archive", label: "Archive" },
+  { slug: "archive", label: "Library" },
   { slug: "settings", label: "Settings" },
 ] as const;
 
@@ -39,7 +39,7 @@ export function WorkspaceNav({
         <div className="flex flex-col gap-5 pb-5 md:flex-row md:items-start md:justify-between md:gap-8">
           <div className="flex min-w-0 flex-col gap-2">
             <h1 className="font-serif text-[26px] leading-none tracking-tightish text-ink-900 md:text-[30px]">
-              {overview?.publicationName ?? "Your Substack"}
+              {overview?.publicationName ?? "Your library"}
             </h1>
 
             {/* Stats line */}

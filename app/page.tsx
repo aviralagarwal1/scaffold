@@ -8,8 +8,8 @@ const STEPS = [
     body: "Paste your Substack URL or custom domain. We only read public posts.",
   },
   {
-    title: "We read your archive.",
-    body: "Posts are parsed, indexed, and grounded in a private archive workspace.",
+    title: "We read your library.",
+    body: "Posts are parsed, indexed, and grounded in a private workspace.",
   },
   {
     title: "We surface patterns and insights.",
@@ -57,16 +57,24 @@ export default function HomePage() {
         />
         <div className="mx-auto grid max-w-6xl gap-12 px-6 py-20 md:grid-cols-12 md:items-start md:gap-x-10 md:py-28">
           <div className="md:col-span-7 md:pr-4 lg:col-span-6">
+            {/* Headline laid out as a 3-2-1 word pyramid via explicit block
+                lines: "Agents that know" / "your entire" / "library." Each
+                line is shorter than the last, tapering toward the warm
+                punchline noun. The em with the underline accent sits on
+                line two so the eye lands on it before the final word. */}
             <h1 className="animate-rise animate-delay-1 font-serif text-[44px] leading-[1.04] tracking-tighter2 text-ink-900 md:text-[60px] md:leading-[1.02]">
-              Agents that know your{" "}
-              <span className="relative whitespace-nowrap">
-                <em className="font-serif font-normal italic">entire</em>
-                <span
-                  aria-hidden="true"
-                  className="absolute -bottom-0.5 left-0 right-0 h-[7px] -skew-x-6 rounded-sm bg-accent-200/55"
-                />
-              </span>{" "}
-              Substack archive.
+              <span className="block">Agents that know</span>
+              <span className="block">
+                your {" "}
+                <span className="relative inline-block whitespace-nowrap">
+                  <em className="font-serif font-normal italic">entire</em>
+                  <span
+                    aria-hidden="true"
+                    className="absolute -bottom-0.5 left-0 right-0 h-[7px] -skew-x-6 rounded-sm bg-accent-200/55"
+                  />
+                </span>
+              </span>
+              <span className="block">library.</span>
             </h1>
 
             <p className="animate-rise animate-delay-2 mt-7 max-w-[46ch] font-serif text-[18px] leading-[1.55] text-ink-700 md:text-[19px]">
@@ -229,7 +237,7 @@ export default function HomePage() {
               into ChatGPT.
             </h2>
             <p className="mx-auto mt-7 max-w-prose font-serif text-[19px] leading-[1.55] text-ink-700 md:text-[20px]">
-              Everything is already in your archive. The patterns, the voice, the unfinished ideas.{" "}
+              Everything is already in your library. The patterns, the voice, the unfinished ideas.{" "}
               <span className="relative inline-block whitespace-nowrap">
                 <em className="italic text-ink-900">We just give it memory.</em>
                 <span
@@ -337,7 +345,7 @@ function PrimaryAnswerCard() {
           &ldquo;
         </span>
         <blockquote className="-mt-2 font-serif text-[22px] leading-[1.45] tracking-tightish text-ink-900 md:text-[24px]">
-          Across your archive, your strongest pieces open with a{" "}
+          Across your library, your strongest pieces open with a{" "}
           <mark className="rounded-sm bg-accent-100/70 px-0.5 text-ink-900">personal observation</mark>
           <Cite n={1} /> before moving into a broader product or culture argument
           <Cite n={2} />. Your recent essays on AI tools use this structure less
@@ -373,7 +381,7 @@ function CitationColumn({ posts }: { posts: typeof CITED_POSTS }) {
       <div className="flex items-center justify-between gap-3">
         <span className="flex items-center gap-2 type-eyebrow text-accent-700">
           <span className="accent-rule" />
-          Cited from your archive
+          Cited from your library
         </span>
         <span className="font-mono text-[10.5px] text-ink-400"></span>
       </div>
@@ -425,7 +433,7 @@ function SampleAnswerCard() {
 
       <article
         className="relative flex flex-col overflow-hidden rounded-md border border-ink-200/80 bg-white shadow-lift"
-        aria-label="Preview: ask your archive"
+        aria-label="Preview: ask your library"
       >
         {/* Workspace chrome */}
         <header className="flex items-center justify-between gap-3 border-b border-ink-200/70 bg-ink-50/60 px-4 py-2.5">
@@ -480,7 +488,7 @@ function SampleAnswerCard() {
 
             <div className="prose-editorial text-[14.5px] leading-[1.65]">
               <p>
-                Across your archive, your strongest pieces open with a{" "}
+                Across your library, your strongest pieces open with a{" "}
                 <mark className="rounded-sm bg-accent-100/80 px-0.5 text-ink-900">personal observation</mark>{" "}
                 before moving into a broader product or culture argument.
               </p>
@@ -494,7 +502,7 @@ function SampleAnswerCard() {
             <div className="mt-1.5 flex flex-col gap-2">
               <div className="flex items-center gap-2 type-eyebrow">
                 <span className="accent-rule" />
-                Cited from your archive
+                Cited from your library
               </div>
               <ul className="flex flex-col gap-1.5">
                 <CitationRow

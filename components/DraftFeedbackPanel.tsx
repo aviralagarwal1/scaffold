@@ -194,7 +194,7 @@ export function DraftFeedbackPanel({ token, disabled }: { token: string; disable
         )}
         {busy && (
           <div className="panel p-5">
-            <LoadingState label="Comparing against your archive..." />
+            <LoadingState label="Comparing against your library..." />
           </div>
         )}
         {result && (

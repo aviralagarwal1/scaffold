@@ -288,7 +288,7 @@ export function IdeasPanel({ token, disabled }: { token: string; disabled?: bool
           </div>
           {!hasAnyLens && !isAdding && (
             <p className="text-[13px] italic leading-relaxed text-ink-500">
-              Once we&apos;ve read your archive, themes will appear here. You can add your own with{" "}
+              Once we&apos;ve read your library, themes will appear here. You can add your own with{" "}
               <span className="font-mono not-italic">+</span>.
             </p>
           )}
@@ -352,7 +352,7 @@ export function IdeasPanel({ token, disabled }: { token: string; disabled?: bool
       <div className="mt-14 flex flex-col gap-8">
         {busy && (
           <div className="panel p-5">
-            <LoadingState label="Reading your archive for ideas..." />
+            <LoadingState label="Reading your library for ideas..." />
           </div>
         )}
 

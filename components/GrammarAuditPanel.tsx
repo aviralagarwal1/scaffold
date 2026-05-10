@@ -83,7 +83,7 @@ export function GrammarAuditPanel({
                   <span className="absolute inline-flex h-full w-full animate-editorial-pulse rounded-full bg-ink-50/50" />
                   <span className="relative inline-flex h-2 w-2 animate-editorial-pulse rounded-full bg-ink-50" />
                 </span>
-                <span>Auditing your archive...</span>
+                <span>Auditing your library...</span>
               </>
             ) : (
               <>
@@ -156,7 +156,7 @@ export function GrammarAuditPanel({
           <EmptyState
             eyebrow="No audits yet"
             title="Even the best drafts have stragglers."
-            description="We'll surface recurring grammar and style patterns across your archive. Once results land, you can filter them by post or severity."
+            description="We'll surface recurring grammar and style patterns across your library. Once results land, you can filter them by post or severity."
           />
         )}
 

@@ -36,7 +36,7 @@ export default function GrammarPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Proofread your posts."
-        meta={ready ? "Notes are surfaced from across your archive, not from generic spellcheck. Your voice always stays intact." : undefined}
+        meta={ready ? "Notes are surfaced from across your library, not from generic spellcheck. Your voice always stays intact." : undefined}
       />
       {!ready ? (
         <NotReadyNotice status={overview.status} token={token} feature="Audit" />
