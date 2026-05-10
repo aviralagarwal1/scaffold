@@ -2,6 +2,7 @@ import { and, desc, eq } from "drizzle-orm";
 import type { AccountWorkspaceSummary, WorkspaceStatus } from "@/types/workspace";
 import { getDb } from "@/lib/server/db";
 import { workspaceMemberships, workspaces } from "@/lib/server/db/schema";
+import { getWorkspaceTokenUsageMap } from "@/lib/server/store";
 
 type OwnedWorkspaceInput = {
   token: string;
@@ -31,6 +32,9 @@ export async function listAccountWorkspaces(userId: string): Promise<AccountWork
     .innerJoin(workspaces, eq(workspaces.id, workspaceMemberships.workspaceId))
     .where(eq(workspaceMemberships.userId, userId))
     .orderBy(desc(workspaces.updatedAt));
+  const usageByToken = await getWorkspaceTokenUsageMap(
+    rows.map((row) => row.token).filter((token): token is string => Boolean(token))
+  );
 
   return rows.map((row) => ({
     ...row,
@@ -38,6 +42,7 @@ export async function listAccountWorkspaces(userId: string): Promise<AccountWork
     updatedAt: row.updatedAt.toISOString(),
     lastIngestedAt: row.lastIngestedAt?.toISOString() ?? null,
     workspaceUrl: row.token ? `/workspace/${row.token}` : `/workspaces/${row.id}`,
+    tokenUsage: row.token ? usageByToken.get(row.token) ?? null : null,
   }));
 }
 
@@ -103,6 +108,7 @@ export async function recordOwnedWorkspace(userId: string, input: OwnedWorkspace
       updatedAt: workspace.updatedAt.toISOString(),
       lastIngestedAt: workspace.lastIngestedAt?.toISOString() ?? null,
       workspaceUrl: workspace.token ? `/workspace/${workspace.token}` : `/workspaces/${workspace.id}`,
+      tokenUsage: workspace.token ? (await getWorkspaceTokenUsageMap([workspace.token])).get(workspace.token) ?? null : null,
     };
   });
 }

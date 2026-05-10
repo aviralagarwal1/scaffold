@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import type { WorkspaceOverview } from "@/types/workspace";
 import { cn } from "@/lib/client/cn";
 import { formatRelative, hostnameOf, pluralize } from "@/lib/client/format";
+import { TokenUsageBadge } from "./TokenUsageBadge";
 
 const TABS = [
   { slug: "", label: "Overview" },
@@ -54,7 +55,12 @@ export function WorkspaceNav({
                   {hostnameOf(overview.publicationUrl)}
                 </a>
                 <Dot />
-                <span>{pluralize(overview.postCount, "post")}</span>
+                <Link
+                  href={`${base}/library`}
+                  className="rounded-sm transition-colors hover:text-ink-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300"
+                >
+                  {pluralize(overview.postCount, "post")}
+                </Link>
                 {overview.lastIngestedAt && (
                   <>
                     <Dot />
@@ -64,9 +70,21 @@ export function WorkspaceNav({
                 {overview.topThemes.length > 0 && (
                   <>
                     <Dot />
-                    <span>{pluralize(overview.topThemes.length, "theme")} detected</span>
+                    <Link
+                      href={base}
+                      className="rounded-sm transition-colors hover:text-ink-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300"
+                    >
+                      {pluralize(overview.topThemes.length, "theme")} detected
+                    </Link>
                   </>
                 )}
+                <Dot />
+                <Link
+                  href={`${base}/settings#usage`}
+                  className="rounded-sm transition-colors hover:text-ink-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300"
+                >
+                  <TokenUsageBadge usage={overview.tokenUsage} compact showBar />
+                </Link>
               </div>
             )}
           </div>

@@ -11,11 +11,13 @@ import type {
   SourceCitation
 } from "@/types/ai";
 import type { Post, PostChunk } from "@/types/post";
-import type { ArchiveTheme } from "@/types/workspace";
+import type { ArchiveTheme, TokenUsageFeature } from "@/types/workspace";
 import {
   addRepurposeDrafts,
+  assertWorkspaceTokenBudget,
   getPost,
   listGrammarIssues,
+  recordWorkspaceTokenUsage,
   replaceGrammarIssues,
   workspaceCorpus
 } from "./store";
@@ -178,9 +180,24 @@ function toSources(items: RetrievedChunk[]): SourceCitation[] {
 interface GenerateOptions {
   temperature?: number;
   maxTokens?: number;
+  usage?: {
+    workspaceToken: string;
+    feature: TokenUsageFeature;
+    label: string;
+    expectedTokens?: number;
+  };
 }
 
-async function generateWithAnthropic(system: string, user: string, options: GenerateOptions = {}): Promise<string | null> {
+interface GeneratedText {
+  text: string;
+  tokens: number | null;
+}
+
+function estimateTokens(value: string): number {
+  return Math.max(1, Math.ceil(value.length / 4));
+}
+
+async function generateWithAnthropic(system: string, user: string, options: GenerateOptions = {}): Promise<GeneratedText | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
 
@@ -211,15 +228,24 @@ async function generateWithAnthropic(system: string, user: string, options: Gene
     return null;
   }
 
-  const data = (await response.json()) as { content?: { type?: string; text?: string }[] };
-  return data.content
+  const data = (await response.json()) as {
+    content?: { type?: string; text?: string }[];
+    usage?: { input_tokens?: number; output_tokens?: number };
+  };
+  const text = data.content
     ?.filter((item) => item.type === "text" && item.text)
     .map((item) => item.text)
     .join("\n")
     .trim() ?? null;
+  if (!text) return null;
+  const tokens =
+    typeof data.usage?.input_tokens === "number" || typeof data.usage?.output_tokens === "number"
+      ? (data.usage?.input_tokens ?? 0) + (data.usage?.output_tokens ?? 0)
+      : null;
+  return { text, tokens };
 }
 
-async function generateWithOpenAI(system: string, user: string, options: GenerateOptions = {}): Promise<string | null> {
+async function generateWithOpenAI(system: string, user: string, options: GenerateOptions = {}): Promise<GeneratedText | null> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
 
@@ -251,16 +277,48 @@ async function generateWithOpenAI(system: string, user: string, options: Generat
     return null;
   }
 
-  const data = (await response.json()) as { choices?: { message?: { content?: string } }[] };
-  return data.choices?.[0]?.message?.content?.trim() ?? null;
+  const data = (await response.json()) as {
+    choices?: { message?: { content?: string } }[];
+    usage?: { total_tokens?: number; prompt_tokens?: number; completion_tokens?: number };
+  };
+  const text = data.choices?.[0]?.message?.content?.trim() ?? null;
+  if (!text) return null;
+  const tokens =
+    typeof data.usage?.total_tokens === "number"
+      ? data.usage.total_tokens
+      : typeof data.usage?.prompt_tokens === "number" || typeof data.usage?.completion_tokens === "number"
+        ? (data.usage?.prompt_tokens ?? 0) + (data.usage?.completion_tokens ?? 0)
+        : null;
+  return { text, tokens };
 }
 
 async function generateText(system: string, user: string, options: GenerateOptions = {}): Promise<string | null> {
-  if (process.env.ANTHROPIC_API_KEY) {
-    const anthropic = await generateWithAnthropic(system, user, options);
-    if (anthropic || !process.env.OPENAI_API_KEY) return anthropic;
+  const expectedTokens =
+    options.usage?.expectedTokens ?? estimateTokens(system) + estimateTokens(user) + (options.maxTokens ?? 1800);
+  if (options.usage) {
+    await assertWorkspaceTokenBudget(options.usage.workspaceToken, expectedTokens, options.usage.feature);
   }
-  return generateWithOpenAI(system, user, options);
+
+  let generated: GeneratedText | null = null;
+  if (process.env.ANTHROPIC_API_KEY) {
+    generated = await generateWithAnthropic(system, user, options);
+    if (!generated && !process.env.OPENAI_API_KEY) return null;
+  }
+  if (!generated) {
+    generated = await generateWithOpenAI(system, user, options);
+  }
+  if (!generated) return null;
+
+  if (options.usage) {
+    await recordWorkspaceTokenUsage({
+      token: options.usage.workspaceToken,
+      feature: options.usage.feature,
+      label: options.usage.label,
+      tokens: generated.tokens ?? estimateTokens(system) + estimateTokens(user) + estimateTokens(generated.text)
+    });
+  }
+
+  return generated.text;
 }
 
 const editorialSystemPrompt = [
@@ -276,19 +334,20 @@ const editorialSystemPrompt = [
 export async function analyzeArchiveThemes(
   posts: Post[],
   publicationName: string | null,
+  usage?: { token: string },
 ): Promise<ArchiveTheme[]> {
   if (posts.length === 0) return [];
 
   const context = buildThemePostContext(posts);
   const deterministicCandidates = buildDeterministicThemeCandidates(posts);
-  const modelCandidates = await generateThemeCandidates(context, publicationName);
+  const modelCandidates = await generateThemeCandidates(context, publicationName, usage);
   const candidates = mergeThemeCandidates([...deterministicCandidates, ...modelCandidates]);
   if (candidates.length === 0) {
     console.warn("Archive theme candidate generation unavailable; using deterministic fallback.");
     return [];
   }
 
-  const themes = await curateArchiveThemes(context, publicationName, candidates, new Set(posts.map((post) => post.id)));
+  const themes = await curateArchiveThemes(context, publicationName, candidates, new Set(posts.map((post) => post.id)), usage);
   if (themes.length === 0) {
     console.warn("Archive theme curation returned no usable themes; using deterministic fallback.");
     return buildFallbackCuratedThemes(candidates);
@@ -443,7 +502,11 @@ function mergeThemeCandidates(candidates: ThemeCandidate[]): ThemeCandidate[] {
   });
 }
 
-async function generateThemeCandidates(context: string, publicationName: string | null): Promise<ThemeCandidate[]> {
+async function generateThemeCandidates(
+  context: string,
+  publicationName: string | null,
+  usage?: { token: string }
+): Promise<ThemeCandidate[]> {
   const system = [
     "You analyze a writer's public library and generate candidate recurring themes.",
     "Prioritize recall over polish. A candidate can be broad, narrow, entity-based, stylistic, or thematic.",
@@ -477,7 +540,17 @@ async function generateThemeCandidates(context: string, publicationName: string 
     "- Do not include markdown fences or commentary."
   ].join("\n");
 
-  const generated = await generateText(system, user, { temperature: 0.45, maxTokens: 3000 });
+  const generated = await generateText(system, user, {
+    temperature: 0.45,
+    maxTokens: 3000,
+    usage: usage
+      ? {
+          workspaceToken: usage.token,
+          feature: "sync",
+          label: "theme candidate generation"
+        }
+      : undefined
+  });
   if (!generated) return [];
   return parseThemeCandidates(generated);
 }
@@ -518,7 +591,8 @@ async function curateArchiveThemes(
   context: string,
   publicationName: string | null,
   candidates: ThemeCandidate[],
-  validPostIds: Set<string>
+  validPostIds: Set<string>,
+  usage?: { token: string }
 ): Promise<ArchiveTheme[]> {
   const system = [
     "You are a senior curator identifying recurring themes from a writer's public library.",
@@ -588,7 +662,17 @@ async function curateArchiveThemes(
     "- Do not include markdown fences or commentary."
   ].join("\n");
 
-  const generated = await generateText(system, user, { temperature: 0.2, maxTokens: 2600 });
+  const generated = await generateText(system, user, {
+    temperature: 0.2,
+    maxTokens: 2600,
+    usage: usage
+      ? {
+          workspaceToken: usage.token,
+          feature: "sync",
+          label: "theme curation"
+        }
+      : undefined
+  });
   if (!generated) return [];
   return parseArchiveThemes(generated, validPostIds);
 }
@@ -811,7 +895,14 @@ export async function answerArchiveQuestion(token: string, message: string): Pro
 
   const generated = await generateText(
     editorialSystemPrompt,
-    `Publication: ${workspace.publicationName ?? workspace.publicationUrl}\nQuestion: ${message}\n\nLibrary context:\n${context}\n\nAnswer with: Direct answer, What I am seeing in the library, Specific examples, Recommendation, Suggested next step.`
+    `Publication: ${workspace.publicationName ?? workspace.publicationUrl}\nQuestion: ${message}\n\nLibrary context:\n${context}\n\nAnswer with: Direct answer, What I am seeing in the library, Specific examples, Recommendation, Suggested next step.`,
+    {
+      usage: {
+        workspaceToken: token,
+        feature: "conversation",
+        label: "conversation answer"
+      }
+    }
   );
 
   return {
@@ -949,6 +1040,13 @@ export async function generateDraftFeedback(
   const generated = await generateText(
     editorialSystemPrompt,
     `Evaluate this draft against the writer's library. Do not rewrite the full draft by default.\n\nLibrary context:\n${context}\n\nDraft:\n${draft}\n\nFocus dimensions:\n${focusBlock}${onlySelected}\n\nFor each focus dimension above, write a short editorial section under that dimension's name as the heading. Use this section order: ${focusFormat}.`,
+    {
+      usage: {
+        workspaceToken: token,
+        feature: "feedback",
+        label: "draft feedback"
+      }
+    }
   );
 
   return {
@@ -982,7 +1080,8 @@ export async function generateIdeas(token: string, options: { focus?: string } =
     publicationName: workspace.publicationName ?? workspace.publicationUrl,
     themes,
     posts,
-    focus: options.focus?.trim() ?? ""
+    focus: options.focus?.trim() ?? "",
+    token
   });
 
   if (generated) {
@@ -1086,12 +1185,14 @@ async function generateThemeBoundIdeas({
   publicationName,
   themes,
   posts,
-  focus
+  focus,
+  token
 }: {
   publicationName: string;
   themes: ArchiveTheme[];
   posts: Post[];
   focus: string;
+  token: string;
 }): Promise<GeneratedIdeaPayload | null> {
   if (themes.length === 0) return null;
   const validThemeLabels = new Set(themes.map((theme) => theme.label.toLowerCase()));
@@ -1160,7 +1261,15 @@ async function generateThemeBoundIdeas({
     "- Do not include markdown fences or commentary."
   ].join("\n");
 
-  const generated = await generateText(system, user, { temperature: 0.55, maxTokens: 1800 });
+  const generated = await generateText(system, user, {
+    temperature: 0.55,
+    maxTokens: 1800,
+    usage: {
+      workspaceToken: token,
+      feature: "exploration",
+      label: "idea generation"
+    }
+  });
   if (!generated) return null;
   return parseGeneratedIdeas(generated, validThemeLabels, validPostIds);
 }
@@ -1341,7 +1450,15 @@ export async function generatePromptSuggestions(
     `Write ${count} new prompts the writer has not seen.`
   ].join("\n");
 
-  const generated = await generateText(system, user, { temperature: 0.85, maxTokens: 600 });
+  const generated = await generateText(system, user, {
+    temperature: 0.85,
+    maxTokens: 600,
+    usage: {
+      workspaceToken: token,
+      feature: "suggestions",
+      label: "prompt suggestions"
+    }
+  });
 
   if (generated) {
     const parsed = parsePromptList(generated)
@@ -1389,7 +1506,7 @@ export async function generateDistributionDrafts(
   platform: DistributionPlatform
 ): Promise<RepurposeDraft[]> {
   const post = await getPost(token, postId);
-  const content = await generateDistributionContent(platform, post);
+  const content = await generateDistributionContent(token, platform, post);
   return addRepurposeDrafts(
     token,
     [{
@@ -1432,14 +1549,14 @@ const DISTRIBUTION_LIMITS: Record<DistributionPlatform, { target: number; hard: 
   }
 };
 
-async function generateDistributionContent(platform: DistributionPlatform, post: Post): Promise<string> {
+async function generateDistributionContent(token: string, platform: DistributionPlatform, post: Post): Promise<string> {
   const spec = DISTRIBUTION_LIMITS[platform];
   const sourceExcerpt = excerpt(post.contentText, platform === "twitter" ? 700 : 1400);
-  const generated = cleanDistributionContent(await generateDistributionText(platform, post, sourceExcerpt));
+  const generated = cleanDistributionContent(await generateDistributionText(token, platform, post, sourceExcerpt));
   if (generated && generated.length <= spec.hard) return generated;
 
   if (generated) {
-    const repaired = cleanDistributionContent(await repairDistributionText(platform, post, generated));
+    const repaired = cleanDistributionContent(await repairDistributionText(token, platform, post, generated));
     if (repaired && repaired.length <= spec.hard) return repaired;
   }
 
@@ -1447,6 +1564,7 @@ async function generateDistributionContent(platform: DistributionPlatform, post:
 }
 
 async function generateDistributionText(
+  token: string,
   platform: DistributionPlatform,
   post: Post,
   sourceExcerpt: string
@@ -1470,10 +1588,19 @@ async function generateDistributionText(
     "Write exactly one post. It must be coherent as a standalone post and must stay under the hard maximum."
   ].filter(Boolean).join("\n");
 
-  return generateText(system, user, { temperature: 0.45, maxTokens: distributionMaxTokens(platform) });
+  return generateText(system, user, {
+    temperature: 0.45,
+    maxTokens: distributionMaxTokens(platform),
+    usage: {
+      workspaceToken: token,
+      feature: "distribution",
+      label: `${platform} distribution draft`
+    }
+  });
 }
 
 async function repairDistributionText(
+  token: string,
   platform: DistributionPlatform,
   post: Post,
   draft: string
@@ -1494,7 +1621,15 @@ async function repairDistributionText(
     "Rewrite this as exactly one post under the hard maximum."
   ].join("\n");
 
-  return generateText(system, user, { temperature: 0.2, maxTokens: distributionMaxTokens(platform) });
+  return generateText(system, user, {
+    temperature: 0.2,
+    maxTokens: distributionMaxTokens(platform),
+    usage: {
+      workspaceToken: token,
+      feature: "distribution",
+      label: `${platform} distribution repair`
+    }
+  });
 }
 
 function distributionMaxTokens(platform: DistributionPlatform): number {
@@ -1531,9 +1666,17 @@ function truncateToCharacterLimit(value: string, max: number): string {
 export async function runGrammarAudit(token: string): Promise<GrammarAuditResponse> {
   const { posts } = await workspaceCorpus(token);
   if (posts.length === 0) throw new AppError("This workspace doesn't have any posts yet.", 409);
+  const estimatedTokens = 800 + posts.reduce((total, post) => total + Math.ceil(post.contentText.length / 10), 0);
+  await assertWorkspaceTokenBudget(token, estimatedTokens, "proofreading");
 
   const issues = posts.flatMap((post) => detectPostIssues(post)).slice(0, 30);
   const saved = await replaceGrammarIssues(token, issues);
+  await recordWorkspaceTokenUsage({
+    token,
+    feature: "proofreading",
+    label: "grammar audit heuristic scan",
+    tokens: estimatedTokens
+  });
 
   return {
     summary:

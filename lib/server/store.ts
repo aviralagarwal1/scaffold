@@ -1,6 +1,6 @@
 import type { GrammarIssue, Idea, RepurposeDraft, SavedIdea, SearchResponse, SearchResult, SearchSnippet, SourceCitation } from "@/types/ai";
 import type { Post, PostChunk, PostSummary } from "@/types/post";
-import type { ArchiveTheme, Workspace, WorkspaceOverview, WorkspaceStatus } from "@/types/workspace";
+import type { ArchiveTheme, TokenUsageFeature, TokenUsageSummary, Workspace, WorkspaceOverview, WorkspaceStatus } from "@/types/workspace";
 import { randomBytes, randomUUID } from "crypto";
 import { mkdir, readFile, rename, writeFile } from "fs/promises";
 import path from "path";
@@ -14,11 +14,25 @@ interface Database {
   repurposeDrafts: RepurposeDraft[];
   grammarIssues: GrammarIssue[];
   savedIdeas: SavedIdea[];
+  tokenUsageEvents: TokenUsageEvent[];
+}
+
+interface TokenUsageEvent {
+  id: string;
+  workspaceId: string;
+  feature: TokenUsageFeature;
+  label: string;
+  tokens: number;
+  createdAt: string;
 }
 
 const DATA_DIR = path.join(process.cwd(), ".data");
 const DATA_FILE = path.join(DATA_DIR, "substack-ai.json");
 let mutationQueue = Promise.resolve();
+const TOKEN_USAGE_WINDOW_HOURS = 24;
+const TOKEN_USAGE_RETENTION_MS = TOKEN_USAGE_WINDOW_HOURS * 60 * 60 * 1000 * 7;
+const DEFAULT_WORKSPACE_TOKEN_LIMIT = 250_000;
+const DEFAULT_TOKEN_USAGE_TIME_ZONE = "America/New_York";
 
 const SHORT_THEME_TERMS = new Set(["ai", "vc", "ml", "llm", "llms", "saas", "ipo", "ip"]);
 const THEME_LABEL_CONNECTORS = new Set(["and", "as", "for", "in", "of", "the", "to"]);
@@ -166,7 +180,8 @@ const emptyDb = (): Database => ({
   chunks: [],
   repurposeDrafts: [],
   grammarIssues: [],
-  savedIdeas: []
+  savedIdeas: [],
+  tokenUsageEvents: []
 });
 
 async function readDb(): Promise<Database> {
@@ -201,6 +216,176 @@ async function mutateDb<T>(mutator: (db: Database) => T | Promise<T>): Promise<T
 
 function newToken(): string {
   return randomBytes(24).toString("base64url");
+}
+
+function workspaceTokenLimit(): number {
+  const raw = Number(process.env.WORKSPACE_DAILY_TOKEN_LIMIT);
+  if (!Number.isFinite(raw) || raw <= 0) return DEFAULT_WORKSPACE_TOKEN_LIMIT;
+  return Math.floor(raw);
+}
+
+function tokenUsageTimeZone(): string {
+  const value = process.env.TOKEN_USAGE_TIME_ZONE?.trim();
+  if (!value) return DEFAULT_TOKEN_USAGE_TIME_ZONE;
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: value }).format(new Date());
+    return value;
+  } catch {
+    return DEFAULT_TOKEN_USAGE_TIME_ZONE;
+  }
+}
+
+function zonedParts(date: Date, timeZone: string): { year: number; month: number; day: number } {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(date);
+  const get = (type: string) => Number(parts.find((part) => part.type === type)?.value);
+  return { year: get("year"), month: get("month"), day: get("day") };
+}
+
+function timeZoneOffsetMs(date: Date, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23"
+  }).formatToParts(date);
+  const get = (type: string) => Number(parts.find((part) => part.type === type)?.value);
+  const asUtc = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"), get("second"));
+  return asUtc - date.getTime();
+}
+
+function zonedMidnightUtc(year: number, month: number, day: number, timeZone: string): Date {
+  const nominalUtc = Date.UTC(year, month - 1, day, 0, 0, 0);
+  let utc = nominalUtc - timeZoneOffsetMs(new Date(nominalUtc), timeZone);
+  utc = nominalUtc - timeZoneOffsetMs(new Date(utc), timeZone);
+  return new Date(utc);
+}
+
+function tokenUsageWindow(now: Date, timeZone: string): { start: Date; reset: Date } {
+  const today = zonedParts(now, timeZone);
+  const tomorrowUtc = new Date(Date.UTC(today.year, today.month - 1, today.day + 1));
+  const tomorrow = {
+    year: tomorrowUtc.getUTCFullYear(),
+    month: tomorrowUtc.getUTCMonth() + 1,
+    day: tomorrowUtc.getUTCDate()
+  };
+  return {
+    start: zonedMidnightUtc(today.year, today.month, today.day, timeZone),
+    reset: zonedMidnightUtc(tomorrow.year, tomorrow.month, tomorrow.day, timeZone)
+  };
+}
+
+function tokenUsageSummary(events: TokenUsageEvent[], now = new Date()): TokenUsageSummary {
+  const resetTimeZone = tokenUsageTimeZone();
+  const window = tokenUsageWindow(now, resetTimeZone);
+  const active = events
+    .filter((event) => Date.parse(event.createdAt) >= window.start.getTime())
+    .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
+  const used = active.reduce((total, event) => total + event.tokens, 0);
+  const limit = workspaceTokenLimit();
+  const remaining = Math.max(0, limit - used);
+  const percent = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 100;
+
+  return {
+    used,
+    limit,
+    remaining,
+    percent,
+    windowHours: TOKEN_USAGE_WINDOW_HOURS,
+    resetsAt: window.reset.toISOString(),
+    resetTimeZone,
+    status: used >= limit ? "exhausted" : percent >= 80 ? "high" : "normal"
+  };
+}
+
+function workspaceUsageSummary(db: Database, workspaceId: string, now = new Date()): TokenUsageSummary {
+  return tokenUsageSummary((db.tokenUsageEvents ?? []).filter((event) => event.workspaceId === workspaceId), now);
+}
+
+function formatResetTime(iso: string): string {
+  return new Date(iso).toLocaleString("en-US", {
+    timeZone: tokenUsageTimeZone(),
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short"
+  });
+}
+
+export async function getWorkspaceTokenUsage(token: string): Promise<TokenUsageSummary> {
+  const db = await readDb();
+  const workspace = db.workspaces.find((item) => item.token === token);
+  if (!workspace) throw new AppError("Workspace not found.", 404);
+  return workspaceUsageSummary(db, workspace.id);
+}
+
+export async function getWorkspaceTokenUsageMap(tokens: string[]): Promise<Map<string, TokenUsageSummary>> {
+  const wanted = new Set(tokens.filter(Boolean));
+  const db = await readDb();
+  const summaries = new Map<string, TokenUsageSummary>();
+  for (const workspace of db.workspaces) {
+    if (wanted.has(workspace.token)) {
+      summaries.set(workspace.token, workspaceUsageSummary(db, workspace.id));
+    }
+  }
+  return summaries;
+}
+
+export async function assertWorkspaceTokenBudget(
+  token: string,
+  estimatedTokens: number,
+  feature: TokenUsageFeature
+): Promise<TokenUsageSummary> {
+  const summary = await getWorkspaceTokenUsage(token);
+  const estimate = Math.max(0, Math.ceil(estimatedTokens));
+  if (summary.used >= summary.limit || estimate > summary.remaining) {
+    throw new AppError(
+      `Token usage limit reached for this publication. It resets around ${formatResetTime(summary.resetsAt)}.`,
+      429
+    );
+  }
+  return summary;
+}
+
+export async function recordWorkspaceTokenUsage({
+  token,
+  feature,
+  label,
+  tokens
+}: {
+  token: string;
+  feature: TokenUsageFeature;
+  label: string;
+  tokens: number;
+}): Promise<TokenUsageSummary> {
+  const cleanTokens = Math.max(1, Math.ceil(tokens));
+  return mutateDb((db) => {
+    const workspace = db.workspaces.find((item) => item.token === token);
+    if (!workspace) throw new AppError("Workspace not found.", 404);
+    const now = new Date();
+    const retentionCutoff = now.getTime() - TOKEN_USAGE_RETENTION_MS;
+    db.tokenUsageEvents = (db.tokenUsageEvents ?? []).filter(
+      (event) => Date.parse(event.createdAt) > retentionCutoff
+    );
+    db.tokenUsageEvents.push({
+      id: randomUUID(),
+      workspaceId: workspace.id,
+      feature,
+      label: label.slice(0, 80),
+      tokens: cleanTokens,
+      createdAt: now.toISOString()
+    });
+    return workspaceUsageSummary(db, workspace.id, now);
+  });
 }
 
 export function summarizePost(post: Post): PostSummary {
@@ -271,7 +456,8 @@ export async function getWorkspaceOverview(token: string): Promise<WorkspaceOver
     archiveThemes,
     customThemes: normalizeCustomThemeLabels(workspace.customThemes ?? []),
     lastIngestedAt: workspace.lastIngestedAt,
-    ingestionError: workspace.ingestionError
+    ingestionError: workspace.ingestionError,
+    tokenUsage: workspaceUsageSummary(db, workspace.id)
   };
 }
 
@@ -298,7 +484,8 @@ export async function updateWorkspacePublicationName(token: string, publicationN
       archiveThemes,
       customThemes: normalizeCustomThemeLabels(workspace.customThemes ?? []),
       lastIngestedAt: workspace.lastIngestedAt,
-      ingestionError: workspace.ingestionError
+      ingestionError: workspace.ingestionError,
+      tokenUsage: workspaceUsageSummary(db, workspace.id)
     };
   });
 }

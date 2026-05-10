@@ -4,13 +4,14 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { UserProfile } from "@/types/auth";
-import type { AccountWorkspaceSummary, WorkspaceStatus } from "@/types/workspace";
+import type { AccountWorkspaceSummary, TokenUsageSummary, WorkspaceStatus } from "@/types/workspace";
 import { api, ApiClientError } from "@/lib/client/api";
 import { cn } from "@/lib/client/cn";
 import { sanitizeAsTyped, validateCuratorName } from "@/lib/client/curator-name";
 import { sanitizeCreatorAsTyped, validateCreatorName } from "@/lib/client/creator-name";
 import { formatRelative, hostnameOf, pluralize } from "@/lib/client/format";
 import { LoadingState } from "./states";
+import { TokenUsageBadge } from "./TokenUsageBadge";
 
 const CURATOR_PLACEHOLDER = "Curator";
 
@@ -25,7 +26,6 @@ function isUnsetCurator(value: string | undefined): boolean {
 export function AccountPanel() {
   const router = useRouter();
   const params = useSearchParams();
-  const emailVerifiedParam = params?.get("emailVerified");
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [workspaces, setWorkspaces] = useState<AccountWorkspaceSummary[]>([]);
@@ -167,8 +167,6 @@ export function AccountPanel() {
         />
       </div>
 
-      <EmailVerificationBanner profile={profile} initialResult={emailVerifiedParam} />
-
       {/* Bottom row morphs based on state:
           1. Pending URL + still gated → "complete the gate" hint with URL chip.
           2. Pending URL + provisioning → quiet reading state.
@@ -184,109 +182,6 @@ export function AccountPanel() {
         onGateContinue={promptMissingNames}
       />
     </div>
-  );
-}
-
-function EmailVerificationBanner({
-  profile,
-  initialResult,
-}: {
-  profile: UserProfile | null;
-  initialResult: string | null | undefined;
-}) {
-  const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState<"email" | "console" | "verified" | null>(null);
-  const [error, setError] = useState<string | null>(
-    initialResult === "0" ? "That verification link did not work. Send a fresh one below." : null,
-  );
-
-  useEffect(() => {
-    if (!notice) return;
-    const id = window.setTimeout(() => setNotice(null), 10_000);
-    return () => window.clearTimeout(id);
-  }, [notice]);
-
-  if (!profile?.email) return null;
-
-  if (profile.emailVerified) {
-    if (initialResult !== "1") return null;
-    return (
-      <section className="panel relative overflow-hidden px-5 py-4">
-        <span
-          aria-hidden="true"
-          className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-positive-100/0 via-positive-500/45 to-positive-100/0"
-        />
-        <div className="flex items-center gap-3">
-          <span
-            aria-hidden="true"
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-positive-100 bg-positive-100/50"
-          >
-            <span className="h-2 w-2 rounded-full bg-positive-500" />
-          </span>
-          <div>
-            <span className="type-eyebrow text-positive-700">Email</span>
-            <p className="mt-0.5 font-serif text-[16px] leading-snug text-ink-900">Email verified.</p>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  const resend = async () => {
-    if (busy) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const result = await api.requestEmailVerification();
-      setNotice(result.alreadyVerified ? "verified" : result.delivery ?? "email");
-    } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Could not send verification email.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const noticeText =
-    notice === "console"
-      ? "Email delivery is not configured locally. The verification link was printed in the dev server terminal."
-      : notice === "verified"
-        ? "Email already verified."
-        : notice === "email"
-          ? "Fresh link sent. Check your inbox or spam folder."
-          : null;
-
-  return (
-    <section className="panel relative overflow-hidden p-5">
-      <span
-        aria-hidden="true"
-        className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-accent-200/0 via-accent-300 to-accent-200/0"
-      />
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <span className="type-eyebrow text-accent-700">Email</span>
-          <h2 className="mt-1.5 font-serif text-[18px] leading-snug tracking-tightish text-ink-900">
-            Verify your email.
-          </h2>
-          <p className="mt-1 text-[12.5px] leading-relaxed text-ink-500">
-            Confirm <span className="font-mono text-[12px] text-ink-700">{profile.email}</span> for this account.
-          </p>
-          {noticeText && (
-            <p
-              className={cn(
-                "mt-1 font-serif italic text-[12.5px]",
-                notice === "console" ? "text-ink-500" : "text-positive-700",
-              )}
-            >
-              {noticeText}
-            </p>
-          )}
-          {error && <p className="mt-1 font-serif italic text-[12.5px] text-critical-700">{error}</p>}
-        </div>
-        <button type="button" onClick={resend} className="btn-secondary shrink-0" disabled={busy}>
-          {busy ? "Sending..." : "Resend link"}
-        </button>
-      </div>
-    </section>
   );
 }
 
@@ -649,11 +544,18 @@ function PublicationsRegion({
 }
 
 function WorkspacesCard({ workspaces }: { workspaces: AccountWorkspaceSummary[] }) {
+  const totalUsage = combineTokenUsage(workspaces);
+
   return (
     <section className="panel flex flex-col gap-5 p-6">
       <header className="flex items-start justify-between gap-4">
         <div>
           <span className="type-eyebrow text-accent-700">Workspaces</span>
+          {totalUsage && (
+            <div className="mt-2">
+              <TokenUsageBadge usage={totalUsage} label="Token Usage Today: " />
+            </div>
+          )}
         </div>
         <Link href="/publications/new" className="btn-secondary group shrink-0" aria-label="Add workspace">
           <span aria-hidden="true" className="mr-1.5 text-[15px] leading-none text-accent-500 group-hover:text-accent-700">
@@ -670,6 +572,29 @@ function WorkspacesCard({ workspaces }: { workspaces: AccountWorkspaceSummary[] 
       </ul>
     </section>
   );
+}
+
+function combineTokenUsage(workspaces: AccountWorkspaceSummary[]): TokenUsageSummary | null {
+  const summaries = workspaces.map((workspace) => workspace.tokenUsage).filter((usage): usage is TokenUsageSummary => Boolean(usage));
+  if (summaries.length === 0) return null;
+  const used = summaries.reduce((total, usage) => total + usage.used, 0);
+  const limit = summaries.reduce((total, usage) => total + usage.limit, 0);
+  const remaining = Math.max(0, limit - used);
+  const percent = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 100;
+  const resetsAt = summaries
+    .map((usage) => usage.resetsAt)
+    .sort((a, b) => Date.parse(a) - Date.parse(b))[0];
+
+  return {
+    used,
+    limit,
+    remaining,
+    percent,
+    windowHours: 24,
+    resetsAt,
+    resetTimeZone: summaries[0].resetTimeZone,
+    status: used >= limit ? "exhausted" : percent >= 80 ? "high" : "normal"
+  };
 }
 
 function WorkspaceRow({ workspace }: { workspace: AccountWorkspaceSummary }) {
@@ -705,6 +630,7 @@ function WorkspaceRow({ workspace }: { workspace: AccountWorkspaceSummary }) {
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-3">
+          <TokenUsageBadge usage={workspace.tokenUsage} compact showBar compactSuffix="workspace usage" />
           <StatusBadge status={workspace.status} />
           {workspace.lastIngestedAt && (
             <span className="hidden font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-400 sm:inline">

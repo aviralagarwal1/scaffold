@@ -1,6 +1,25 @@
 import type { PostSummary } from "./post";
 
 export type WorkspaceStatus = "pending" | "ingesting" | "ready" | "failed" | "partial";
+export type TokenUsageFeature =
+  | "sync"
+  | "conversation"
+  | "feedback"
+  | "proofreading"
+  | "exploration"
+  | "distribution"
+  | "suggestions";
+
+export interface TokenUsageSummary {
+  used: number;
+  limit: number;
+  remaining: number;
+  percent: number;
+  windowHours: number;
+  resetsAt: string;
+  resetTimeZone: string;
+  status: "normal" | "high" | "exhausted";
+}
 
 export interface ArchiveTheme {
   label: string;
@@ -41,6 +60,7 @@ export interface WorkspaceOverview {
   customThemes: string[];
   lastIngestedAt: string | null;
   ingestionError: string | null;
+  tokenUsage: TokenUsageSummary;
 }
 
 export type WorkspaceVerificationStatus = "unverified" | "pending" | "verified";
@@ -58,6 +78,7 @@ export interface AccountWorkspaceSummary {
   updatedAt: string;
   lastIngestedAt: string | null;
   workspaceUrl: string;
+  tokenUsage: TokenUsageSummary | null;
 }
 
 export interface CreateWorkspaceRequest {
