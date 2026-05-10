@@ -1,16 +1,18 @@
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/server/db";
-import { profiles, users } from "@/lib/server/db/schema";
+import { users } from "@/lib/server/db/schema";
 import { apiError, AppError } from "@/lib/server/errors";
 import { readJson } from "@/lib/server/http";
 import { hashPassword } from "@/lib/server/auth/password";
+import { sendRegistrationVerification, sendVerificationForEmail } from "@/lib/server/auth/email-verification";
 
 type RegisterRequest = {
   email?: unknown;
   password?: unknown;
   creatorName?: unknown;
   editorName?: unknown;
+  publicationUrl?: unknown;
 };
 
 export async function POST(request: Request) {
@@ -20,35 +22,37 @@ export async function POST(request: Request) {
     const password = requirePassword(body.password);
     const creatorName = normalizeCreatorName(body.creatorName);
     const editorName = normalizeCuratorName(body.editorName);
+    const publicationUrl = normalizePublicationUrl(body.publicationUrl);
 
     const db = getDb();
-    const existing = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
-    if (existing.length > 0) throw new AppError("An account already exists for that email.", 409);
+    const [existing] = await db
+      .select({ id: users.id, emailVerified: users.emailVerified })
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+    if (existing?.emailVerified) throw new AppError("An account already exists for that email.", 409);
+    if (existing && !existing.emailVerified) {
+      const result = await sendVerificationForEmail(email);
+      return NextResponse.json({
+        requiresEmailVerification: true,
+        email,
+        delivery: result.delivery,
+      });
+    }
 
     const passwordHash = await hashPassword(password);
-    const created = await db.transaction(async (tx) => {
-      const [user] = await tx
-        .insert(users)
-        .values({
-          email,
-          name: creatorName,
-          passwordHash,
-        })
-        .returning({ id: users.id, email: users.email, name: users.name });
-
-      await tx.insert(profiles).values({
-        userId: user.id,
-        editorName,
-      });
-
-      return user;
+    const result = await sendRegistrationVerification({
+      email,
+      passwordHash,
+      creatorName,
+      editorName,
+      publicationUrl,
     });
 
     return NextResponse.json({
-      id: created.id,
-      email: created.email,
-      creatorName: created.name ?? "",
-      editorName,
+      requiresEmailVerification: true,
+      email,
+      delivery: result.delivery,
     });
   } catch (error) {
     return apiError(error, "Could not create account.");
@@ -94,4 +98,12 @@ function normalizeCuratorName(value: unknown): string {
   if (!/^\p{Lu}/u.test(editorName)) throw new AppError("Start with a capital letter.", 400);
   if (!/\p{Ll}$/u.test(editorName)) throw new AppError("End with a lowercase letter.", 400);
   return editorName;
+}
+
+function normalizePublicationUrl(value: unknown): string | null {
+  if (value === undefined || value === null || value === "") return null;
+  if (typeof value !== "string") throw new AppError("Enter a valid publication URL.", 400);
+  const publicationUrl = value.trim();
+  if (!publicationUrl) return null;
+  return publicationUrl;
 }

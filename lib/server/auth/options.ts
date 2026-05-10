@@ -26,6 +26,7 @@ export const authOptions: NextAuthOptions = {
           .select({
             id: users.id,
             email: users.email,
+            emailVerified: users.emailVerified,
             name: users.name,
             passwordHash: users.passwordHash,
           })
@@ -34,6 +35,7 @@ export const authOptions: NextAuthOptions = {
           .limit(1);
 
         if (!row || !(await verifyPassword(password, row.passwordHash))) return null;
+        if (!row.emailVerified) throw new Error("Verify your email before signing in.");
 
         return {
           id: row.id,

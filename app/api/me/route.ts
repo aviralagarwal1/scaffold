@@ -60,6 +60,7 @@ async function loadProfile(userId: string) {
     .select({
       id: users.id,
       email: users.email,
+      emailVerified: users.emailVerified,
       creatorName: users.name,
       editorName: profiles.editorName,
     })
@@ -72,6 +73,7 @@ async function loadProfile(userId: string) {
   return {
     id: row.id,
     email: row.email,
+    emailVerified: row.emailVerified?.toISOString() ?? null,
     creatorName: row.creatorName ?? "",
     editorName: row.editorName ?? "Curator",
   };

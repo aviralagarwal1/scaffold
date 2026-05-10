@@ -5,7 +5,7 @@ import type {
   WorkspaceOverview,
   UpdateWorkspaceRequest,
 } from "@/types/workspace";
-import type { RegisterRequest, UpdateProfileRequest, UserProfile } from "@/types/auth";
+import type { RegisterRequest, RegisterVerificationResponse, UpdateProfileRequest, UserProfile } from "@/types/auth";
 import type { PostSummary } from "@/types/post";
 import type {
   AskRequest,
@@ -67,10 +67,18 @@ async function request<T>(input: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   register(body: RegisterRequest) {
-    return request<UserProfile>("/api/auth/register", {
+    return request<RegisterVerificationResponse>("/api/auth/register", {
       method: "POST",
       body: JSON.stringify(body),
     });
+  },
+  requestEmailVerification() {
+    return request<{ ok: true; alreadyVerified: boolean; delivery?: "email" | "console" }>(
+      "/api/auth/verify-email/request",
+      {
+        method: "POST",
+      },
+    );
   },
   me() {
     return request<UserProfile>("/api/me");

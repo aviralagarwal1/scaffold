@@ -5,11 +5,21 @@ export interface RegisterRequest {
   creatorName?: string;
   /** The curator name. Optional at registration; /account captures the real value before setup completes. */
   editorName?: string;
+  /** Optional landing-page handoff to preserve after email verification. */
+  publicationUrl?: string;
+}
+
+export interface RegisterVerificationResponse {
+  requiresEmailVerification: true;
+  email: string;
+  delivery: "email" | "console";
 }
 
 export interface UserProfile {
   id: string;
   email: string | null;
+  /** ISO timestamp when the account email was verified. */
+  emailVerified: string | null;
   /** The creator's real name. */
   creatorName: string;
   /** The account-wide curator name. */

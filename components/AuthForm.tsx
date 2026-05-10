@@ -22,11 +22,17 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
     const raw = params?.get("publicationUrl") ?? "";
     return raw.trim();
   }, [params]);
+  const initialEmail = useMemo(() => {
+    const raw = params?.get("email") ?? "";
+    return raw.trim();
+  }, [params]);
+  const emailJustVerified = params?.get("verified") === "1";
 
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [verificationDelivery, setVerificationDelivery] = useState<"email" | "console" | null>(null);
 
   const [emailAlerting, setEmailAlerting] = useState(false);
   const [passwordAlerting, setPasswordAlerting] = useState(false);
@@ -60,10 +66,14 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
 
     try {
       if (isRegister) {
-        await api.register({
+        const result = await api.register({
           email,
           password,
+          publicationUrl: incomingPublicationUrl || undefined,
         });
+        setVerificationDelivery(result.delivery);
+        setBusy(false);
+        return;
       }
 
       const res = await signIn("credentials", {
@@ -72,7 +82,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         redirect: false,
       });
       if (res?.error) {
-        setError(isRegister ? "Account created, but sign-in failed. Try signing in." : "Email or password is incorrect.");
+        setError(res.error === "Verify your email before signing in." ? res.error : "Email or password is incorrect.");
         setBusy(false);
         return;
       }
@@ -99,8 +109,45 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
     return "Sign in";
   })();
 
+  if (isRegister && verificationDelivery) {
+    return (
+      <section className="panel relative overflow-hidden p-6">
+        <span
+          aria-hidden="true"
+          className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-positive-100/0 via-positive-500/45 to-positive-100/0"
+        />
+        <div className="flex flex-col gap-4">
+          <div>
+            <span className="type-eyebrow text-positive-700">Email</span>
+            <h2 className="mt-2 font-serif text-[22px] leading-snug tracking-tightish text-ink-900">
+              Verify your email.
+            </h2>
+            <p className="mt-2 text-[13px] leading-relaxed text-ink-600">
+              {verificationDelivery === "console"
+                ? "Email delivery is not configured locally. The verification link was printed in the dev server terminal."
+                : "Fresh link sent. Check your inbox or spam folder."}
+            </p>
+            <p className="mt-1 text-[12.5px] leading-relaxed text-ink-500">
+              Your account will be created after you confirm{" "}
+              <span className="font-mono text-[12px] text-ink-700">{email.trim().toLowerCase()}</span>.
+            </p>
+          </div>
+          <button type="button" className="btn-secondary self-start" onClick={() => setVerificationDelivery(null)}>
+            Use a different email
+          </button>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <form onSubmit={onSubmit} className="panel flex flex-col gap-5 p-6" noValidate>
+      {!isRegister && emailJustVerified && (
+        <div className="-mt-1 rounded-md border border-positive-100 bg-positive-100/40 px-3 py-2 text-[13px] text-positive-700">
+          Email verified. Sign in to open your desk.
+        </div>
+      )}
+
       {isRegister && incomingPublicationUrl && (
         <div className="-mt-1 flex items-start gap-3 rounded-md border border-accent-200/70 bg-accent-50/50 px-3 py-2.5">
           <span className="mt-0.5 font-serif text-[14px] leading-none text-accent-500" aria-hidden="true">§</span>
