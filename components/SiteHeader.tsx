@@ -22,7 +22,7 @@ export function SiteHeader() {
         >
           <Wordmark size={isLanding ? "lg" : "sm"} />
         </Link>
-        <nav className="flex items-center gap-2">{renderNavItems(pathname, isAuthenticated)}</nav>
+        <nav className="flex items-center gap-3">{renderNavItems(pathname, isAuthenticated)}</nav>
       </div>
     </header>
   );
@@ -75,7 +75,7 @@ function renderNavItems(pathname: string | null, isAuthenticated: boolean): Reac
             </Link>
           )}
           {pathname !== "/register" && (
-            <Link href="/register" className="btn-primary">
+            <Link href="/register" className="btn-secondary">
               Register
             </Link>
           )}
