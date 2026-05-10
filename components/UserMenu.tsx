@@ -5,7 +5,24 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiClientError } from "@/lib/client/api";
+import { cn } from "@/lib/client/cn";
 import type { UserProfile } from "@/types/auth";
+
+const INITIAL_GRADIENTS = [
+  "border-red-200/70 bg-gradient-to-br from-red-50 to-red-100 text-red-700",
+  "border-sky-200/70 bg-gradient-to-br from-sky-50 to-sky-100 text-sky-700",
+  "border-emerald-200/70 bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-700",
+  "border-amber-200/70 bg-gradient-to-br from-amber-50 to-amber-100 text-amber-700",
+  "border-violet-200/70 bg-gradient-to-br from-violet-50 to-violet-100 text-violet-700",
+  "border-teal-200/70 bg-gradient-to-br from-teal-50 to-teal-100 text-teal-700",
+  "border-rose-200/70 bg-gradient-to-br from-rose-50 to-rose-100 text-rose-700",
+] as const;
+
+function initialGradientClass(initial: string): string {
+  const code = initial.toUpperCase().charCodeAt(0);
+  if (!Number.isFinite(code) || code < 65 || code > 90) return INITIAL_GRADIENTS[0];
+  return INITIAL_GRADIENTS[(code - 65) % INITIAL_GRADIENTS.length];
+}
 
 /**
  * Identity menu in the global nav for signed-in users.
@@ -89,6 +106,7 @@ export function UserMenu() {
     (email.includes("@") ? email.split("@")[0] : "") ||
     "you";
   const initial = (displayName[0] ?? "Y").toUpperCase();
+  const initialClassName = initialGradientClass(initial);
 
   return (
     <div ref={wrapperRef} className="relative">
@@ -102,7 +120,10 @@ export function UserMenu() {
       >
         <span
           aria-hidden="true"
-          className="grid h-7 w-7 place-items-center rounded-md bg-accent-50 font-serif text-[14px] leading-none text-accent-700"
+          className={cn(
+            "grid h-7 w-7 place-items-center rounded-md border font-serif text-[14px] leading-none",
+            initialClassName,
+          )}
         >
           {initial}
         </span>
@@ -128,7 +149,10 @@ export function UserMenu() {
             <div className="flex items-center gap-2.5">
               <span
                 aria-hidden="true"
-                className="grid h-8 w-8 place-items-center rounded-md bg-accent-50 font-serif text-[16px] leading-none text-accent-700"
+                className={cn(
+                  "grid h-8 w-8 place-items-center rounded-md border font-serif text-[16px] leading-none",
+                  initialClassName,
+                )}
               >
                 {initial}
               </span>
