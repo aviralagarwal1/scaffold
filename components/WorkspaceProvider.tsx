@@ -61,9 +61,8 @@ export function WorkspaceProvider({ token, children }: { token: string; children
     setReingesting(true);
     try {
       await api.ingest(token);
-      await fetchOnce();
-      // resume polling if still working
       const o = await fetchOnce();
+      // resume polling if still working
       if (o && (o.status === "pending" || o.status === "ingesting")) {
         const tick = async () => {
           const r = await fetchOnce();

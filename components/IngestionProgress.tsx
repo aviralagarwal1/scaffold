@@ -5,10 +5,20 @@ import type { WorkspaceStatus } from "@/types/workspace";
 import { cn } from "@/lib/client/cn";
 
 const PHRASES = [
-  "Reading your library...",
-  "Finding recurring themes...",
+  "Reading your public library...",
+  "Separating posts from page noise...",
+  "Tracing recurring themes...",
   "Building your writing memory...",
   "Preparing your curator...",
+  "Mapping your themes...",
+  "Organizing your sources...",
+];
+
+const SUBPHRASES = [
+  "This usually takes about a minute.",
+  "Longer libraries take a little more care.",
+  "We are keeping the reading source-grounded.",
+  "The page will open as soon as the library is ready.",
 ];
 
 export function IngestionProgress({
@@ -23,10 +33,17 @@ export function IngestionProgress({
   onRetry?: () => void;
 }) {
   const [phraseIndex, setPhraseIndex] = useState(0);
+  const [subphraseIndex, setSubphraseIndex] = useState(0);
 
   useEffect(() => {
     if (status !== "pending" && status !== "ingesting") return;
     const id = setInterval(() => setPhraseIndex((i) => (i + 1) % PHRASES.length), 2400);
+    return () => clearInterval(id);
+  }, [status]);
+
+  useEffect(() => {
+    if (status !== "pending" && status !== "ingesting") return;
+    const id = setInterval(() => setSubphraseIndex((i) => (i + 1) % SUBPHRASES.length), 5200);
     return () => clearInterval(id);
   }, [status]);
 
@@ -71,7 +88,11 @@ export function IngestionProgress({
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 type-meta">
         {postCount > 0 && <span>{postCount.toLocaleString()} posts indexed so far</span>}
         {status === "partial" && <span>Some posts could not be parsed.</span>}
-        {isWorking && postCount === 0 && <span>This usually takes under a minute.</span>}
+        {isWorking && (
+          <span className="font-serif italic text-ink-500">
+            {postCount === 0 ? SUBPHRASES[subphraseIndex] : "Still reading for themes and patterns."}
+          </span>
+        )}
       </div>
     </div>
   );

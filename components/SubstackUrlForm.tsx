@@ -6,6 +6,15 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { api, ApiClientError } from "@/lib/client/api";
 import { cn } from "@/lib/client/cn";
 
+const READING_PHRASES = [
+  "Reading your library...",
+  "Indexing public posts...",
+  "Finding recurring themes...",
+  "Preparing your curator...",
+  "Mapping your themes...",
+  "Organizing your sources...",
+] as const;
+
 export function SubstackUrlForm({
   autoFocus = false,
   redirect = true,
@@ -38,6 +47,7 @@ export function SubstackUrlForm({
   const [url, setUrl] = useState("");
   const [focused, setFocused] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [readingPhraseIndex, setReadingPhraseIndex] = useState(0);
   const [alerting, setAlerting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -46,6 +56,18 @@ export function SubstackUrlForm({
   // caret sits on the LEFT (where typing actually begins) with the ghost
   // text trailing — visual position now matches the real cursor's reality.
   const showCue = url.length === 0 && !focused;
+
+  useEffect(() => {
+    if (!busy) {
+      setReadingPhraseIndex(0);
+      return;
+    }
+    const id = window.setInterval(
+      () => setReadingPhraseIndex((index) => (index + 1) % READING_PHRASES.length),
+      2800,
+    );
+    return () => window.clearInterval(id);
+  }, [busy]);
 
   // Type-anywhere capture: when enabled, any printable keystroke on the page
   // (when not already inside a different input) gets routed into this field
@@ -205,7 +227,7 @@ export function SubstackUrlForm({
                   <span className="absolute inline-flex h-full w-full animate-editorial-pulse rounded-full bg-ink-50/50" />
                   <span className="relative inline-flex h-2 w-2 animate-editorial-pulse rounded-full bg-ink-50" />
                 </span>
-                <span>Reading your library...</span>
+                <span className="font-serif italic">{READING_PHRASES[readingPhraseIndex]}</span>
               </>
             ) : (
               <>
