@@ -233,6 +233,7 @@ async function generateWithOpenAI(system: string, user: string, options: Generat
       },
       body: JSON.stringify({
         model: process.env.OPENAI_MODEL ?? "gpt-4.1-mini",
+        max_tokens: options.maxTokens ?? 1800,
         temperature: options.temperature ?? 0.4,
         messages: [
           { role: "system", content: system },
@@ -1376,85 +1377,143 @@ export async function generateDistributionDrafts(
   platform: DistributionPlatform
 ): Promise<RepurposeDraft[]> {
   const post = await getPost(token, postId);
-  const variants = distributionVariants(platform, post);
+  const content = await generateDistributionContent(platform, post);
   return addRepurposeDrafts(
     token,
-    variants.map((variant) => ({
+    [{
       postId: post.id,
       platform,
       status: "pending",
-      title: variant.title,
-      content: variant.content,
+      title: null,
+      content,
       sourcePostTitle: post.title,
       sourcePostUrl: post.url
-    }))
+    }]
   );
 }
 
-function distributionVariants(platform: DistributionPlatform, post: Post): Pick<RepurposeDraft, "title" | "content">[] {
-  const lead = excerpt(post.contentText, 220);
-  if (platform === "twitter") {
-    return [
-      {
-        title: "Single post",
-        content: `${post.title}\n\n${lead}\n\n${post.url}`
-      },
-      {
-        title: "Thread starter",
-        content: `I wrote about ${post.title.toLowerCase()}.\n\nThe core idea: ${lead}\n\nA few notes from the piece:`
-      }
-    ];
+const DISTRIBUTION_LIMITS: Record<DistributionPlatform, { target: number; hard: number; guidance: string }> = {
+  twitter: {
+    target: 260,
+    hard: 280,
+    guidance: "Write one concise X/Twitter post. No thread setup, no numbered list, no URL unless it easily fits."
+  },
+  linkedin: {
+    target: 1100,
+    hard: 3000,
+    guidance: "Write one thoughtful LinkedIn post with short paragraphs and a clear professional takeaway."
+  },
+  facebook: {
+    target: 900,
+    hard: 5000,
+    guidance: "Write one conversational Facebook post that sounds personal, direct, and easy to respond to."
+  },
+  instagram: {
+    target: 1200,
+    hard: 2200,
+    guidance: "Write one Instagram caption. No carousel outline, no slide labels, no raw URL."
+  },
+  reddit: {
+    target: 1600,
+    hard: 40000,
+    guidance: "Write one Reddit post that opens with a concrete question or observation and invites discussion."
+  }
+};
+
+async function generateDistributionContent(platform: DistributionPlatform, post: Post): Promise<string> {
+  const spec = DISTRIBUTION_LIMITS[platform];
+  const sourceExcerpt = excerpt(post.contentText, platform === "twitter" ? 700 : 1400);
+  const generated = cleanDistributionContent(await generateDistributionText(platform, post, sourceExcerpt));
+  if (generated && generated.length <= spec.hard) return generated;
+
+  if (generated) {
+    const repaired = cleanDistributionContent(await repairDistributionText(platform, post, generated));
+    if (repaired && repaired.length <= spec.hard) return repaired;
   }
 
-  if (platform === "linkedin") {
-    return [
-      {
-        title: "Reflective post",
-        content: `${post.title}\n\n${lead}\n\nThe part worth discussing is not just the conclusion, but the pattern underneath it.\n\n${post.url}`
-      },
-      {
-        title: "Concise professional post",
-        content: `New essay: ${post.title}\n\n${lead}\n\nCurious how others are thinking about this.`
-      }
-    ];
-  }
+  return fallbackDistributionContent(platform, post);
+}
 
-  if (platform === "facebook") {
-    return [
-      {
-        title: "Personal note",
-        content: `Just published: ${post.title}\n\n${lead}\n\nIf this resonates, I'd love to hear how you've thought about it. Full piece: ${post.url}`
-      },
-      {
-        title: "Conversational lead-in",
-        content: `Something I've been thinking about lately, written up in full:\n\n${post.title}\n\n${lead}\n\n${post.url}`
-      }
-    ];
-  }
+async function generateDistributionText(
+  platform: DistributionPlatform,
+  post: Post,
+  sourceExcerpt: string
+): Promise<string | null> {
+  const spec = DISTRIBUTION_LIMITS[platform];
+  const system = [
+    "You write single social posts that repurpose a writer's published essay.",
+    "Use only the provided source post. Do not invent facts, audience metrics, revenue, traffic, or reader response.",
+    "Return only the final post text. No markdown fences, labels, alternatives, explanations, or thread/carousel structure."
+  ].join("\n");
+  const user = [
+    `Platform: ${platform}`,
+    `Target length: about ${spec.target} characters.`,
+    `Hard maximum: ${spec.hard} characters.`,
+    `Platform guidance: ${spec.guidance}`,
+    "",
+    `Source title: ${post.title}`,
+    post.subtitle ? `Source subtitle: ${post.subtitle}` : null,
+    `Source excerpt: ${sourceExcerpt}`,
+    "",
+    "Write exactly one post. It must be coherent as a standalone post and must stay under the hard maximum."
+  ].filter(Boolean).join("\n");
 
-  if (platform === "instagram") {
-    return [
-      {
-        title: "Caption",
-        content: `${post.title}\n\n${lead}\n\nRead the full piece at the link in bio.`
-      },
-      {
-        title: "Carousel outline",
-        content: `Slide 1: ${post.title}\n\nSlide 2: The core idea\n${lead}\n\nSlide 3: Why it matters\n\nSlide 4: What to consider next\n\nCaption: Full essay at the link in bio.`
-      }
-    ];
-  }
+  return generateText(system, user, { temperature: 0.45, maxTokens: distributionMaxTokens(platform) });
+}
 
-  return [
-    {
-      title: "Discussion prompt",
-      content: `I wrote about ${post.title.toLowerCase()}, but I am more interested in how other people are seeing the same pattern.\n\n${lead}\n\nHow would you frame the tradeoff here?`
-    },
-    {
-      title: "Non-promotional summary",
-      content: `Question for people who think about this area: ${post.title}\n\nMy argument, in short: ${lead}\n\nWhere do you think this breaks down?`
-    }
-  ];
+async function repairDistributionText(
+  platform: DistributionPlatform,
+  post: Post,
+  draft: string
+): Promise<string | null> {
+  const spec = DISTRIBUTION_LIMITS[platform];
+  const system = [
+    "You shorten social copy while preserving the main idea.",
+    "Return only the revised post text. No markdown fences, labels, explanations, alternatives, threads, or carousel structure."
+  ].join("\n");
+  const user = [
+    `Platform: ${platform}`,
+    `Hard maximum: ${spec.hard} characters.`,
+    `Source title: ${post.title}`,
+    "",
+    "Draft to shorten:",
+    draft,
+    "",
+    "Rewrite this as exactly one post under the hard maximum."
+  ].join("\n");
+
+  return generateText(system, user, { temperature: 0.2, maxTokens: distributionMaxTokens(platform) });
+}
+
+function distributionMaxTokens(platform: DistributionPlatform): number {
+  const hard = DISTRIBUTION_LIMITS[platform].hard;
+  return Math.min(900, Math.max(180, Math.ceil(hard / 3) + 80));
+}
+
+function cleanDistributionContent(raw: string | null): string | null {
+  if (!raw) return null;
+  const cleaned = raw
+    .replace(/^```(?:\w+)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .replace(/^\s*(?:post|draft|caption|tweet|linkedin|facebook|instagram|reddit)\s*:\s*/i, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return cleaned || null;
+}
+
+function fallbackDistributionContent(platform: DistributionPlatform, post: Post): string {
+  const spec = DISTRIBUTION_LIMITS[platform];
+  const lead = excerpt(post.contentText, Math.min(360, Math.max(120, spec.target - post.title.length - 80)));
+  const draft = platform === "instagram"
+    ? `${post.title}\n\n${lead}\n\nMore in the full piece.`
+    : `I wrote about ${post.title.toLowerCase()}.\n\n${lead}`;
+  return truncateToCharacterLimit(draft, spec.hard);
+}
+
+function truncateToCharacterLimit(value: string, max: number): string {
+  if (value.length <= max) return value;
+  const trimmed = value.slice(0, Math.max(0, max - 1)).trimEnd();
+  return `${trimmed.replace(/[,\s.;:!?-]+$/, "")}…`;
 }
 
 export async function runGrammarAudit(token: string): Promise<GrammarAuditResponse> {
