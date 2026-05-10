@@ -19,6 +19,7 @@ const DATA_DIR = path.join(process.cwd(), ".data");
 const DATA_FILE = path.join(DATA_DIR, "substack-ai.json");
 
 const SHORT_THEME_TERMS = new Set(["ai", "vc", "ml", "llm", "llms", "saas", "ipo", "ip"]);
+const THEME_LABEL_CONNECTORS = new Set(["and", "as", "for", "in", "of", "the", "to"]);
 
 const NON_THEME_TERMS = new Set([
   "able",
@@ -35,6 +36,7 @@ const NON_THEME_TERMS = new Set([
   "always",
   "among",
   "another",
+  "aren",
   "around",
   "because",
   "before",
@@ -43,9 +45,12 @@ const NON_THEME_TERMS = new Set([
   "between",
   "both",
   "cannot",
+  "can",
   "could",
+  "couldn",
   "does",
   "doesn",
+  "don",
   "doing",
   "done",
   "down",
@@ -63,6 +68,9 @@ const NON_THEME_TERMS = new Set([
   "going",
   "good",
   "have",
+  "hadn",
+  "hasn",
+  "haven",
   "having",
   "here",
   "hers",
@@ -70,6 +78,7 @@ const NON_THEME_TERMS = new Set([
   "https",
   "into",
   "itself",
+  "isn",
   "just",
   "like",
   "made",
@@ -89,6 +98,7 @@ const NON_THEME_TERMS = new Set([
   "real",
   "same",
   "should",
+  "shouldn",
   "since",
   "some",
   "something",
@@ -114,16 +124,38 @@ const NON_THEME_TERMS = new Set([
   "want",
   "well",
   "were",
+  "wasn",
+  "weren",
   "what",
   "when",
   "where",
   "which",
   "while",
   "will",
+  "won",
   "with",
   "work",
   "would",
+  "wouldn",
   "your"
+]);
+
+const GENERIC_SINGLE_THEME_LABELS = new Set([
+  "article",
+  "articles",
+  "culture",
+  "essay",
+  "essays",
+  "industry",
+  "piece",
+  "pieces",
+  "reader",
+  "readers",
+  "story",
+  "stories",
+  "theme",
+  "themes",
+  "writing"
 ]);
 
 const emptyDb = (): Database => ({
@@ -243,6 +275,20 @@ export async function setWorkspaceStatus(token: string, status: WorkspaceStatus,
   });
 }
 
+export async function getReusableArchiveThemes(token: string, incomingPosts: Post[]): Promise<ArchiveTheme[] | null> {
+  const db = await readDb();
+  const workspace = db.workspaces.find((item) => item.token === token);
+  if (!workspace?.archiveThemes?.length) return null;
+
+  const existingPosts = db.posts.filter((post) => post.workspaceId === workspace.id);
+  if (existingPosts.length === 0 || incomingPosts.length === 0) return null;
+  if (!isStableArchivePostSet(existingPosts, incomingPosts)) return null;
+
+  const reusableThemes = normalizeArchiveThemes(workspace, existingPosts);
+  if (!hasReusableThemeQuality(reusableThemes)) return null;
+  return reusableThemes;
+}
+
 export async function replaceWorkspacePosts(
   token: string,
   publicationName: string | null,
@@ -256,7 +302,13 @@ export async function replaceWorkspacePosts(
     const existingByUrl = new Map(
       db.posts.filter((post) => post.workspaceId === workspace.id).map((post) => [post.url, post])
     );
-    const mergedPosts = posts.map((post) => existingByUrl.get(post.url) ?? post);
+    const existingByTitle = uniquePostMap(
+      db.posts.filter((post) => post.workspaceId === workspace.id),
+      (post) => normalizePostTitle(post.title)
+    );
+    const mergedPosts = posts.map(
+      (post) => existingByUrl.get(post.url) ?? existingByTitle.get(normalizePostTitle(post.title)) ?? post
+    );
     const postIds = new Set(mergedPosts.map((post) => post.id));
 
     db.posts = db.posts.filter((post) => post.workspaceId !== workspace.id || postIds.has(post.id));
@@ -281,7 +333,9 @@ export async function replaceWorkspacePosts(
       });
     }
 
-    const detectedThemes = archiveThemes?.length ? archiveThemes : detectArchiveThemes(mergedPosts);
+    const detectedThemes = archiveThemes?.length
+      ? normalizeProvidedArchiveThemes(archiveThemes, mergedPosts)
+      : detectArchiveThemes(mergedPosts);
 
     workspace.publicationName = publicationName ?? workspace.publicationName;
     workspace.archiveThemes = detectedThemes;
@@ -416,7 +470,7 @@ function normalizeArchiveThemes(workspace: Workspace, posts: Post[]): ArchiveThe
   const themes = storedThemes
     .map((theme) => ({
       label: cleanThemeLabel(theme.label),
-      description: theme.description?.trim() || `A recurring archive pattern around ${cleanThemeLabel(theme.label)}.`,
+      description: normalizeThemeDescription(theme.description ?? "", cleanThemeLabel(theme.label)),
       evidencePostIds: Array.isArray(theme.evidencePostIds) ? theme.evidencePostIds.slice(0, 5) : [],
       confidence: clampConfidence(theme.confidence),
       level: theme.level === "field" || theme.level === "subtheme" || theme.level === "motif" ? theme.level : "subtheme",
@@ -437,11 +491,131 @@ function normalizeArchiveThemes(workspace: Workspace, posts: Post[]): ArchiveThe
     .slice(0, 15);
 }
 
+function normalizeProvidedArchiveThemes(themes: ArchiveTheme[], posts: Post[]): ArchiveTheme[] {
+  const workspace: Workspace = {
+    id: "",
+    token: "",
+    publicationUrl: "",
+    publicationName: null,
+    status: "ready",
+    createdAt: "",
+    updatedAt: "",
+    lastIngestedAt: null,
+    ingestionError: null,
+    topThemes: themes.map((theme) => theme.label),
+    archiveThemes: themes
+  };
+  return normalizeArchiveThemes(workspace, posts);
+}
+
+function hasReusableThemeQuality(themes: ArchiveTheme[]): boolean {
+  if (themes.length < 4) return false;
+  return !themes.some((theme) => isGenericThemeDescription(theme.description));
+}
+
+function isGenericThemeDescription(description: string): boolean {
+  return /^You return to .+ as a recurring lens in your archive\.$/i.test(description.trim());
+}
+
+function isStableArchivePostSet(existingPosts: Post[], incomingPosts: Post[]): boolean {
+  const existingTitles = existingPosts.map((post) => normalizePostTitle(post.title)).filter(Boolean);
+  const incomingTitles = incomingPosts.map((post) => normalizePostTitle(post.title)).filter(Boolean);
+  const existingUrls = existingPosts.map((post) => normalizePostUrl(post.url)).filter(Boolean);
+  const incomingUrls = incomingPosts.map((post) => normalizePostUrl(post.url)).filter(Boolean);
+
+  const existingTitleSignature = signature(existingTitles);
+  const incomingTitleSignature = signature(incomingTitles);
+  const existingUrlSignature = signature(existingUrls);
+  const incomingUrlSignature = signature(incomingUrls);
+
+  if (existingTitleSignature.length > 0 && existingTitleSignature === incomingTitleSignature) return true;
+  if (existingUrlSignature.length > 0 && existingUrlSignature === incomingUrlSignature) return true;
+
+  return isMinorArchiveDelta(existingUrls, incomingUrls) || isMinorArchiveDelta(existingTitles, incomingTitles);
+}
+
+function isMinorArchiveDelta(existingValues: string[], incomingValues: string[]): boolean {
+  if (existingValues.length === 0 || incomingValues.length === 0) return false;
+  const existing = new Set(existingValues);
+  const incoming = new Set(incomingValues);
+  const overlap = [...existing].filter((value) => incoming.has(value)).length;
+  const smallerSize = Math.min(existing.size, incoming.size);
+  const countDelta = Math.abs(existing.size - incoming.size);
+  const allowedDelta = Math.max(1, Math.floor(smallerSize * 0.08));
+
+  return overlap / smallerSize >= 0.92 && countDelta <= allowedDelta;
+}
+
+function uniquePostMap(posts: Post[], keyForPost: (post: Post) => string): Map<string, Post> {
+  const byKey = new Map<string, Post>();
+  const duplicates = new Set<string>();
+  for (const post of posts) {
+    const key = keyForPost(post);
+    if (!key) continue;
+    if (byKey.has(key)) {
+      duplicates.add(key);
+      continue;
+    }
+    byKey.set(key, post);
+  }
+  for (const key of duplicates) {
+    byKey.delete(key);
+  }
+  return byKey;
+}
+
+function signature(values: string[]): string {
+  return values.filter(Boolean).sort().join("\n");
+}
+
+function normalizePostTitle(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/[^\w\s-]/g, "")
+    .trim();
+}
+
+function normalizePostUrl(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/\/$/, "")
+    .trim();
+}
+
 function cleanThemeLabel(label: string): string {
   return label
     .replace(/\s+/g, " ")
     .replace(/^[\s"'`]+|[\s"'`.!?]+$/g, "")
     .trim();
+}
+
+function normalizeThemeDescription(description: string, label: string): string {
+  const cleaned = description
+    .replace(/\s+/g, " ")
+    .replace(/^[\s"'`]+|[\s"'`.!?]+$/g, "")
+    .trim();
+  if (!isUsefulThemeDescription(cleaned)) {
+    return `You return to ${label.toLowerCase()} as a recurring lens in your archive.`;
+  }
+  if (/^You\b/.test(cleaned)) return ensureSentence(cleaned);
+  return ensureSentence(`You ${cleaned.charAt(0).toLowerCase()}${cleaned.slice(1)}`);
+}
+
+function isUsefulThemeDescription(description: string): boolean {
+  const lower = description.toLowerCase();
+  if (!lower) return false;
+  if (/\b(candidate|label)\b/.test(lower)) return false;
+  if (/\bappears?\s+in\s+(?:the\s+)?(?:title|subtitle|article|post)/.test(lower)) return false;
+  if (/^this\s+(?:appears|shows up|recurs|is present|candidate)/.test(lower)) return false;
+  if (/^a recurring archive pattern around\b/.test(lower)) return false;
+  return true;
+}
+
+function ensureSentence(value: string): string {
+  return /[.!?]$/.test(value) ? value : `${value}.`;
 }
 
 function clampConfidence(value: number): number {
@@ -534,7 +708,13 @@ function isUsefulThemeLabel(label: string): boolean {
   const clean = cleanThemeLabel(label).toLowerCase();
   if (clean.length < 2 || /^\d+$/.test(clean)) return false;
   const words = clean.split(/\s+/);
-  if (words.some((word) => NON_THEME_TERMS.has(word) || (word.length < 4 && !SHORT_THEME_TERMS.has(word)))) return false;
+  if (words.length === 1 && GENERIC_SINGLE_THEME_LABELS.has(clean)) return false;
+  if (words[0] === "valley" || words[words.length - 1] === "wasn") return false;
+  if (THEME_LABEL_CONNECTORS.has(words[0]) || THEME_LABEL_CONNECTORS.has(words[words.length - 1])) return false;
+  if (words.some((word, index) => {
+    const isConnector = index > 0 && index < words.length - 1 && THEME_LABEL_CONNECTORS.has(word);
+    return !isConnector && (NON_THEME_TERMS.has(word) || (word.length < 4 && !SHORT_THEME_TERMS.has(word)));
+  })) return false;
   if (words.length === 1 && NON_THEME_TERMS.has(clean)) return false;
   return true;
 }

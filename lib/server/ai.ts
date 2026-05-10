@@ -24,12 +24,20 @@ import { AppError } from "./errors";
 
 const NON_THEME_LABELS = new Set([
   "decades",
+  "aren",
+  "can",
+  "couldn",
   "didn",
   "doesn",
+  "don",
   "even",
   "excited",
   "favorite",
   "genuinely",
+  "hadn",
+  "hasn",
+  "haven",
+  "isn",
   "just",
   "like",
   "major",
@@ -41,33 +49,41 @@ const NON_THEME_LABELS = new Set([
   "they",
   "this",
   "time",
+  "wasn",
+  "weren",
   "what",
   "when",
   "where",
   "which",
   "while",
   "work",
-  "would"
+  "won",
+  "would",
+  "wouldn"
 ]);
 
 const SHORT_THEME_LABELS = new Set(["ai", "vc", "ml", "llm", "llms", "saas", "ipo", "ip"]);
+const THEME_LABEL_CONNECTORS = new Set(["and", "as", "for", "in", "of", "the", "to"]);
 
-const ENTITY_THEME_TERMS = new Set([
-  "affleck",
-  "ben",
-  "bros",
-  "damon",
-  "david",
-  "eisenberg",
-  "jesse",
-  "kalanick",
-  "mark",
-  "matt",
-  "nolan",
-  "travis",
-  "warner",
-  "zuckerberg"
+const GENERIC_SINGLE_THEME_LABELS = new Set([
+  "article",
+  "articles",
+  "culture",
+  "essay",
+  "essays",
+  "industry",
+  "piece",
+  "pieces",
+  "reader",
+  "readers",
+  "story",
+  "stories",
+  "theme",
+  "themes",
+  "writing"
 ]);
+
+const ENTITY_SUFFIX_TERMS = new Set(["bros", "corp", "corporation", "inc", "llc", "ltd"]);
 
 interface RetrievedChunk {
   chunk: PostChunk;
@@ -276,10 +292,6 @@ export async function analyzeArchiveThemes(
     console.warn("Archive theme curation returned no usable themes; using deterministic fallback.");
     return buildFallbackCuratedThemes(candidates);
   }
-  if (themes.length < 8) {
-    console.warn("Archive theme curation returned fewer than 8 themes; topping up from deterministic fallback.");
-    return mergeArchiveThemes([...themes, ...buildFallbackCuratedThemes(candidates)]);
-  }
   return themes;
 }
 
@@ -309,117 +321,12 @@ interface ThemeCandidate {
   breadth?: number;
 }
 
-const THEME_SEMANTIC_PATTERNS: {
-  label: string;
-  description: string;
-  level: ArchiveTheme["level"];
-  parentLabel?: string | null;
-  importance: number;
-  breadth: number;
-  pattern: RegExp;
-}[] = [
-  {
-    label: "Creative Control",
-    description: "You focus on the tension between commerce and artistic independence.",
-    level: "field",
-    importance: 0.94,
-    breadth: 0.9,
-    pattern: /\b(creative|artist|artists|studio|studios|hollywood|film|cinema|director|directors|artistic|commerce)\b/i
-  },
-  {
-    label: "AI and Human Judgment",
-    description: "You examine what happens when automation tries to replace taste, struggle, or human discernment.",
-    level: "field",
-    importance: 0.92,
-    breadth: 0.88,
-    pattern: /\b(ai|model|models|algorithm|algorithmic|automation|slop|data economy|human data)\b/i
-  },
-  {
-    label: "Silicon Valley Mythmaking",
-    description: "You question the stories tech culture tells about founders, genius, ambition, and power.",
-    level: "field",
-    importance: 0.88,
-    breadth: 0.84,
-    pattern: /\b(silicon valley|founder|founders|startup|startups|venture|vc|tech culture)\b/i
-  },
-  {
-    label: "Media Consolidation",
-    description: "You track how ownership, platforms, and dealmaking reshape creative industries.",
-    level: "field",
-    importance: 0.86,
-    breadth: 0.82,
-    pattern: /\b(media consolidation|merger|consolidation|private equity|equity|studio|studios|hollywood|streaming|ownership|dealmaking)\b/i
-  },
-  {
-    label: "Friction as Value",
-    description: "You argue that difficulty, constraint, and inconvenience can preserve meaning.",
-    level: "field",
-    importance: 0.82,
-    breadth: 0.76,
-    pattern: /\b(friction|struggle|anti-itinerary|itinerary|travel|different|script)\b/i
-  },
-  {
-    label: "Recruiting AI",
-    description: "You return to recruiting AI as a test case for what software can and cannot evaluate about people.",
-    level: "subtheme",
-    parentLabel: "AI and Human Judgment",
-    importance: 0.78,
-    breadth: 0.48,
-    pattern: /\b(recruiting|hiring|campus|talent|labor market)\b/i
-  },
-  {
-    label: "Algorithmic Taste",
-    description: "You critique systems that turn cultural judgment into optimization.",
-    level: "subtheme",
-    parentLabel: "AI and Human Judgment",
-    importance: 0.76,
-    breadth: 0.5,
-    pattern: /\b(algorithm|algorithmic|streaming|slop|taste|recommendation|patterns)\b/i
-  },
-  {
-    label: "Financialized Culture",
-    description: "You examine what changes when art, labor, or status becomes an asset class.",
-    level: "subtheme",
-    parentLabel: "Media Consolidation",
-    importance: 0.74,
-    breadth: 0.48,
-    pattern: /\b(private equity|wall street|compensation|equity|finance|financial|commerce)\b/i
-  },
-  {
-    label: "Performance and Authenticity",
-    description: "You notice the gap between public performance and genuine connection.",
-    level: "motif",
-    importance: 0.7,
-    breadth: 0.45,
-    pattern: /\b(performance|grief|authentic|connection|pain|suit|magic|identity)\b/i
-  }
-];
-
 function buildDeterministicThemeCandidates(posts: Post[]): ThemeCandidate[] {
   const candidates: ThemeCandidate[] = [];
   const addCandidate = (candidate: ThemeCandidate) => {
     if (!isUsefulModelThemeLabel(candidate.label)) return;
     candidates.push(candidate);
   };
-
-  for (const semantic of THEME_SEMANTIC_PATTERNS) {
-    const evidencePostIds = posts
-      .filter((post) => semantic.pattern.test(`${post.title} ${post.subtitle ?? ""} ${excerpt(post.contentText, 500)}`))
-      .map((post) => post.id)
-      .slice(0, 5);
-    if (evidencePostIds.length > 0) {
-      addCandidate({
-        label: semantic.label,
-        rationale: semantic.description,
-        description: semantic.description,
-        evidencePostIds,
-        level: semantic.level,
-        parentLabel: semantic.parentLabel ?? null,
-        importance: semantic.importance,
-        breadth: semantic.breadth
-      });
-    }
-  }
 
   for (const post of posts) {
     const source = `${post.title}. ${post.subtitle ?? ""}`;
@@ -450,9 +357,22 @@ function extractTitleThemeCandidates(value: string): string[] {
     "which",
     "will",
     "does",
+    "aren",
+    "can",
+    "couldn",
     "doesn",
     "didn",
+    "don",
+    "hadn",
+    "hasn",
+    "haven",
+    "isn",
+    "shouldn",
     "your",
+    "wasn",
+    "weren",
+    "won",
+    "wouldn",
     "favorite",
     "genuinely",
     "excited",
@@ -461,6 +381,7 @@ function extractTitleThemeCandidates(value: string): string[] {
     "decades"
   ]);
   const words = value
+    .replace(/\b\w+(?:n't|['’]t)\b/gi, " ")
     .replace(/[^\w\s-]/g, " ")
     .split(/\s+/)
     .map((word) => word.trim())
@@ -630,11 +551,11 @@ async function curateArchiveThemes(
     JSON.stringify({
       themes: [
         {
-          label: "Creative Control",
+          label: "Institutional Trust",
           description: "One sentence explaining the writer-level pattern.",
           level: "field",
           parentLabel: null,
-          aliases: ["Netflix", "major studios"],
+          aliases: ["public institutions", "expert systems"],
           evidencePostIds: ["post-id-1", "post-id-2"],
           confidence: 0.86,
           importance: 0.92,
@@ -650,12 +571,12 @@ async function curateArchiveThemes(
     "- level must be one of: field, subtheme, motif.",
     "- parentLabel must be null for field themes. For subthemes, use the exact label of a broader returned theme when applicable.",
     "- Labels should usually be 2 to 5 words. Short domain labels like AI, VC, LLM, SaaS, or IPO are allowed.",
-    "- Avoid malformed fragments like 'Netflix didn' or generic filler like 'genuinely excited'.",
+    "- Avoid malformed fragments from contractions or generic filler like 'genuinely excited'.",
     "- Specific people and companies do not count as themes. Convert them into broader ideas or omit them.",
-    "- Do not return labels like Travis Kalanick, Warner Bros, Netflix, Mark Zuckerberg, or Christopher Nolan.",
-    "- Avoid near-duplicates. Do not return both Silicon Valley and Silicon Valley Mythmaking; keep the stronger editorial lens.",
+    "- Do not return standalone proper nouns, individual names, or company names as theme labels.",
+    "- Avoid near-duplicates. Do not return both a broad raw topic and a stronger editorial lens for the same idea.",
     "- Keep useful hierarchy: AI and Recruiting AI can both appear if the second is a real subtheme.",
-    "- Convert raw tags into stronger lenses when the archive supports it: 'creative' can become 'Creative Control'; 'wall street' can become 'Financialized Culture'.",
+    "- Convert raw tags into stronger lenses when the archive supports it: 'education' can become 'Institutional Learning'; 'markets' can become 'Market Incentives'.",
     "- Every description must start with 'You ' followed by a strong verb.",
     "- Do not use the word 'often' in descriptions.",
     "- Descriptions should sound like: 'You focus on the tension between commerce and artistic independence.'",
@@ -679,6 +600,8 @@ function buildFallbackCuratedThemes(candidates: ThemeCandidate[]): ArchiveTheme[
     const label = cleanModelThemeText(candidate.label);
     const key = normalizeThemeKey(label);
     if (!isUsefulModelThemeLabel(label) || isEntityThemeLabel(label) || seen.has(key)) continue;
+    if (!candidate.description && (candidate.importance ?? 0) < 0.55 && candidate.evidencePostIds.length < 2) continue;
+    if (!candidate.description && isSearchResultDescription(candidate.rationale)) continue;
     if (selected.some((theme) => areThemeLabelsTooSimilar(theme.label, label))) continue;
     seen.add(key);
     selected.push({
@@ -808,15 +731,22 @@ function cleanModelThemeText(value: string): string {
 }
 
 function isUsefulModelThemeLabel(label: string): boolean {
-  const words = cleanModelThemeText(label).toLowerCase().split(/\s+/).filter(Boolean);
+  const clean = cleanModelThemeText(label).toLowerCase();
+  const words = clean.split(/\s+/).filter(Boolean);
   if (words.length === 0) return false;
-  if (words.some((word) => (word.length < 4 && !SHORT_THEME_LABELS.has(word)) || NON_THEME_LABELS.has(word))) return false;
+  if (words.length === 1 && GENERIC_SINGLE_THEME_LABELS.has(clean)) return false;
+  if (words[0] === "valley" || words[words.length - 1] === "wasn") return false;
+  if (THEME_LABEL_CONNECTORS.has(words[0]) || THEME_LABEL_CONNECTORS.has(words[words.length - 1])) return false;
+  if (words.some((word, index) => {
+    const isConnector = index > 0 && index < words.length - 1 && THEME_LABEL_CONNECTORS.has(word);
+    return !isConnector && ((word.length < 4 && !SHORT_THEME_LABELS.has(word)) || NON_THEME_LABELS.has(word));
+  })) return false;
   return true;
 }
 
 function isEntityThemeLabel(label: string): boolean {
   const words = cleanModelThemeText(label).toLowerCase().split(/\s+/).filter(Boolean);
-  if (words.some((word) => ENTITY_THEME_TERMS.has(word))) return true;
+  if (words.some((word) => ENTITY_SUFFIX_TERMS.has(word))) return true;
   return false;
 }
 
@@ -843,9 +773,21 @@ function normalizeThemeDescription(description: string, label: string): string {
     .replace(/\boften\s+/gi, "")
     .replace(/^This (?:appears|shows up|recurs|is present)\b/i, "You return to")
     .replace(/^A recurring archive pattern around .+$/i, "");
+  if (isSearchResultDescription(cleaned)) {
+    return `You return to ${label.toLowerCase()} as a recurring lens in your archive.`;
+  }
   if (cleaned && /^You\b/.test(cleaned)) return ensureSentence(cleaned);
   if (cleaned) return ensureSentence(`You ${cleaned.charAt(0).toLowerCase()}${cleaned.slice(1)}`);
   return `You return to ${label.toLowerCase()} as a recurring lens in your archive.`;
+}
+
+function isSearchResultDescription(description: string): boolean {
+  const lower = description.toLowerCase();
+  if (!lower) return false;
+  if (/\b(candidate|label)\b/.test(lower)) return true;
+  if (/\bappears?\s+in\s+(?:the\s+)?(?:title|subtitle|article|post)/.test(lower)) return true;
+  if (/^this\s+(?:appears|shows up|recurs|is present|candidate)/.test(lower)) return true;
+  return false;
 }
 
 function ensureSentence(value: string): string {

@@ -1,5 +1,5 @@
 import { fetchSubstackFeed } from "./rss";
-import { replaceWorkspacePosts, setWorkspaceStatus, getWorkspaceByToken } from "./store";
+import { getReusableArchiveThemes, replaceWorkspacePosts, setWorkspaceStatus, getWorkspaceByToken } from "./store";
 import { analyzeArchiveThemes } from "./ai";
 
 const INGESTION_FAILURE =
@@ -11,7 +11,8 @@ export async function ingestWorkspace(token: string) {
 
   try {
     const feed = await fetchSubstackFeed(workspace.publicationUrl, workspace.id);
-    const archiveThemes = await analyzeArchiveThemes(feed.posts, feed.publicationName);
+    const reusableThemes = await getReusableArchiveThemes(token, feed.posts);
+    const archiveThemes = reusableThemes ?? await analyzeArchiveThemes(feed.posts, feed.publicationName);
     return await replaceWorkspacePosts(token, feed.publicationName, feed.posts, archiveThemes);
   } catch (error) {
     console.error("Ingestion failed", error);
