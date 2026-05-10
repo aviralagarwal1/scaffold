@@ -72,6 +72,7 @@ Desktop.ini
 # Local agent/private instruction files
 CLAUDE.MD
 CLAUDE.md
+CLAUDE-Backend.md
 CLAUDE.local.md
 .claude/
 AGENTS.local.md
