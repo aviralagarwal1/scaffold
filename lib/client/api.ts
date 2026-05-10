@@ -18,6 +18,8 @@ import type {
   PromptSuggestionsResponse,
   RepurposeDraft,
   RepurposeDraftStatus,
+  SearchRequest,
+  SearchResponse,
   ApiError,
 } from "@/types/ai";
 
@@ -144,5 +146,11 @@ export const api = {
   },
   grammarIssues(token: string) {
     return request<GrammarIssue[]>(`/api/workspaces/${encodeURIComponent(token)}/grammar-issues`);
+  },
+  search(token: string, body: SearchRequest) {
+    return request<SearchResponse>(`/api/workspaces/${encodeURIComponent(token)}/search`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
   },
 };

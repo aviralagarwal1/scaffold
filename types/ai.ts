@@ -90,6 +90,35 @@ export interface GrammarAuditResponse {
   issues: GrammarIssue[];
 }
 
+// Literal substring search across post content. Not vector / semantic —
+// the user types a phrase, the backend does case-insensitive substring match
+// across posts.content_text and returns snippets with surrounding context.
+export interface SearchRequest {
+  query: string;
+}
+
+export interface SearchSnippet {
+  before: string; // plain text before the match (~60 chars)
+  match: string;  // the matched text (cased as it appears in the post)
+  after: string;  // plain text after the match (~60 chars)
+}
+
+export interface SearchResult {
+  postId: string;
+  postTitle: string;
+  postUrl: string;
+  publishedAt: string | null;
+  matchCount: number;       // total matches in this post
+  snippets: SearchSnippet[]; // up to N (e.g., 3) representative snippets
+}
+
+export interface SearchResponse {
+  query: string;
+  results: SearchResult[];
+  totalMatches: number;
+  totalPosts: number;
+}
+
 export interface ApiError {
   error: string;
 }

@@ -328,6 +328,20 @@ body {
   transform-origin: left center;
 }
 
+/* === Paper shimmer ===
+   Used by the search constellation while the backend is reading every post.
+   Quiet opacity oscillation, longer cycle than editorial-pulse so a wall of
+   16 papers reads as breathing rather than blinking. Each paper gets a
+   different animation-delay so the wave moves across the grid.
+*/
+@keyframes paper-shimmer {
+  0%, 100% { opacity: 0.5; }
+  50%      { opacity: 1; }
+}
+.animate-paper-shimmer {
+  animation: paper-shimmer 1.8s ease-in-out infinite;
+}
+
 /* === Editorial bloom ===
    One-shot ring that scales out from a point and fades. Used as a
    "certification" beat after a successful action settles — a single
@@ -399,7 +413,8 @@ body {
   .animate-editorial-nudge,
   .animate-editorial-bloom,
   .animate-editorial-draw,
-  .animate-editorial-shimmer {
+  .animate-editorial-shimmer,
+  .animate-paper-shimmer {
     animation: none;
     transform: none;
   }

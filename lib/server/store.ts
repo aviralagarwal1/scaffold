@@ -1,4 +1,4 @@
-import type { GrammarIssue, RepurposeDraft } from "@/types/ai";
+import type { GrammarIssue, RepurposeDraft, SearchResponse, SearchResult, SearchSnippet } from "@/types/ai";
 import type { Post, PostChunk, PostSummary } from "@/types/post";
 import type { ArchiveTheme, Workspace, WorkspaceOverview, WorkspaceStatus } from "@/types/workspace";
 import { randomBytes, randomUUID } from "crypto";
@@ -448,6 +448,80 @@ export async function replaceGrammarIssues(token: string, issues: Omit<GrammarIs
     db.grammarIssues.push(...saved);
     return saved;
   });
+}
+
+// Literal substring search across a workspace's post bodies. Case-insensitive,
+// returns up to MAX_SNIPPETS_PER_POST snippets per post with SNIPPET_PADDING
+// chars of surrounding context. The match string preserves the original
+// casing as it appears in the post (so the deep-link Text Fragment lands).
+const SEARCH_SNIPPET_PADDING = 60;
+const SEARCH_MAX_SNIPPETS_PER_POST = 3;
+
+export async function searchWorkspacePosts(token: string, rawQuery: string): Promise<SearchResponse> {
+  const query = rawQuery.trim();
+  if (!query) {
+    return { query: "", results: [], totalMatches: 0, totalPosts: 0 };
+  }
+
+  const db = await readDb();
+  const workspace = db.workspaces.find((item) => item.token === token);
+  if (!workspace) throw new AppError("Workspace not found.", 404);
+
+  const posts = db.posts
+    .filter((post) => post.workspaceId === workspace.id)
+    .sort((a, b) => Date.parse(b.publishedAt ?? b.createdAt) - Date.parse(a.publishedAt ?? a.createdAt));
+
+  const lowerQuery = query.toLowerCase();
+  const queryLength = query.length;
+  const results: SearchResult[] = [];
+  let totalMatches = 0;
+
+  for (const post of posts) {
+    const text = post.contentText;
+    if (!text) continue;
+    const lower = text.toLowerCase();
+
+    const indices: number[] = [];
+    let cursor = 0;
+    while (cursor <= lower.length - queryLength) {
+      const found = lower.indexOf(lowerQuery, cursor);
+      if (found === -1) break;
+      indices.push(found);
+      cursor = found + queryLength;
+    }
+    if (indices.length === 0) continue;
+
+    const snippets: SearchSnippet[] = indices.slice(0, SEARCH_MAX_SNIPPETS_PER_POST).map((idx) => {
+      const start = Math.max(0, idx - SEARCH_SNIPPET_PADDING);
+      const end = Math.min(text.length, idx + queryLength + SEARCH_SNIPPET_PADDING);
+      // Collapse whitespace in context so a snippet doesn't break with stray
+      // newlines from the original article body.
+      const before = text.slice(start, idx).replace(/\s+/g, " ").trimStart();
+      const after = text.slice(idx + queryLength, end).replace(/\s+/g, " ").trimEnd();
+      return {
+        before,
+        match: text.slice(idx, idx + queryLength),
+        after,
+      };
+    });
+
+    totalMatches += indices.length;
+    results.push({
+      postId: post.id,
+      postTitle: post.title,
+      postUrl: post.url,
+      publishedAt: post.publishedAt,
+      matchCount: indices.length,
+      snippets,
+    });
+  }
+
+  return {
+    query,
+    results,
+    totalMatches,
+    totalPosts: results.length,
+  };
 }
 
 export async function listGrammarIssues(token: string): Promise<GrammarIssue[]> {
