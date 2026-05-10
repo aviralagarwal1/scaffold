@@ -181,14 +181,14 @@ export function DistributionPanel({
         )}
       </section>
 
-      {/* === Library zone ===
+      {/* === Outbox zone ===
           The big page break lives here. mt-14 (56px) is intentionally larger
           than any internal gap so the eye registers a zone change rather than
           another step. Inside the zone, header→filter→cards stay tightly grouped. */}
       <div className="mt-14 flex flex-col gap-6">
         <section className="flex flex-col gap-3">
           <div className="flex items-center gap-3">
-            <span className="type-eyebrow text-ink-400">Library</span>
+            <span className="type-eyebrow text-ink-400">Outbox</span>
             <span className="h-px flex-1 bg-ink-200/70" />
           </div>
 
@@ -228,7 +228,7 @@ export function DistributionPanel({
 }
 
 /**
- * Platform folder button. The same control chooses the library shelf and the
+ * Platform folder button. The same control chooses the outbox shelf and the
  * generation target, so the row reads like five quiet folders rather than five
  * immediate commands.
  */
