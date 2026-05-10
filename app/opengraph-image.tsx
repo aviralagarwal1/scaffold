@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "Substack Agent — a working memory for everything you've written";
+export const alt = "Scaffold — a working memory for everything you've written";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -35,8 +35,7 @@ async function loadEditorialFont(text: string, weight: 400 | 600 = 400, italic =
 
 export default async function OpenGraphImage() {
   // Gather the exact text we'll render so the font subsets are minimal.
-  const wordmarkRoman = "§ Substack ";
-  const wordmarkItalic = "Agent";
+  const wordmarkRoman = "§ Scaffold";
   const headlineRoman = "Agents that know your ";
   const headlineItalic = "entire";
   const headlineTail = " Substack archive.";
@@ -48,7 +47,7 @@ export default async function OpenGraphImage() {
       400,
       false,
     ),
-    loadEditorialFont(wordmarkItalic + headlineItalic, 400, true),
+    loadEditorialFont(headlineItalic, 400, true),
     loadEditorialFont(headlineRoman + headlineTail, 600, false),
   ]);
 
@@ -93,8 +92,7 @@ export default async function OpenGraphImage() {
           }}
         >
           <span style={{ color: "#b45e2c" }}>§</span>
-          <span>Substack</span>
-          <span style={{ fontStyle: "italic" }}>Agent</span>
+          <span>Scaffold</span>
         </div>
 
         {/* Middle: headline */}

@@ -36,7 +36,7 @@ function LandingFooter() {
 
         {/* Colophon credit. Quietly informational, mono caps, low contrast. */}
         <p className="mt-6 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink-400">
-          <span>© 2026 Substack Agent</span>
+          <span>© 2026 Scaffold</span>
           <span aria-hidden="true" className="text-ink-300">
             ·
           </span>

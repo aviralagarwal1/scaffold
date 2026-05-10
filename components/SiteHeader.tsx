@@ -6,16 +6,17 @@ import type { ReactNode } from "react";
 
 export function SiteHeader() {
   const pathname = usePathname();
+  const isLanding = pathname === "/";
 
   return (
     <header className="sticky top-0 z-30 border-b border-ink-200/60 bg-ink-50/85 backdrop-blur-md">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
+      <div className={`mx-auto flex max-w-6xl items-center justify-between px-6 ${isLanding ? "h-16 md:h-[72px]" : "h-14"}`}>
         <Link
           href="/"
           className="group flex items-center transition-opacity duration-200 ease-editorial hover:opacity-80"
-          aria-label="Substack Agent · home"
+          aria-label="Scaffold · home"
         >
-          <Wordmark />
+          <Wordmark size={isLanding ? "lg" : "sm"} />
         </Link>
         <nav className="flex items-center gap-1">{renderNavItem(pathname)}</nav>
       </div>
@@ -55,9 +56,9 @@ function renderNavItem(pathname: string | null): ReactNode {
  * It signals indexed, sectioned, citable knowledge — the product's
  * core promise — without resorting to AI-cliché iconography.
  *
- * Typography: "Substack" set roman, "Agent" set italic. The italic
- * carries the editorial voice (authorial, signed) without adding a
- * second typeface.
+ * Typography: the product name is a single roman serif wordmark. The section
+ * symbol carries the editorial accent that the old two-word mark split across
+ * roman and italic text.
  */
 function Wordmark({ size = "sm" }: { size?: "sm" | "lg" }) {
   const isLg = size === "lg";
@@ -65,17 +66,17 @@ function Wordmark({ size = "sm" }: { size?: "sm" | "lg" }) {
     <span className={`flex items-baseline ${isLg ? "gap-2" : "gap-1.5"} leading-none`}>
       <span
         aria-hidden="true"
-        className={`font-serif text-accent-500 ${isLg ? "text-[20px]" : "text-[16px]"}`}
+        className={`font-serif text-accent-500 ${isLg ? "text-[24px]" : "text-[16px]"}`}
         style={{ transform: "translateY(0.5px)" }}
       >
         §
       </span>
       <span
         className={`font-serif tracking-tightish text-ink-900 ${
-          isLg ? "text-[22px]" : "text-[17px]"
+          isLg ? "text-[26px]" : "text-[17px]"
         }`}
       >
-        Substack <span className="italic">Agent</span>
+        Scaffold
       </span>
     </span>
   );

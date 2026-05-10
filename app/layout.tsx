@@ -3,9 +3,9 @@ import "./globals.css";
 import { AppShell } from "@/components/AppShell";
 
 export const metadata: Metadata = {
-  title: "Substack Agent",
+  title: "Scaffold",
   description:
-    "Paste your Substack URL, build a private AI-powered workspace, and get tailored feedback, ideas, and distribution drafts based on your Substack posts.",
+    "Build a private AI-powered workspace around your publication archive, then get tailored feedback, ideas, and distribution drafts grounded in your writing.",
 };
 
 export const viewport: Viewport = {
