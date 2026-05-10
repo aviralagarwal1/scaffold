@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { useWorkspace } from "@/components/WorkspaceProvider";
 import { PrivateLinkBanner } from "@/components/PrivateLinkBanner";
 import { PageHeader } from "@/components/PageHeader";
@@ -43,17 +42,38 @@ export default function SettingsPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Configure your workspace."
-        meta="Refresh your library, find your private link, and see what we never read."
+        meta="Your profile, publication, and library — private to this link."
       />
 
       <PrivateLinkBanner token={token} />
 
       <section className="panel flex flex-col gap-3 p-5">
-        <span className="type-eyebrow text-ink-400">Publication</span>
-        <div className="font-serif text-[17px] leading-tight tracking-tightish text-ink-900">
-          {overview.publicationName ?? hostnameOf(overview.publicationUrl)}
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="type-h3">Profile</h3>
+          <EditIconButton ariaLabel="Edit profile" />
         </div>
         <dl className="mt-2 grid grid-cols-2 gap-y-2 text-[12.5px] text-ink-700">
+          <dt className="text-ink-500">Name</dt>
+          <dd className="font-serif italic text-ink-400">Not set</dd>
+          <dt className="text-ink-500">Email</dt>
+          <dd className="font-serif italic text-ink-400">Not set</dd>
+          <dt className="text-ink-500">Phone</dt>
+          <dd className="font-serif italic text-ink-400">Not set</dd>
+        </dl>
+      </section>
+
+      <section className="panel flex flex-col gap-3 p-5">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="type-h3">Publication</h3>
+          <EditIconButton ariaLabel="Edit publication" />
+        </div>
+        <dl className="mt-2 grid grid-cols-2 gap-y-2 text-[12.5px] text-ink-700">
+          <dt className="text-ink-500">Name</dt>
+          <dd>{overview.publicationName ?? hostnameOf(overview.publicationUrl)}</dd>
+          <dt className="text-ink-500">Owner</dt>
+          <dd className="font-serif italic text-ink-400">Not set</dd>
+          <dt className="text-ink-500">Editor</dt>
+          <dd className="font-serif italic text-ink-400">Not set</dd>
           <dt className="text-ink-500">Status</dt>
           <dd className="capitalize">{overview.status}</dd>
           <dt className="text-ink-500">Number of posts</dt>
@@ -64,10 +84,7 @@ export default function SettingsPage() {
       </section>
 
       <section className="panel flex flex-col gap-3 p-5">
-        <h3 className="type-h3">Refresh library</h3>
-        <p className="text-[14px] leading-relaxed text-ink-600">
-          Pull your latest posts and refresh chunks. Existing chat history and saved drafts stay where they are.
-        </p>
+        <h3 className="type-h3">Library</h3>
         <div>
           <button
             type="button"
@@ -148,5 +165,32 @@ export default function SettingsPage() {
         </div>
       </section>
     </div>
+  );
+}
+
+// Inline pencil icon for section-level edit affordance. Renders as a real
+// button (focusable, keyboard-accessible) so the edit pathway is in place;
+// the actual edit flow ships later when the profile/publication models do.
+function EditIconButton({ ariaLabel }: { ariaLabel: string }) {
+  return (
+    <button
+      type="button"
+      aria-label={ariaLabel}
+      title={ariaLabel}
+      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-ink-400 transition-colors duration-150 ease-editorial hover:bg-ink-50 hover:text-ink-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="h-3.5 w-3.5"
+        aria-hidden="true"
+      >
+        <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+      </svg>
+    </button>
   );
 }
