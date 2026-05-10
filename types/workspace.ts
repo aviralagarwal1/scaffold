@@ -2,6 +2,18 @@ import type { PostSummary } from "./post";
 
 export type WorkspaceStatus = "pending" | "ingesting" | "ready" | "failed" | "partial";
 
+export interface ArchiveTheme {
+  label: string;
+  description: string;
+  evidencePostIds: string[];
+  confidence: number;
+  level?: "field" | "subtheme" | "motif";
+  parentLabel?: string | null;
+  aliases?: string[];
+  importance?: number;
+  breadth?: number;
+}
+
 export interface Workspace {
   id: string;
   token: string;
@@ -13,6 +25,7 @@ export interface Workspace {
   lastIngestedAt: string | null;
   ingestionError: string | null;
   topThemes: string[];
+  archiveThemes?: ArchiveTheme[];
 }
 
 export interface WorkspaceOverview {
@@ -23,6 +36,7 @@ export interface WorkspaceOverview {
   postCount: number;
   latestPost: PostSummary | null;
   topThemes: string[];
+  archiveThemes: ArchiveTheme[];
   lastIngestedAt: string | null;
   ingestionError: string | null;
 }

@@ -1,6 +1,6 @@
 import type { GrammarIssue, RepurposeDraft } from "@/types/ai";
 import type { Post, PostChunk, PostSummary } from "@/types/post";
-import type { Workspace, WorkspaceOverview, WorkspaceStatus } from "@/types/workspace";
+import type { ArchiveTheme, Workspace, WorkspaceOverview, WorkspaceStatus } from "@/types/workspace";
 import { randomBytes, randomUUID } from "crypto";
 import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
@@ -17,6 +17,114 @@ interface Database {
 
 const DATA_DIR = path.join(process.cwd(), ".data");
 const DATA_FILE = path.join(DATA_DIR, "substack-ai.json");
+
+const SHORT_THEME_TERMS = new Set(["ai", "vc", "ml", "llm", "llms", "saas", "ipo", "ip"]);
+
+const NON_THEME_TERMS = new Set([
+  "able",
+  "about",
+  "above",
+  "after",
+  "again",
+  "against",
+  "almost",
+  "along",
+  "already",
+  "also",
+  "although",
+  "always",
+  "among",
+  "another",
+  "around",
+  "because",
+  "before",
+  "being",
+  "below",
+  "between",
+  "both",
+  "cannot",
+  "could",
+  "does",
+  "doesn",
+  "doing",
+  "done",
+  "down",
+  "during",
+  "each",
+  "either",
+  "else",
+  "even",
+  "ever",
+  "every",
+  "everything",
+  "first",
+  "from",
+  "getting",
+  "going",
+  "good",
+  "have",
+  "having",
+  "here",
+  "hers",
+  "himself",
+  "https",
+  "into",
+  "itself",
+  "just",
+  "like",
+  "made",
+  "makes",
+  "many",
+  "more",
+  "most",
+  "much",
+  "must",
+  "never",
+  "only",
+  "other",
+  "over",
+  "people",
+  "point",
+  "really",
+  "real",
+  "same",
+  "should",
+  "since",
+  "some",
+  "something",
+  "still",
+  "such",
+  "than",
+  "that",
+  "their",
+  "them",
+  "then",
+  "there",
+  "these",
+  "they",
+  "thing",
+  "things",
+  "this",
+  "those",
+  "through",
+  "time",
+  "under",
+  "trying",
+  "very",
+  "want",
+  "well",
+  "were",
+  "what",
+  "when",
+  "where",
+  "which",
+  "while",
+  "will",
+  "with",
+  "work",
+  "would",
+  "your"
+]);
 
 const emptyDb = (): Database => ({
   workspaces: [],
@@ -85,7 +193,8 @@ export async function createWorkspace(publicationUrl: string): Promise<Workspace
       updatedAt: now,
       lastIngestedAt: null,
       ingestionError: null,
-      topThemes: []
+      topThemes: [],
+      archiveThemes: []
     };
     db.workspaces.push(workspace);
     return workspace;
@@ -107,6 +216,8 @@ export async function getWorkspaceOverview(token: string): Promise<WorkspaceOver
     .filter((post) => post.workspaceId === workspace.id)
     .sort((a, b) => Date.parse(b.publishedAt ?? b.createdAt) - Date.parse(a.publishedAt ?? a.createdAt));
 
+  const archiveThemes = normalizeArchiveThemes(workspace, posts);
+
   return {
     token: workspace.token,
     publicationName: workspace.publicationName,
@@ -114,7 +225,8 @@ export async function getWorkspaceOverview(token: string): Promise<WorkspaceOver
     status: workspace.status,
     postCount: posts.length,
     latestPost: posts[0] ? summarizePost(posts[0]) : null,
-    topThemes: workspace.topThemes,
+    topThemes: archiveThemes.map((theme) => theme.label),
+    archiveThemes,
     lastIngestedAt: workspace.lastIngestedAt,
     ingestionError: workspace.ingestionError
   };
@@ -131,7 +243,12 @@ export async function setWorkspaceStatus(token: string, status: WorkspaceStatus,
   });
 }
 
-export async function replaceWorkspacePosts(token: string, publicationName: string | null, posts: Post[]) {
+export async function replaceWorkspacePosts(
+  token: string,
+  publicationName: string | null,
+  posts: Post[],
+  archiveThemes?: ArchiveTheme[]
+) {
   return mutateDb((db) => {
     const workspace = db.workspaces.find((item) => item.token === token);
     if (!workspace) throw new AppError("Workspace not found.", 404);
@@ -164,8 +281,11 @@ export async function replaceWorkspacePosts(token: string, publicationName: stri
       });
     }
 
+    const detectedThemes = archiveThemes?.length ? archiveThemes : detectArchiveThemes(mergedPosts);
+
     workspace.publicationName = publicationName ?? workspace.publicationName;
-    workspace.topThemes = detectThemes(mergedPosts);
+    workspace.archiveThemes = detectedThemes;
+    workspace.topThemes = detectedThemes.map((theme) => theme.label);
     workspace.status = mergedPosts.length > 0 ? "ready" : "partial";
     workspace.ingestionError = mergedPosts.length > 0 ? null : "No public posts were found in the feed.";
     workspace.lastIngestedAt = now;
@@ -285,53 +405,136 @@ export async function listGrammarIssues(token: string): Promise<GrammarIssue[]> 
     .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
 }
 
-function detectThemes(posts: Post[]): string[] {
-  const stopWords = new Set([
-    "about",
-    "after",
-    "again",
-    "also",
-    "because",
-    "before",
-    "being",
-    "could",
-    "every",
-    "their",
-    "there",
-    "these",
-    "thing",
-    "those",
-    "through",
-    "where",
-    "which",
-    "while",
-    "would",
-    "with",
-    "your",
-    "https",
-    "http",
-    "www",
-    "com",
-    "substack",
-    "from",
-    "have",
-    "this",
-    "that",
-    "into"
-  ]);
+function normalizeArchiveThemes(workspace: Workspace, posts: Post[]): ArchiveTheme[] {
+  const seen = new Set<string>();
+  const storedThemes: ArchiveTheme[] = workspace.archiveThemes?.length ? workspace.archiveThemes : workspace.topThemes.map((label) => ({
+    label,
+    description: `A recurring archive pattern around ${label}.`,
+    evidencePostIds: [],
+    confidence: 0.45
+  }));
+  const themes = storedThemes
+    .map((theme) => ({
+      label: cleanThemeLabel(theme.label),
+      description: theme.description?.trim() || `A recurring archive pattern around ${cleanThemeLabel(theme.label)}.`,
+      evidencePostIds: Array.isArray(theme.evidencePostIds) ? theme.evidencePostIds.slice(0, 5) : [],
+      confidence: clampConfidence(theme.confidence),
+      level: theme.level === "field" || theme.level === "subtheme" || theme.level === "motif" ? theme.level : "subtheme",
+      parentLabel: typeof theme.parentLabel === "string" && theme.parentLabel.trim() ? cleanThemeLabel(theme.parentLabel) : null,
+      aliases: Array.isArray(theme.aliases) ? theme.aliases.map(cleanThemeLabel).filter(Boolean).slice(0, 8) : [],
+      importance: clampConfidence(theme.importance ?? theme.confidence),
+      breadth: clampConfidence(theme.breadth ?? (theme.level === "field" ? 0.75 : 0.45))
+    }))
+    .filter((theme) => {
+      const key = theme.label.toLowerCase();
+      if (!isUsefulThemeLabel(theme.label) || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
 
-  const counts = new Map<string, number>();
+  return (themes.length ? themes : detectArchiveThemes(posts))
+    .sort(compareArchiveThemes)
+    .slice(0, 15);
+}
+
+function cleanThemeLabel(label: string): string {
+  return label
+    .replace(/\s+/g, " ")
+    .replace(/^[\s"'`]+|[\s"'`.!?]+$/g, "")
+    .trim();
+}
+
+function clampConfidence(value: number): number {
+  if (!Number.isFinite(value)) return 0.5;
+  return Math.min(1, Math.max(0, value));
+}
+
+function detectArchiveThemes(posts: Post[]): ArchiveTheme[] {
+  const postCounts = new Map<string, Set<string>>();
+  const weightedCounts = new Map<string, number>();
   for (const post of posts) {
-    const text = `${post.title} ${post.contentText}`.toLowerCase().replace(/https?:\/\/\S+/g, " ");
-    for (const word of text.match(/\b[a-z][a-z-]{4,}\b/g) ?? []) {
-      if (!stopWords.has(word)) {
-        counts.set(word, (counts.get(word) ?? 0) + 1);
-      }
+    const title = post.title.toLowerCase().replace(/https?:\/\/\S+/g, " ");
+    const subtitle = (post.subtitle ?? "").toLowerCase().replace(/https?:\/\/\S+/g, " ");
+    const body = post.contentText.toLowerCase().replace(/https?:\/\/\S+/g, " ");
+    const titleTerms = extractThemeTerms(`${title} ${subtitle}`, 3, true);
+    const bodyTerms = extractThemeTerms(body, 3, false);
+
+    for (const term of [...titleTerms, ...bodyTerms]) {
+      const seenInPosts = postCounts.get(term) ?? new Set<string>();
+      seenInPosts.add(post.id);
+      postCounts.set(term, seenInPosts);
+    }
+    for (const term of titleTerms) {
+      weightedCounts.set(term, (weightedCounts.get(term) ?? 0) + 4);
+    }
+    for (const term of bodyTerms) {
+      weightedCounts.set(term, (weightedCounts.get(term) ?? 0) + 1);
     }
   }
 
-  return [...counts.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 8)
-    .map(([word]) => word);
+  const maxPosts = Math.max(posts.length, 1);
+  const scoredThemes = [...weightedCounts.entries()]
+    .map(([term, weight]) => {
+      const evidencePostIds = [...(postCounts.get(term) ?? new Set<string>())];
+      const archiveReach = evidencePostIds.length / maxPosts;
+      return {
+        label: term,
+        description: `A recurring archive pattern around ${term}.`,
+        evidencePostIds: evidencePostIds.slice(0, 5),
+        confidence: Math.min(0.9, 0.35 + archiveReach * 0.45 + Math.min(weight / 120, 0.1)),
+        level: term.includes(" ") ? "subtheme" as const : "field" as const,
+        parentLabel: null,
+        aliases: [],
+        importance: Math.min(0.9, 0.35 + archiveReach * 0.45 + Math.min(weight / 120, 0.1)),
+        breadth: term.includes(" ") ? 0.45 : 0.65,
+        score: weight + evidencePostIds.length * 8
+      };
+    })
+    .filter((theme) => isUsefulThemeLabel(theme.label))
+    .sort((a, b) => b.score - a.score);
+  const recurringThemes = scoredThemes.filter((theme) => theme.evidencePostIds.length > 1 || posts.length <= 2);
+
+  return (recurringThemes.length ? recurringThemes : scoredThemes)
+    .slice(0, 12)
+    .map(({ score: _score, ...theme }) => theme);
+}
+
+function compareArchiveThemes(a: ArchiveTheme, b: ArchiveTheme): number {
+  const levelRank = (theme: ArchiveTheme) => theme.level === "field" ? 0 : theme.level === "subtheme" ? 1 : 2;
+  const byLevel = levelRank(a) - levelRank(b);
+  if (byLevel !== 0) return byLevel;
+  const byImportance = (b.importance ?? b.confidence) - (a.importance ?? a.confidence);
+  if (byImportance !== 0) return byImportance;
+  return (b.breadth ?? 0) - (a.breadth ?? 0);
+}
+
+function extractThemeTerms(text: string, maxWords: 2 | 3, includeSingleWords: boolean): string[] {
+  const words = text.match(/\b[a-z][a-z-]{1,}\b/g) ?? [];
+  const terms: string[] = [];
+
+  if (includeSingleWords) {
+    for (const word of words) {
+      if (isUsefulThemeLabel(word)) terms.push(word);
+    }
+  }
+
+  for (let size = 2; size <= maxWords; size += 1) {
+    for (let i = 0; i <= words.length - size; i += 1) {
+      const phraseWords = words.slice(i, i + size);
+      const phrase = phraseWords.join(" ");
+      if (!isUsefulThemeLabel(phrase)) continue;
+      terms.push(phrase);
+    }
+  }
+
+  return terms;
+}
+
+function isUsefulThemeLabel(label: string): boolean {
+  const clean = cleanThemeLabel(label).toLowerCase();
+  if (clean.length < 2 || /^\d+$/.test(clean)) return false;
+  const words = clean.split(/\s+/);
+  if (words.some((word) => NON_THEME_TERMS.has(word) || (word.length < 4 && !SHORT_THEME_TERMS.has(word)))) return false;
+  if (words.length === 1 && NON_THEME_TERMS.has(clean)) return false;
+  return true;
 }
