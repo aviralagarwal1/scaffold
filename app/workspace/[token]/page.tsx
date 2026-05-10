@@ -44,7 +44,7 @@ export default function OverviewPage() {
             <>
               <div className="flex items-baseline justify-between">
                 <h3 className="font-serif text-[20px] tracking-tightish text-ink-900">Where to start</h3>
-                <Link href={`/workspace/${token}/archive`} className="btn-link">
+                <Link href={`/workspace/${token}/library`} className="btn-link">
                   Browse library <span aria-hidden="true">→</span>
                 </Link>
               </div>
