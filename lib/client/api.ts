@@ -3,8 +3,9 @@ import type {
   CreateWorkspaceResponse,
   AccountWorkspaceSummary,
   WorkspaceOverview,
+  UpdateWorkspaceRequest,
 } from "@/types/workspace";
-import type { RegisterRequest, UserProfile } from "@/types/auth";
+import type { RegisterRequest, UpdateProfileRequest, UserProfile } from "@/types/auth";
 import type { PostSummary } from "@/types/post";
 import type {
   AskRequest,
@@ -74,7 +75,7 @@ export const api = {
   me() {
     return request<UserProfile>("/api/me");
   },
-  updateProfile(body: Pick<UserProfile, "editorName">) {
+  updateProfile(body: UpdateProfileRequest) {
     return request<UserProfile>("/api/me", {
       method: "PATCH",
       body: JSON.stringify(body),
@@ -91,6 +92,12 @@ export const api = {
   },
   getWorkspace(token: string) {
     return request<WorkspaceOverview>(`/api/workspaces/${encodeURIComponent(token)}`);
+  },
+  updateWorkspace(token: string, body: UpdateWorkspaceRequest) {
+    return request<WorkspaceOverview>(`/api/workspaces/${encodeURIComponent(token)}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    });
   },
   ingest(token: string) {
     return request<{ status: string }>(`/api/workspaces/${encodeURIComponent(token)}/ingest`, {

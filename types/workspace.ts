@@ -69,3 +69,7 @@ export interface CreateWorkspaceResponse {
   workspaceUrl: string;
   status: WorkspaceStatus;
 }
+
+export interface UpdateWorkspaceRequest {
+  publicationName?: string;
+}

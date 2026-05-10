@@ -106,3 +106,23 @@ export async function recordOwnedWorkspace(userId: string, input: OwnedWorkspace
     };
   });
 }
+
+export async function canEditAccountWorkspace(userId: string, token: string): Promise<boolean> {
+  const db = getDb();
+  const [membership] = await db
+    .select({ role: workspaceMemberships.role })
+    .from(workspaceMemberships)
+    .innerJoin(workspaces, eq(workspaces.id, workspaceMemberships.workspaceId))
+    .where(and(eq(workspaceMemberships.userId, userId), eq(workspaces.token, token)))
+    .limit(1);
+
+  return Boolean(membership && membership.role !== "viewer");
+}
+
+export async function updateAccountWorkspacePublicationName(token: string, publicationName: string): Promise<void> {
+  const db = getDb();
+  await db
+    .update(workspaces)
+    .set({ publicationName, updatedAt: new Date() })
+    .where(eq(workspaces.token, token));
+}
