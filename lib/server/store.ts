@@ -2,7 +2,7 @@ import type { GrammarIssue, RepurposeDraft, SearchResponse, SearchResult, Search
 import type { Post, PostChunk, PostSummary } from "@/types/post";
 import type { ArchiveTheme, Workspace, WorkspaceOverview, WorkspaceStatus } from "@/types/workspace";
 import { randomBytes, randomUUID } from "crypto";
-import { mkdir, readFile, writeFile } from "fs/promises";
+import { mkdir, readFile, rename, writeFile } from "fs/promises";
 import path from "path";
 import { AppError } from "./errors";
 import { chunkText, excerpt } from "./text";
@@ -17,6 +17,7 @@ interface Database {
 
 const DATA_DIR = path.join(process.cwd(), ".data");
 const DATA_FILE = path.join(DATA_DIR, "substack-ai.json");
+let mutationQueue = Promise.resolve();
 
 const SHORT_THEME_TERMS = new Set(["ai", "vc", "ml", "llm", "llms", "saas", "ipo", "ip"]);
 const THEME_LABEL_CONNECTORS = new Set(["and", "as", "for", "in", "of", "the", "to"]);
@@ -180,14 +181,20 @@ async function readDb(): Promise<Database> {
 
 async function writeDb(db: Database): Promise<void> {
   await mkdir(DATA_DIR, { recursive: true });
-  await writeFile(DATA_FILE, JSON.stringify(db, null, 2), "utf8");
+  const tempFile = path.join(DATA_DIR, `substack-ai.${process.pid}.${Date.now()}.${randomUUID()}.tmp`);
+  await writeFile(tempFile, JSON.stringify(db, null, 2), "utf8");
+  await rename(tempFile, DATA_FILE);
 }
 
 async function mutateDb<T>(mutator: (db: Database) => T | Promise<T>): Promise<T> {
-  const db = await readDb();
-  const result = await mutator(db);
-  await writeDb(db);
-  return result;
+  const run = mutationQueue.then(async () => {
+    const db = await readDb();
+    const result = await mutator(db);
+    await writeDb(db);
+    return result;
+  });
+  mutationQueue = run.then(() => undefined, () => undefined);
+  return run;
 }
 
 function newToken(): string {
@@ -398,25 +405,31 @@ export async function addRepurposeDrafts(token: string, drafts: Omit<RepurposeDr
 }
 
 export async function listRepurposeDrafts(token: string): Promise<RepurposeDraft[]> {
-  return mutateDb((db) => {
-    const workspace = db.workspaces.find((item) => item.token === token);
-    if (!workspace) throw new AppError("Workspace not found.", 404);
+  const db = await readDb();
+  const workspace = db.workspaces.find((item) => item.token === token);
+  if (!workspace) throw new AppError("Workspace not found.", 404);
 
-    // Lazy migration: old lifecycle labels collapse into the current two-state
-    // vocabulary: pending work and saved work.
-    for (const draft of db.repurposeDrafts) {
-      if ((draft.status as string) === "generated") {
-        draft.status = "pending";
-      }
-      if ((draft.status as string) === "approved") {
-        draft.status = "saved";
-      }
-    }
+  const hasOldStatuses = db.repurposeDrafts.some(
+    (draft) =>
+      draft.workspaceId === workspace.id &&
+      ((draft.status as string) === "generated" || (draft.status as string) === "approved")
+  );
+  if (hasOldStatuses) {
+    return mutateDb((currentDb) => {
+      const currentWorkspace = currentDb.workspaces.find((item) => item.token === token);
+      if (!currentWorkspace) throw new AppError("Workspace not found.", 404);
 
-    return db.repurposeDrafts
-      .filter((draft) => draft.workspaceId === workspace.id && draft.status !== "deleted")
-      .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
-  });
+      for (const draft of currentDb.repurposeDrafts) {
+        if (draft.workspaceId !== currentWorkspace.id) continue;
+        if ((draft.status as string) === "generated") draft.status = "pending";
+        if ((draft.status as string) === "approved") draft.status = "saved";
+      }
+
+      return listWorkspaceDrafts(currentDb, currentWorkspace.id);
+    });
+  }
+
+  return listWorkspaceDrafts(db, workspace.id);
 }
 
 export async function updateRepurposeDraft(token: string, draftId: string, patch: Partial<Pick<RepurposeDraft, "status" | "content" | "title">>) {
@@ -431,6 +444,12 @@ export async function updateRepurposeDraft(token: string, draftId: string, patch
     draft.updatedAt = new Date().toISOString();
     return draft;
   });
+}
+
+function listWorkspaceDrafts(db: Database, workspaceId: string): RepurposeDraft[] {
+  return db.repurposeDrafts
+    .filter((draft) => draft.workspaceId === workspaceId && draft.status !== "deleted")
+    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
 }
 
 export async function replaceGrammarIssues(token: string, issues: Omit<GrammarIssue, "id" | "workspaceId" | "createdAt">[]) {
@@ -462,6 +481,10 @@ export async function searchWorkspacePosts(token: string, rawQuery: string): Pro
   if (!query) {
     return { query: "", results: [], totalMatches: 0, totalPosts: 0 };
   }
+  const normalizedQuery = normalizeSearchText(query).text;
+  if (!normalizedQuery) {
+    return { query, results: [], totalMatches: 0, totalPosts: 0 };
+  }
 
   const db = await readDb();
   const workspace = db.workspaces.find((item) => item.token === token);
@@ -471,47 +494,47 @@ export async function searchWorkspacePosts(token: string, rawQuery: string): Pro
     .filter((post) => post.workspaceId === workspace.id)
     .sort((a, b) => Date.parse(b.publishedAt ?? b.createdAt) - Date.parse(a.publishedAt ?? a.createdAt));
 
-  const lowerQuery = query.toLowerCase();
-  const queryLength = query.length;
   const results: SearchResult[] = [];
   let totalMatches = 0;
 
   for (const post of posts) {
     const text = post.contentText;
     if (!text) continue;
-    const lower = text.toLowerCase();
+    const normalized = normalizeSearchText(text);
 
-    const indices: number[] = [];
+    const matches: { normalizedIndex: number; originalStart: number; originalEnd: number }[] = [];
     let cursor = 0;
-    while (cursor <= lower.length - queryLength) {
-      const found = lower.indexOf(lowerQuery, cursor);
+    while (cursor <= normalized.text.length - normalizedQuery.length) {
+      const found = normalized.text.indexOf(normalizedQuery, cursor);
       if (found === -1) break;
-      indices.push(found);
-      cursor = found + queryLength;
+      const originalStart = normalized.indexMap[found] ?? 0;
+      const originalLast = normalized.indexMap[found + normalizedQuery.length - 1] ?? originalStart;
+      matches.push({ normalizedIndex: found, originalStart, originalEnd: originalLast + 1 });
+      cursor = found + normalizedQuery.length;
     }
-    if (indices.length === 0) continue;
+    if (matches.length === 0) continue;
 
-    const snippets: SearchSnippet[] = indices.slice(0, SEARCH_MAX_SNIPPETS_PER_POST).map((idx) => {
-      const start = Math.max(0, idx - SEARCH_SNIPPET_PADDING);
-      const end = Math.min(text.length, idx + queryLength + SEARCH_SNIPPET_PADDING);
+    const snippets: SearchSnippet[] = matches.slice(0, SEARCH_MAX_SNIPPETS_PER_POST).map((match) => {
+      const start = Math.max(0, match.originalStart - SEARCH_SNIPPET_PADDING);
+      const end = Math.min(text.length, match.originalEnd + SEARCH_SNIPPET_PADDING);
       // Collapse whitespace in context so a snippet doesn't break with stray
       // newlines from the original article body.
-      const before = text.slice(start, idx).replace(/\s+/g, " ").trimStart();
-      const after = text.slice(idx + queryLength, end).replace(/\s+/g, " ").trimEnd();
+      const before = text.slice(start, match.originalStart).replace(/\s+/g, " ").trimStart();
+      const after = text.slice(match.originalEnd, end).replace(/\s+/g, " ").trimEnd();
       return {
         before,
-        match: text.slice(idx, idx + queryLength),
+        match: text.slice(match.originalStart, match.originalEnd),
         after,
       };
     });
 
-    totalMatches += indices.length;
+    totalMatches += matches.length;
     results.push({
       postId: post.id,
       postTitle: post.title,
       postUrl: post.url,
       publishedAt: post.publishedAt,
-      matchCount: indices.length,
+      matchCount: matches.length,
       snippets,
     });
   }
@@ -522,6 +545,67 @@ export async function searchWorkspacePosts(token: string, rawQuery: string): Pro
     totalMatches,
     totalPosts: results.length,
   };
+}
+
+function normalizeSearchText(value: string): { text: string; indexMap: number[] } {
+  const chars: string[] = [];
+  const indexMap: number[] = [];
+  let previousWasSpace = false;
+
+  for (let i = 0; i < value.length; i += 1) {
+    const folded = foldSearchCharacter(value[i]);
+    if (!folded) continue;
+
+    for (const char of folded) {
+      if (/\s/.test(char)) {
+        if (previousWasSpace) continue;
+        chars.push(" ");
+        indexMap.push(i);
+        previousWasSpace = true;
+        continue;
+      }
+
+      chars.push(char.toLowerCase());
+      indexMap.push(i);
+      previousWasSpace = false;
+    }
+  }
+
+  while (chars[0] === " ") {
+    chars.shift();
+    indexMap.shift();
+  }
+  while (chars[chars.length - 1] === " ") {
+    chars.pop();
+    indexMap.pop();
+  }
+
+  return { text: chars.join(""), indexMap };
+}
+
+function foldSearchCharacter(char: string): string {
+  switch (char) {
+    case "’":
+    case "‘":
+    case "‚":
+    case "‛":
+    case "`":
+    case "´":
+      return "'";
+    case "“":
+    case "”":
+    case "„":
+    case "‟":
+      return "\"";
+    case "—":
+    case "–":
+    case "−":
+      return "-";
+    case "\u00a0":
+      return " ";
+    default:
+      return char.normalize("NFKC");
+  }
 }
 
 export async function listGrammarIssues(token: string): Promise<GrammarIssue[]> {
