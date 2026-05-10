@@ -275,6 +275,34 @@ export async function getWorkspaceOverview(token: string): Promise<WorkspaceOver
   };
 }
 
+export async function updateWorkspacePublicationName(token: string, publicationName: string): Promise<WorkspaceOverview> {
+  return mutateDb((db) => {
+    const workspace = db.workspaces.find((item) => item.token === token);
+    if (!workspace) throw new AppError("Workspace not found.", 404);
+    workspace.publicationName = publicationName;
+    workspace.updatedAt = new Date().toISOString();
+
+    const posts = db.posts
+      .filter((post) => post.workspaceId === workspace.id)
+      .sort((a, b) => Date.parse(b.publishedAt ?? b.createdAt) - Date.parse(a.publishedAt ?? a.createdAt));
+    const archiveThemes = normalizeArchiveThemes(workspace, posts);
+
+    return {
+      token: workspace.token,
+      publicationName: workspace.publicationName,
+      publicationUrl: workspace.publicationUrl,
+      status: workspace.status,
+      postCount: posts.length,
+      latestPost: posts[0] ? summarizePost(posts[0]) : null,
+      topThemes: archiveThemes.map((theme) => theme.label),
+      archiveThemes,
+      customThemes: normalizeCustomThemeLabels(workspace.customThemes ?? []),
+      lastIngestedAt: workspace.lastIngestedAt,
+      ingestionError: workspace.ingestionError
+    };
+  });
+}
+
 export async function setWorkspaceStatus(token: string, status: WorkspaceStatus, ingestionError: string | null = null) {
   return mutateDb((db) => {
     const workspace = db.workspaces.find((item) => item.token === token);
@@ -742,7 +770,7 @@ function normalizeArchiveThemes(workspace: Workspace, posts: Post[]): ArchiveThe
   const seen = new Set<string>();
   const storedThemes: ArchiveTheme[] = workspace.archiveThemes?.length ? workspace.archiveThemes : workspace.topThemes.map((label) => ({
     label,
-    description: `A recurring archive pattern around ${label}.`,
+    description: `A recurring library pattern around ${label}.`,
     evidencePostIds: [],
     confidence: 0.45
   }));
@@ -793,7 +821,7 @@ function hasReusableThemeQuality(themes: ArchiveTheme[]): boolean {
 }
 
 function isGenericThemeDescription(description: string): boolean {
-  return /^You return to .+ as a recurring lens in your archive\.$/i.test(description.trim());
+  return /^You return to .+ as a recurring lens in your (?:archive|library)\.$/i.test(description.trim());
 }
 
 function isStableArchivePostSet(existingPosts: Post[], incomingPosts: Post[]): boolean {
@@ -877,7 +905,7 @@ function normalizeThemeDescription(description: string, label: string): string {
     .replace(/^[\s"'`]+|[\s"'`.!?]+$/g, "")
     .trim();
   if (!isUsefulThemeDescription(cleaned)) {
-    return `You return to ${label.toLowerCase()} as a recurring lens in your archive.`;
+    return `You return to ${label.toLowerCase()} as a recurring lens in your library.`;
   }
   if (/^You\b/.test(cleaned)) return ensureSentence(cleaned);
   return ensureSentence(`You ${cleaned.charAt(0).toLowerCase()}${cleaned.slice(1)}`);
@@ -889,7 +917,7 @@ function isUsefulThemeDescription(description: string): boolean {
   if (/\b(candidate|label)\b/.test(lower)) return false;
   if (/\bappears?\s+in\s+(?:the\s+)?(?:title|subtitle|article|post)/.test(lower)) return false;
   if (/^this\s+(?:appears|shows up|recurs|is present|candidate)/.test(lower)) return false;
-  if (/^a recurring archive pattern around\b/.test(lower)) return false;
+  if (/^a recurring (?:archive|library) pattern around\b/.test(lower)) return false;
   return true;
 }
 
@@ -929,16 +957,16 @@ function detectArchiveThemes(posts: Post[]): ArchiveTheme[] {
   const scoredThemes = [...weightedCounts.entries()]
     .map(([term, weight]) => {
       const evidencePostIds = [...(postCounts.get(term) ?? new Set<string>())];
-      const archiveReach = evidencePostIds.length / maxPosts;
+      const libraryReach = evidencePostIds.length / maxPosts;
       return {
         label: term,
-        description: `A recurring archive pattern around ${term}.`,
+        description: `A recurring library pattern around ${term}.`,
         evidencePostIds: evidencePostIds.slice(0, 5),
-        confidence: Math.min(0.9, 0.35 + archiveReach * 0.45 + Math.min(weight / 120, 0.1)),
+        confidence: Math.min(0.9, 0.35 + libraryReach * 0.45 + Math.min(weight / 120, 0.1)),
         level: term.includes(" ") ? "subtheme" as const : "field" as const,
         parentLabel: null,
         aliases: [],
-        importance: Math.min(0.9, 0.35 + archiveReach * 0.45 + Math.min(weight / 120, 0.1)),
+        importance: Math.min(0.9, 0.35 + libraryReach * 0.45 + Math.min(weight / 120, 0.1)),
         breadth: term.includes(" ") ? 0.45 : 0.65,
         score: weight + evidencePostIds.length * 8
       };

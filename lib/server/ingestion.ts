@@ -3,7 +3,7 @@ import { getReusableArchiveThemes, replaceWorkspacePosts, setWorkspaceStatus, ge
 import { analyzeArchiveThemes } from "./ai";
 
 const INGESTION_FAILURE =
-  "We could not automatically read this Substack. Try checking the URL or paste post links manually.";
+  "We could not automatically read this publication. Try checking the URL or paste post links manually.";
 
 export async function ingestWorkspace(token: string) {
   const workspace = await getWorkspaceByToken(token);

@@ -8,7 +8,7 @@ const PHRASES = [
   "Reading your library...",
   "Finding recurring themes...",
   "Building your writing memory...",
-  "Preparing your AI editor...",
+  "Preparing your curator...",
 ];
 
 export function IngestionProgress({

@@ -264,7 +264,7 @@ async function generateText(system: string, user: string, options: GenerateOptio
 }
 
 const editorialSystemPrompt = [
-  "You are an editorial assistant for a Substack writer.",
+  "You are a careful curator for a writer's publication and library.",
   "Use only the provided public library context.",
   "Do not invent subscriber data, open rates, clicks, traffic, revenue, or performance rankings.",
   "If private metrics are unavailable, say so plainly.",
@@ -521,7 +521,7 @@ async function curateArchiveThemes(
   validPostIds: Set<string>
 ): Promise<ArchiveTheme[]> {
   const system = [
-    "You are a senior editor curating recurring themes from a writer's public library.",
+    "You are a senior curator identifying recurring themes from a writer's public library.",
     "Your job is quality control: merge accidental duplicates, keep useful parent/subtheme relationships, and remove weak labels.",
     "Themes should be consistent in size and wording, but not forced to be mutually exclusive.",
     "If two themes overlap, make the relationship explicit with level and parentLabel.",
@@ -1052,7 +1052,7 @@ function ideaThemesForWorkspace(workspace: { topThemes: string[]; archiveThemes?
     .slice(0, 10)
     .map((label) => ({
       label,
-      description: `A user-saved lens for exploring the archive through ${label}.`,
+      description: `A user-saved lens for exploring the library through ${label}.`,
       evidencePostIds: [],
       confidence: 0.5,
       level: "subtheme" as const
@@ -1214,7 +1214,7 @@ function parseGeneratedIdeas(
 }
 
 // Curated server-side seeds. Used only when the model is unavailable. These
-// templates are theme/title-aware so the fallback still feels archive-grounded
+// templates are theme/title-aware so the fallback still feels library-grounded
 // rather than reading like generic chatbot prompts.
 const FALLBACK_PROMPT_TEMPLATES = [
   (theme: string) => `What do I keep saying about ${theme} without quite landing it?`,

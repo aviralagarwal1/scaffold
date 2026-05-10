@@ -22,7 +22,7 @@ export function PostCard({ post, onSelect }: { post: PostSummary; onSelect?: (po
           className="link-soft text-[12.5px]"
           onClick={(e) => e.stopPropagation()}
         >
-          Read on Substack
+          Read original →
         </a>
       </div>
     </article>

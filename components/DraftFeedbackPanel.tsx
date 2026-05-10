@@ -297,7 +297,7 @@ function FocusPanel({
         <div>
           <h3 className="type-h3">Choose what to focus on.</h3>
           <p className="mt-1.5 text-[14px] text-ink-500">
-            Select as many areas as you want your editor to prioritize.
+            Select as many areas as you want your curator to prioritize.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
