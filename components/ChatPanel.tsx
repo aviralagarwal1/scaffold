@@ -47,7 +47,15 @@ const promptKey = (value: string) =>
     .replace(/[?.!"'`]+$/g, "")
     .trim();
 
-export function ChatPanel({ token, disabled }: { token: string; disabled?: boolean }) {
+export function ChatPanel({
+  token,
+  disabled,
+  curatorName = "Curator",
+}: {
+  token: string;
+  disabled?: boolean;
+  curatorName?: string;
+}) {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -129,7 +137,7 @@ export function ChatPanel({ token, disabled }: { token: string; disabled?: boole
         { id: `a-${Date.now()}`, role: "assistant", content: res.answer, sources: res.sources ?? [] },
       ]);
     } catch (err) {
-      const msg = err instanceof ApiClientError ? err.message : "We couldn't reach the AI editor. Try again.";
+      const msg = err instanceof ApiClientError ? err.message : "We couldn't reach your curator. Try again.";
       setError(msg);
     } finally {
       setBusy(false);
@@ -149,7 +157,7 @@ export function ChatPanel({ token, disabled }: { token: string; disabled?: boole
             <div>
               <div className="flex items-center gap-2 type-eyebrow">
                 <span className="accent-rule" />
-                Editor
+                {curatorName}
               </div>
               <div className="mt-2 type-h3">Ask about anything from your writing history.</div>
               <p className="mt-1.5 text-[14px] text-ink-500">
@@ -257,7 +265,7 @@ export function ChatPanel({ token, disabled }: { token: string; disabled?: boole
                   <div key={turn.id} className="flex flex-col gap-3">
                     <div className="flex items-center gap-2 type-eyebrow">
                       <span className="accent-rule" />
-                      Editor
+                      {curatorName}
                     </div>
                     <div className="prose-editorial">
                       <Markdown text={turn.content} />
@@ -270,7 +278,7 @@ export function ChatPanel({ token, disabled }: { token: string; disabled?: boole
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-2 type-eyebrow">
                     <span className="accent-rule" />
-                    Editor
+                    {curatorName}
                   </div>
                   <ThinkingDots />
                 </div>

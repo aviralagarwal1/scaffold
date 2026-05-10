@@ -12,6 +12,6 @@ export async function POST(request: Request, context: RouteContext) {
     const body = await readJson<AskRequest>(request);
     return NextResponse.json(await answerArchiveQuestion(token, requireString(body.message, "Ask a question.")));
   } catch (error) {
-    return apiError(error, "Could not answer from archive.");
+    return apiError(error, "Could not answer from your library.");
   }
 }
