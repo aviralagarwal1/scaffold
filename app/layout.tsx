@@ -8,7 +8,7 @@ import { authOptions } from "@/lib/server/auth/options";
 export const metadata: Metadata = {
   title: "Scaffold",
   description:
-    "Build a private AI-powered workspace around your library, then get tailored feedback, ideas, and distribution drafts grounded in your writing.",
+    "Build an AI-powered workspace around a publication library, then get tailored feedback, ideas, and distribution drafts grounded in the writing.",
 };
 
 export const viewport: Viewport = {

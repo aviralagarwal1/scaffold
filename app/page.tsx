@@ -9,7 +9,7 @@ const STEPS = [
   },
   {
     title: "We read your library.",
-    body: "Posts are parsed, indexed, and grounded in a private workspace.",
+    body: "Posts are parsed, indexed, and grounded in a workspace.",
   },
   {
     title: "We surface patterns and insights.",

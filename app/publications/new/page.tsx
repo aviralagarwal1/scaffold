@@ -29,8 +29,8 @@ export default function NewPublicationPage() {
           Add a <em className="font-serif italic text-ink-700">publication</em> to your desk.
         </h1>
         <p className="animate-rise animate-delay-3 mt-5 max-w-prose font-serif text-[17px] leading-relaxed text-ink-600">
-          Paste your publication URL. We read your public library in the background and open a private workspace
-          tied to your account.
+          Paste your publication URL. We read the public library in the background and open a workspace
+          on your desk.
         </p>
         <div className="animate-rise animate-delay-4 mt-10">
           <SubstackUrlForm autoFocus />

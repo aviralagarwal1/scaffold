@@ -32,7 +32,7 @@ export function PrivateLinkBanner({ token }: { token: string }) {
           <KeyMark />
         </span>
         <div className="min-w-0">
-          <div className="text-[13px] font-medium text-ink-900">This workspace is private to anyone with the link.</div>
+          <div className="text-[13px] font-medium text-ink-900">Anyone with this link can open this workspace.</div>
           <div className="text-meta">Bookmark it if you want to return later.</div>
         </div>
       </div>
