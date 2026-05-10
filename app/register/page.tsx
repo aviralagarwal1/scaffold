@@ -1,15 +1,27 @@
+import { Suspense } from "react";
 import { AuthForm } from "@/components/AuthForm";
+import { AuthSurface } from "@/components/AuthSurface";
+import { AuthedRedirect } from "@/components/AuthedRedirect";
+
+export const metadata = {
+  title: "Create your account · Scaffold",
+};
 
 export default function RegisterPage() {
   return (
-    <div className="mx-auto flex min-h-[calc(100svh-3.5rem)] w-full max-w-md flex-col justify-center px-6 py-16">
-      <h1 className="font-serif text-[34px] leading-tight tracking-tightish text-ink-900">Create your account.</h1>
-      <p className="mt-3 text-[14.5px] leading-relaxed text-ink-600">
-        Choose the editor name Scaffold will use for your profile.
-      </p>
-      <div className="mt-8">
+    <AuthSurface
+      eyebrow="§ 01 / Begin"
+      headline={<>Create your account.</>}
+      subhead="An email and a password is all we need to start."
+    >
+      {/* AuthForm uses useSearchParams to pick up the landing-hook handoff;
+          a Suspense boundary above it keeps the rest of the page statically
+          rendered. AuthedRedirect bounces already-signed-in visitors to
+          /account so they never see a stale "Create your account" form. */}
+      <Suspense fallback={null}>
+        <AuthedRedirect />
         <AuthForm mode="register" />
-      </div>
-    </div>
+      </Suspense>
+    </AuthSurface>
   );
 }
