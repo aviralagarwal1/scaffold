@@ -32,6 +32,13 @@ export interface Idea {
   relatedPosts: SourceCitation[];
 }
 
+export interface SavedIdea extends Idea {
+  id: string;
+  workspaceId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface IdeasResponse {
   sections: {
     name: string;

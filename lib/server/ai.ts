@@ -972,7 +972,7 @@ export async function generateDraftFeedback(
 export async function generateIdeas(token: string, options: { focus?: string } = {}): Promise<IdeasResponse> {
   const { workspace, posts, chunks } = await workspaceCorpus(token);
   if (posts.length === 0) throw new AppError("This workspace doesn't have any posts yet.", 409);
-  const themes = archiveThemesForWorkspace(workspace);
+  const themes = ideaThemesForWorkspace(workspace);
   const themeLabels = themes.map((theme) => theme.label);
   const retrieved = retrieve(posts, chunks, themeLabels.join(" "), 8);
   const sources = toSources(retrieved);
@@ -1038,14 +1038,26 @@ export async function generateIdeas(token: string, options: { focus?: string } =
   };
 }
 
-function archiveThemesForWorkspace(workspace: { topThemes: string[]; archiveThemes?: ArchiveTheme[] }): ArchiveTheme[] {
-  if (workspace.archiveThemes?.length) return workspace.archiveThemes.slice(0, 15);
-  return workspace.topThemes.slice(0, 15).map((label) => ({
+function ideaThemesForWorkspace(workspace: { topThemes: string[]; archiveThemes?: ArchiveTheme[]; customThemes?: string[] }): ArchiveTheme[] {
+  const archiveThemes = workspace.archiveThemes?.length ? workspace.archiveThemes.slice(0, 15) : workspace.topThemes.slice(0, 15).map((label) => ({
     label,
     description: `A recurring library pattern around ${label}.`,
     evidencePostIds: [],
     confidence: 0.45
   }));
+  const seen = new Set(archiveThemes.map((theme) => theme.label.toLowerCase()));
+  const customThemes = (workspace.customThemes ?? [])
+    .map((label) => label.trim())
+    .filter((label) => label && !seen.has(label.toLowerCase()))
+    .slice(0, 10)
+    .map((label) => ({
+      label,
+      description: `A user-saved lens for exploring the archive through ${label}.`,
+      evidencePostIds: [],
+      confidence: 0.5,
+      level: "subtheme" as const
+    }));
+  return [...archiveThemes, ...customThemes].slice(0, 20);
 }
 
 function postToSource(post: Post): SourceCitation {

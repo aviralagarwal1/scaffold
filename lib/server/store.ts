@@ -1,4 +1,4 @@
-import type { GrammarIssue, RepurposeDraft, SearchResponse, SearchResult, SearchSnippet } from "@/types/ai";
+import type { GrammarIssue, Idea, RepurposeDraft, SavedIdea, SearchResponse, SearchResult, SearchSnippet, SourceCitation } from "@/types/ai";
 import type { Post, PostChunk, PostSummary } from "@/types/post";
 import type { ArchiveTheme, Workspace, WorkspaceOverview, WorkspaceStatus } from "@/types/workspace";
 import { randomBytes, randomUUID } from "crypto";
@@ -13,6 +13,7 @@ interface Database {
   chunks: PostChunk[];
   repurposeDrafts: RepurposeDraft[];
   grammarIssues: GrammarIssue[];
+  savedIdeas: SavedIdea[];
 }
 
 const DATA_DIR = path.join(process.cwd(), ".data");
@@ -164,7 +165,8 @@ const emptyDb = (): Database => ({
   posts: [],
   chunks: [],
   repurposeDrafts: [],
-  grammarIssues: []
+  grammarIssues: [],
+  savedIdeas: []
 });
 
 async function readDb(): Promise<Database> {
@@ -233,7 +235,8 @@ export async function createWorkspace(publicationUrl: string): Promise<Workspace
       lastIngestedAt: null,
       ingestionError: null,
       topThemes: [],
-      archiveThemes: []
+      archiveThemes: [],
+      customThemes: []
     };
     db.workspaces.push(workspace);
     return workspace;
@@ -266,6 +269,7 @@ export async function getWorkspaceOverview(token: string): Promise<WorkspaceOver
     latestPost: posts[0] ? summarizePost(posts[0]) : null,
     topThemes: archiveThemes.map((theme) => theme.label),
     archiveThemes,
+    customThemes: normalizeCustomThemeLabels(workspace.customThemes ?? []),
     lastIngestedAt: workspace.lastIngestedAt,
     ingestionError: workspace.ingestionError
   };
@@ -450,6 +454,123 @@ function listWorkspaceDrafts(db: Database, workspaceId: string): RepurposeDraft[
   return db.repurposeDrafts
     .filter((draft) => draft.workspaceId === workspaceId && draft.status !== "deleted")
     .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+}
+
+export async function updateCustomThemes(token: string, labels: unknown[]): Promise<string[]> {
+  return mutateDb((db) => {
+    const workspace = db.workspaces.find((item) => item.token === token);
+    if (!workspace) throw new AppError("Workspace not found.", 404);
+    const customThemes = normalizeCustomThemeLabels(labels);
+    workspace.customThemes = customThemes;
+    workspace.updatedAt = new Date().toISOString();
+    return customThemes;
+  });
+}
+
+export async function listSavedIdeas(token: string): Promise<SavedIdea[]> {
+  const db = await readDb();
+  const workspace = db.workspaces.find((item) => item.token === token);
+  if (!workspace) throw new AppError("Workspace not found.", 404);
+  return listWorkspaceSavedIdeas(db, workspace.id);
+}
+
+export async function addSavedIdea(token: string, idea: unknown): Promise<SavedIdea> {
+  return mutateDb((db) => {
+    const workspace = db.workspaces.find((item) => item.token === token);
+    if (!workspace) throw new AppError("Workspace not found.", 404);
+
+    const cleanIdea = sanitizeIdea(idea);
+    const existing = db.savedIdeas.find(
+      (item) =>
+        item.workspaceId === workspace.id &&
+        item.title.toLowerCase() === cleanIdea.title.toLowerCase() &&
+        item.thesis.toLowerCase() === cleanIdea.thesis.toLowerCase()
+    );
+    if (existing) return existing;
+
+    const now = new Date().toISOString();
+    const saved: SavedIdea = {
+      ...cleanIdea,
+      id: randomUUID(),
+      workspaceId: workspace.id,
+      createdAt: now,
+      updatedAt: now
+    };
+    db.savedIdeas.push(saved);
+    return saved;
+  });
+}
+
+export async function deleteSavedIdea(token: string, ideaId: string): Promise<void> {
+  return mutateDb((db) => {
+    const workspace = db.workspaces.find((item) => item.token === token);
+    if (!workspace) throw new AppError("Workspace not found.", 404);
+    const before = db.savedIdeas.length;
+    db.savedIdeas = db.savedIdeas.filter((idea) => !(idea.workspaceId === workspace.id && idea.id === ideaId));
+    if (db.savedIdeas.length === before) throw new AppError("Idea not found.", 404);
+  });
+}
+
+function listWorkspaceSavedIdeas(db: Database, workspaceId: string): SavedIdea[] {
+  return db.savedIdeas
+    .filter((idea) => idea.workspaceId === workspaceId)
+    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+}
+
+function normalizeCustomThemeLabels(labels: unknown[]): string[] {
+  const seen = new Set<string>();
+  const customThemes: string[] = [];
+  for (const label of labels) {
+    if (typeof label !== "string") continue;
+    const cleaned = label.replace(/\s+/g, " ").trim().slice(0, 32);
+    if (!cleaned) continue;
+    const key = cleaned.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    customThemes.push(cleaned);
+    if (customThemes.length >= 20) break;
+  }
+  return customThemes;
+}
+
+function sanitizeIdea(idea: unknown): Idea {
+  if (!idea || typeof idea !== "object") {
+    throw new AppError("Idea must include a title, thesis, and lens.", 400);
+  }
+  const value = idea as Partial<Idea>;
+  const title = cleanIdeaText(value.title, 180);
+  const thesis = cleanIdeaText(value.thesis, 420);
+  const lens = cleanIdeaText(value.lens, 80);
+  if (!title || !thesis || !lens) {
+    throw new AppError("Idea must include a title, thesis, and lens.", 400);
+  }
+  return {
+    title,
+    thesis,
+    lens,
+    whyItFits: cleanIdeaText(value.whyItFits, 520),
+    relatedPosts: Array.isArray(value.relatedPosts)
+      ? value.relatedPosts.map(sanitizeSourceCitation).filter((source): source is SourceCitation => Boolean(source)).slice(0, 4)
+      : []
+  };
+}
+
+function sanitizeSourceCitation(source: unknown): SourceCitation | null {
+  if (!source || typeof source !== "object") return null;
+  const value = source as Partial<SourceCitation>;
+  const title = cleanIdeaText(value.title, 180);
+  const url = cleanIdeaText(value.url, 500);
+  if (!title || !url) return null;
+  return {
+    title,
+    url,
+    publishedAt: typeof value.publishedAt === "string" ? value.publishedAt : null,
+    snippet: cleanIdeaText(value.snippet, 300)
+  };
+}
+
+function cleanIdeaText(value: unknown, maxLength: number): string {
+  return typeof value === "string" ? value.replace(/\s+/g, " ").trim().slice(0, maxLength) : "";
 }
 
 export async function replaceGrammarIssues(token: string, issues: Omit<GrammarIssue, "id" | "workspaceId" | "createdAt">[]) {

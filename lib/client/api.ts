@@ -13,11 +13,13 @@ import type {
   DraftFeedbackResponse,
   GrammarAuditResponse,
   GrammarIssue,
+  Idea,
   IdeasResponse,
   PromptSuggestionsRequest,
   PromptSuggestionsResponse,
   RepurposeDraft,
   RepurposeDraftStatus,
+  SavedIdea,
   SearchRequest,
   SearchResponse,
   ApiError,
@@ -94,6 +96,26 @@ export const api = {
     return request<IdeasResponse>(`/api/workspaces/${encodeURIComponent(token)}/ideas`, {
       method: "POST",
       body: JSON.stringify(body ?? {}),
+    });
+  },
+  updateCustomThemes(token: string, labels: string[]) {
+    return request<{ customThemes: string[] }>(`/api/workspaces/${encodeURIComponent(token)}/custom-themes`, {
+      method: "PUT",
+      body: JSON.stringify({ labels }),
+    });
+  },
+  listSavedIdeas(token: string) {
+    return request<SavedIdea[]>(`/api/workspaces/${encodeURIComponent(token)}/saved-ideas`);
+  },
+  saveIdea(token: string, idea: Idea) {
+    return request<SavedIdea>(`/api/workspaces/${encodeURIComponent(token)}/saved-ideas`, {
+      method: "POST",
+      body: JSON.stringify({ idea }),
+    });
+  },
+  deleteSavedIdea(token: string, ideaId: string) {
+    return request<{ ok: true }>(`/api/workspaces/${encodeURIComponent(token)}/saved-ideas/${encodeURIComponent(ideaId)}`, {
+      method: "DELETE",
     });
   },
   promptSuggestions(token: string, body?: PromptSuggestionsRequest) {

@@ -26,6 +26,7 @@ export interface Workspace {
   ingestionError: string | null;
   topThemes: string[];
   archiveThemes?: ArchiveTheme[];
+  customThemes?: string[];
 }
 
 export interface WorkspaceOverview {
@@ -37,6 +38,7 @@ export interface WorkspaceOverview {
   latestPost: PostSummary | null;
   topThemes: string[];
   archiveThemes: ArchiveTheme[];
+  customThemes: string[];
   lastIngestedAt: string | null;
   ingestionError: string | null;
 }
