@@ -265,7 +265,7 @@ async function generateText(system: string, user: string, options: GenerateOptio
 
 const editorialSystemPrompt = [
   "You are an editorial assistant for a Substack writer.",
-  "Use only the provided public archive context.",
+  "Use only the provided public library context.",
   "Do not invent subscriber data, open rates, clicks, traffic, revenue, or performance rankings.",
   "If private metrics are unavailable, say so plainly.",
   "Give specific, actionable feedback grounded in source posts.",
@@ -445,7 +445,7 @@ function mergeThemeCandidates(candidates: ThemeCandidate[]): ThemeCandidate[] {
 
 async function generateThemeCandidates(context: string, publicationName: string | null): Promise<ThemeCandidate[]> {
   const system = [
-    "You analyze a writer's public archive and generate candidate recurring themes.",
+    "You analyze a writer's public library and generate candidate recurring themes.",
     "Prioritize recall over polish. A candidate can be broad, narrow, entity-based, stylistic, or thematic.",
     "A candidate is a reusable editorial lens, preoccupation, recurring subject, or recurring tension; not a frequent filler word.",
     "Use only the provided posts. Do not infer private metrics, audience data, or unpublished interests.",
@@ -470,7 +470,7 @@ async function generateThemeCandidates(context: string, publicationName: string 
     }),
     "",
     "Rules:",
-    "- Return 40 to 80 candidates if the archive supports it; fewer is acceptable for small archives.",
+    "- Return 40 to 80 candidates if the library supports it; fewer is acceptable for small libraries.",
     "- Include both broad fields and narrower subthemes.",
     "- Similar candidates are okay in this pass; a curator will merge or organize them later.",
     "- evidencePostIds must use only Post ID values from the provided posts.",
@@ -521,7 +521,7 @@ async function curateArchiveThemes(
   validPostIds: Set<string>
 ): Promise<ArchiveTheme[]> {
   const system = [
-    "You are a senior editor curating recurring themes from a writer's public archive.",
+    "You are a senior editor curating recurring themes from a writer's public library.",
     "Your job is quality control: merge accidental duplicates, keep useful parent/subtheme relationships, and remove weak labels.",
     "Themes should be consistent in size and wording, but not forced to be mutually exclusive.",
     "If two themes overlap, make the relationship explicit with level and parentLabel.",
@@ -566,8 +566,8 @@ async function curateArchiveThemes(
     }),
     "",
     "Rules:",
-    "- Produce 8 to 15 final themes when the archive supports it. Prefer fewer strong themes over padding, but do not stop at only the broadest buckets.",
-    "- The first 4 to 5 themes should be the broadest and most central archive lenses.",
+    "- Produce 8 to 15 final themes when the library supports it. Prefer fewer strong themes over padding, but do not stop at only the broadest buckets.",
+    "- The first 4 to 5 themes should be the broadest and most central library lenses.",
     "- Additional themes may be narrower subthemes only when they add a distinct lens.",
     "- level must be one of: field, subtheme, motif.",
     "- parentLabel must be null for field themes. For subthemes, use the exact label of a broader returned theme when applicable.",
@@ -577,11 +577,11 @@ async function curateArchiveThemes(
     "- Do not return standalone proper nouns, individual names, or company names as theme labels.",
     "- Avoid near-duplicates. Do not return both a broad raw topic and a stronger editorial lens for the same idea.",
     "- Keep useful hierarchy: AI and Recruiting AI can both appear if the second is a real subtheme.",
-    "- Convert raw tags into stronger lenses when the archive supports it: 'education' can become 'Institutional Learning'; 'markets' can become 'Market Incentives'.",
+    "- Convert raw tags into stronger lenses when the library supports it: 'education' can become 'Institutional Learning'; 'markets' can become 'Market Incentives'.",
     "- Every description must start with 'You ' followed by a strong verb.",
     "- Do not use the word 'often' in descriptions.",
     "- Descriptions should sound like: 'You focus on the tension between commerce and artistic independence.'",
-    "- Do not write descriptions like: 'A recurring archive pattern around creative control.'",
+    "- Do not write descriptions like: 'A recurring library pattern around creative control.'",
     "- Do not write descriptions like: 'This appears in your article.' That is a search result, not a theme insight.",
     "- evidencePostIds must use only Post ID values from the provided posts.",
     "- confidence, importance, and breadth must be numbers from 0 to 1.",
@@ -610,7 +610,7 @@ function buildFallbackCuratedThemes(candidates: ThemeCandidate[]): ArchiveTheme[
       description: normalizeThemeDescription(
         candidate.description ||
         candidate.rationale ||
-        `You return to ${label.toLowerCase()} as a recurring lens in your archive.`,
+        `You return to ${label.toLowerCase()} as a recurring lens in your library.`,
         label
       ),
       evidencePostIds: candidate.evidencePostIds.slice(0, 5),
@@ -773,13 +773,13 @@ function normalizeThemeDescription(description: string, label: string): string {
   const cleaned = cleanModelThemeText(description)
     .replace(/\boften\s+/gi, "")
     .replace(/^This (?:appears|shows up|recurs|is present)\b/i, "You return to")
-    .replace(/^A recurring archive pattern around .+$/i, "");
+    .replace(/^A recurring (?:archive|library) pattern around .+$/i, "");
   if (isSearchResultDescription(cleaned)) {
-    return `You return to ${label.toLowerCase()} as a recurring lens in your archive.`;
+    return `You return to ${label.toLowerCase()} as a recurring lens in your library.`;
   }
   if (cleaned && /^You\b/.test(cleaned)) return ensureSentence(cleaned);
   if (cleaned) return ensureSentence(`You ${cleaned.charAt(0).toLowerCase()}${cleaned.slice(1)}`);
-  return `You return to ${label.toLowerCase()} as a recurring lens in your archive.`;
+  return `You return to ${label.toLowerCase()} as a recurring lens in your library.`;
 }
 
 function isSearchResultDescription(description: string): boolean {
@@ -796,11 +796,11 @@ function ensureSentence(value: string): string {
 }
 
 export async function answerArchiveQuestion(token: string, message: string): Promise<AskResponse> {
-  if (!message.trim()) throw new AppError("Ask a question about the archive.", 400);
+  if (!message.trim()) throw new AppError("Ask a question about the library.", 400);
 
   const { workspace, posts, chunks } = await workspaceCorpus(token);
   if (posts.length === 0) {
-    throw new AppError("This workspace does not have any ingested posts yet.", 409);
+    throw new AppError("This workspace doesn't have any posts yet.", 409);
   }
 
   const retrieved = retrieve(posts, chunks, message);
@@ -811,20 +811,20 @@ export async function answerArchiveQuestion(token: string, message: string): Pro
 
   const generated = await generateText(
     editorialSystemPrompt,
-    `Publication: ${workspace.publicationName ?? workspace.publicationUrl}\nQuestion: ${message}\n\nArchive context:\n${context}\n\nAnswer with: Direct answer, What I am seeing in the archive, Specific examples, Recommendation, Suggested next step.`
+    `Publication: ${workspace.publicationName ?? workspace.publicationUrl}\nQuestion: ${message}\n\nLibrary context:\n${context}\n\nAnswer with: Direct answer, What I am seeing in the library, Specific examples, Recommendation, Suggested next step.`
   );
 
   return {
     answer:
       generated ??
       [
-        `Based on the public archive, the strongest answer comes from ${sources.length} relevant post${sources.length === 1 ? "" : "s"}.`,
+        `Based on the public library, the strongest answer comes from ${sources.length} relevant post${sources.length === 1 ? "" : "s"}.`,
         "",
-        "What I am seeing in your archive",
+        "What I am seeing in your library",
         sources.map((source) => `- "${source.title}" points to this pattern: ${source.snippet}`).join("\n"),
         "",
         "Recommendation",
-        "Use these posts as the source material for the next editorial decision. I do not have private subscriber, open, click, or traffic data, so this is a qualitative archive read rather than a performance claim."
+        "Use these posts as the source material for the next editorial decision. I do not have private subscriber, open, click, or traffic data, so this is a qualitative library read rather than a performance claim."
       ].join("\n"),
     sources
   };
@@ -848,7 +848,7 @@ const FOCUS_GUIDANCE: Record<string, { label: string; guide: string }> = {
   },
   voice: {
     label: "Voice",
-    guide: "Voice — how the prose compares to the writer's archive in tone and rhythm.",
+    guide: "Voice — how the prose compares to the writer's library in tone and rhythm.",
   },
   clarity: {
     label: "Clarity",
@@ -868,7 +868,7 @@ const FOCUS_GUIDANCE: Record<string, { label: string; guide: string }> = {
   },
   evidence: {
     label: "Evidence",
-    guide: "Evidence — whether examples, facts, anecdotes, or archive-grounded proof adequately support the claims.",
+    guide: "Evidence — whether examples, facts, anecdotes, or library-grounded proof adequately support the claims.",
   },
   nuance: {
     label: "Nuance",
@@ -924,7 +924,7 @@ export async function generateDraftFeedback(
   if (draft.trim().length < 80) throw new AppError("Paste a longer draft for meaningful feedback.", 400);
 
   const { posts, chunks } = await workspaceCorpus(token);
-  if (posts.length === 0) throw new AppError("This workspace does not have any ingested posts yet.", 409);
+  if (posts.length === 0) throw new AppError("This workspace doesn't have any posts yet.", 409);
   const retrieved = retrieve(posts, chunks, draft, 5);
   const sources = toSources(retrieved);
   const context = retrieved
@@ -948,7 +948,7 @@ export async function generateDraftFeedback(
 
   const generated = await generateText(
     editorialSystemPrompt,
-    `Evaluate this draft against the writer's archive. Do not rewrite the full draft by default.\n\nArchive context:\n${context}\n\nDraft:\n${draft}\n\nFocus dimensions:\n${focusBlock}${onlySelected}\n\nFor each focus dimension above, write a short editorial section under that dimension's name as the heading. Use this section order: ${focusFormat}.`,
+    `Evaluate this draft against the writer's library. Do not rewrite the full draft by default.\n\nLibrary context:\n${context}\n\nDraft:\n${draft}\n\nFocus dimensions:\n${focusBlock}${onlySelected}\n\nFor each focus dimension above, write a short editorial section under that dimension's name as the heading. Use this section order: ${focusFormat}.`,
   );
 
   return {
@@ -956,7 +956,7 @@ export async function generateDraftFeedback(
       generated ??
       [
         "Overall read",
-        "This draft has enough material for an editorial pass, but generated model feedback is not configured. Based on lexical overlap, compare it most closely with the cited archive posts.",
+        "This draft has enough material for an editorial pass, but generated model feedback is not configured. Based on lexical overlap, compare it most closely with the cited library posts.",
         "",
         "What feels most like your voice",
         sources.map((source) => `- Check whether the draft shares the structure or argument style of "${source.title}".`).join("\n"),
@@ -971,7 +971,7 @@ export async function generateDraftFeedback(
 
 export async function generateIdeas(token: string, options: { focus?: string } = {}): Promise<IdeasResponse> {
   const { workspace, posts, chunks } = await workspaceCorpus(token);
-  if (posts.length === 0) throw new AppError("This workspace does not have any ingested posts yet.", 409);
+  if (posts.length === 0) throw new AppError("This workspace doesn't have any posts yet.", 409);
   const themes = archiveThemesForWorkspace(workspace);
   const themeLabels = themes.map((theme) => theme.label);
   const retrieved = retrieve(posts, chunks, themeLabels.join(" "), 8);
@@ -1008,9 +1008,9 @@ export async function generateIdeas(token: string, options: { focus?: string } =
 
   const fallbackThemes = themes.length
     ? themes
-    : ["your archive", "recent essays", "recurring argument"].map((label) => ({
+    : ["your library", "recent essays", "recurring argument"].map((label) => ({
         label,
-        description: `A recurring archive pattern around ${label}.`,
+        description: `A recurring library pattern around ${label}.`,
         evidencePostIds: [],
         confidence: 0.4
       }));
@@ -1024,7 +1024,7 @@ export async function generateIdeas(token: string, options: { focus?: string } =
         title: `What ${theme.label} still does not explain`,
         thesis: `A sharper follow-up that revisits ${theme.label} through a more specific argument or lived example.`,
         lens: theme.label,
-        whyItFits: `This fits because ${theme.label} is part of the archive profile from the last sync, without claiming private performance data.`,
+        whyItFits: `This fits because ${theme.label} is part of the library profile from the last sync, without claiming private performance data.`,
         relatedPosts: relatedPosts.length ? relatedPosts : sources.slice(index % Math.max(sources.length, 1), index % Math.max(sources.length, 1) + 2)
       };
     });
@@ -1042,7 +1042,7 @@ function archiveThemesForWorkspace(workspace: { topThemes: string[]; archiveThem
   if (workspace.archiveThemes?.length) return workspace.archiveThemes.slice(0, 15);
   return workspace.topThemes.slice(0, 15).map((label) => ({
     label,
-    description: `A recurring archive pattern around ${label}.`,
+    description: `A recurring library pattern around ${label}.`,
     evidencePostIds: [],
     confidence: 0.45
   }));
@@ -1104,10 +1104,10 @@ async function generateThemeBoundIdeas({
     .join("\n\n");
 
   const system = [
-    "You generate article ideas for a writer from their saved archive themes.",
+    "You generate article ideas for a writer from their saved library themes.",
     "Every idea must channel one saved theme as its lens.",
     "Do not introduce a topic unless it extends, recombines, or challenges a saved theme.",
-    "Use only the public archive context. Do not invent audience, revenue, traffic, subscriber, or performance claims.",
+    "Use only the public library context. Do not invent audience, revenue, traffic, subscriber, or performance claims.",
     "Return valid JSON only."
   ].join("\n");
 
@@ -1118,7 +1118,7 @@ async function generateThemeBoundIdeas({
     "Saved themes from the last library sync:",
     themeContext,
     "",
-    "Recent archive context:",
+    "Recent library context:",
     postContext,
     "",
     "Return JSON in this exact shape:",
@@ -1131,7 +1131,7 @@ async function generateThemeBoundIdeas({
               title: "Specific article title",
               thesis: "One-sentence thesis.",
               lens: themes[0]?.label ?? "Theme label",
-              whyItFits: "Why this follows from the archive theme and cited posts.",
+              whyItFits: "Why this follows from the library theme and cited posts.",
               relatedPostIds: ["post-id-1", "post-id-2"]
             }
           ]
@@ -1219,8 +1219,8 @@ const STATIC_FALLBACK_PROMPTS = [
   "Where do my recent posts diverge from my early voice?",
   "Which posts feel most like me, and why?",
   "What's the pattern in how I open my strongest essays?",
-  "What would surprise a long-time reader of my archive?",
-  "What topic does my archive suggest I've been quietly avoiding?"
+  "What would surprise a long-time reader of my library?",
+  "What topic does my library suggest I've been quietly avoiding?"
 ];
 
 function normalizePromptKey(value: string): string {
@@ -1284,7 +1284,7 @@ export async function generatePromptSuggestions(
 
   const { workspace, posts, chunks } = await workspaceCorpus(token);
   if (posts.length === 0) {
-    throw new AppError("This workspace does not have any ingested posts yet.", 409);
+    throw new AppError("This workspace doesn't have any posts yet.", 409);
   }
 
   const recentPosts = posts
@@ -1310,8 +1310,8 @@ export async function generatePromptSuggestions(
     : "";
 
   const system = [
-    "You write archive-aware questions a writer might ask their own Substack archive.",
-    "Each question must be specific, intellectually interesting, and grounded in patterns the writer's archive could plausibly reveal.",
+    "You write library-aware questions a writer might ask their own library.",
+    "Each question must be specific, intellectually interesting, and grounded in patterns the writer's library could plausibly reveal.",
     "Avoid generic chatbot prompts (no 'how do I improve my writing', no 'give me ideas').",
     "Do not invent subscriber numbers, traffic, or performance claims.",
     "Return ONLY the questions, one per line, no numbering, no bullets, no quotes, no commentary.",
@@ -1518,7 +1518,7 @@ function truncateToCharacterLimit(value: string, max: number): string {
 
 export async function runGrammarAudit(token: string): Promise<GrammarAuditResponse> {
   const { posts } = await workspaceCorpus(token);
-  if (posts.length === 0) throw new AppError("This workspace does not have any ingested posts yet.", 409);
+  if (posts.length === 0) throw new AppError("This workspace doesn't have any posts yet.", 409);
 
   const issues = posts.flatMap((post) => detectPostIssues(post)).slice(0, 30);
   const saved = await replaceGrammarIssues(token, issues);
@@ -1526,7 +1526,7 @@ export async function runGrammarAudit(token: string): Promise<GrammarAuditRespon
   return {
     summary:
       saved.length > 0
-        ? "Based on the public archive, the most useful edits are style-preserving clarity passes rather than generic rewriting."
+        ? "Based on the public library, the most useful edits are style-preserving clarity passes rather than generic rewriting."
         : "No recurring grammar or style issues were detected by the heuristic pass.",
     issues: saved
   };
@@ -1537,7 +1537,7 @@ export async function getGrammarAudit(token: string): Promise<GrammarAuditRespon
   return {
     summary:
       issues.length > 0
-        ? "Previously detected archive-wide grammar and style issues."
+        ? "Previously detected library-wide grammar and style issues."
         : "No grammar audit has been run for this workspace yet.",
     issues
   };
