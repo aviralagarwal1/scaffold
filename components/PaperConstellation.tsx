@@ -3,22 +3,47 @@
 import { useMemo } from "react";
 import type { SearchResult } from "@/types/ai";
 
-const TOTAL_PAPERS = 16; // 4x4 grid
+// 16 wide × 3 tall = 48. Picked for noticeability:
+//   < 24 papers → grid feels too small; "1 found" doesn't read as "in a sea".
+//   24–60      → sweet spot; 1 lit ≈ 2–4% reads as picked-out, not lonely.
+//   > 72       → density hurts both noticeability and the paper SVG itself.
+// 16×3 keeps the canvas cinematic and short (~125px tall), so matches don't
+// drown to the bottom of the screen. The "shelf of papers" silhouette also
+// reads more archive-evocative than a square block.
+const COLS = 16;
+const ROWS = 3;
+const TOTAL_PAPERS = COLS * ROWS;
 
 // Subtle per-paper rotations so the wall reads as a hand-arranged stack
-// rather than a sterile grid. Deterministic by index for stability.
-const ROTATIONS = [-1.5, 0.5, -1, 1.5, 0, -2, 1, -0.5, 1.5, -1, 0.5, 0, -0.5, 1.5, -1.5, 1];
+// rather than a sterile grid. 13 entries (prime, coprime with 16 and 48) so
+// the rotation pattern doesn't align with columns or rows — every paper
+// reads as individual.
+const ROTATIONS = [-1.5, 0.8, -1.2, 1.5, 0.2, -1.8, 1, -0.5, 1.5, -1, 0.5, -0.3, -0.8];
 
-// Visually-pleasing order for which slots light up first. First-N from this
-// list gives well-distributed positions for any 1..16 match count, so a
-// 3-result search lights three corners of the grid (not the top-left
-// adjacent block, which would feel arbitrary).
-const SCATTERED_ORDER = [5, 10, 3, 12, 0, 9, 6, 15, 1, 14, 8, 11, 2, 13, 4, 7];
+// Stride-37 walk over 48 slots starting near center. gcd(37, 48) = 1, so the
+// walk visits every slot exactly once. The first N entries give visually
+// distributed positions for any 1..48 match count — a 3-result search lights
+// three corners of the grid, not the top-left adjacent block.
+const SCATTERED_ORDER: number[] = (() => {
+  const out: number[] = [];
+  let cur = Math.floor(TOTAL_PAPERS / 2); // 24, near center
+  const stride = 37;
+  for (let i = 0; i < TOTAL_PAPERS; i++) {
+    out.push(cur);
+    cur = (cur + stride) % TOTAL_PAPERS;
+  }
+  return out;
+})();
 
-const REVEAL_STAGGER_MS = 110;
-const SHIMMER_STAGGER_MS = 70;
-const NUMBER_BADGE_DELAY_MS = 220;
-const TITLE_LIST_BASE_DELAY_MS = 700;
+// Caps so timing stays sane regardless of match count.
+//   At 90ms per stagger × 48 lit, naive reveal would last 4.3s. We cap the
+//   stagger at the first 12 papers; anything after that reveals at the cap.
+const REVEAL_STAGGER_MS = 90;
+const REVEAL_STAGGER_CAP = 12;
+const SHIMMER_STAGGER_MS = 25;
+const NUMBER_BADGE_DELAY_MS = 200;
+const TITLE_LIST_BASE_DELAY_MS = 800;
+const VISIBLE_TITLES = 8;
 
 export type ConstellationState = "searching" | "showing";
 
@@ -29,14 +54,13 @@ export function PaperConstellation({
   state: ConstellationState;
   matches: SearchResult[];
 }) {
-  // Map match index → grid slot via SCATTERED_ORDER. The first match goes
-  // to slot 5 (center-ish), the second to slot 10 (diagonal opposite), etc.
+  // matchIndex → grid slot, via SCATTERED_ORDER.
   const litSlots = useMemo(() => {
     const count = Math.min(matches.length, TOTAL_PAPERS);
     return SCATTERED_ORDER.slice(0, count);
   }, [matches.length]);
 
-  // Reverse lookup: gridSlot → litIndex (so the badge number matches the
+  // Reverse lookup: grid slot → matchIndex (so the badge number matches the
   // ordered list below the grid).
   const slotToLitIndex = useMemo(() => {
     const map = new Map<number, number>();
@@ -44,10 +68,18 @@ export function PaperConstellation({
     return map;
   }, [litSlots]);
 
+  const visibleMatches = matches.slice(0, VISIBLE_TITLES);
+  const hiddenInList = Math.min(matches.length, TOTAL_PAPERS) - visibleMatches.length;
+
   return (
     <div className="flex flex-col items-center gap-7">
-      {/* The constellation itself */}
-      <div className="grid grid-cols-4 gap-3 sm:gap-4">
+      {/* The constellation itself.
+          gridTemplateColumns is set inline so we can drive it from the COLS
+          constant — Tailwind's default cols utilities only go to 12. */}
+      <div
+        className="grid gap-[3px] sm:gap-2"
+        style={{ gridTemplateColumns: `repeat(${COLS}, auto)` }}
+      >
         {Array.from({ length: TOTAL_PAPERS }, (_, slot) => {
           const litIndex = slotToLitIndex.get(slot);
           const isLit = litIndex !== undefined;
@@ -64,12 +96,13 @@ export function PaperConstellation({
         })}
       </div>
 
-      {/* Title list under the constellation. Numbers correspond to the
-          badges on the lit papers above. Each entry is a deep link via
-          Text Fragments to the first snippet's match. */}
+      {/* Numbered title list. Numbers correspond to badges on the lit papers
+          above. Each entry is a deep link via Text Fragments to the first
+          snippet's match. Capped at VISIBLE_TITLES so 30+ matches don't push
+          the snippet cards down a screen. */}
       {state === "showing" && matches.length > 0 && (
         <ol className="flex w-full max-w-md flex-col gap-1.5">
-          {matches.slice(0, TOTAL_PAPERS).map((match, i) => {
+          {visibleMatches.map((match, i) => {
             const firstSnippet = match.snippets[0]?.match;
             const href = firstSnippet
               ? `${match.postUrl}#:~:text=${encodeURIComponent(firstSnippet)}`
@@ -94,12 +127,12 @@ export function PaperConstellation({
               </li>
             );
           })}
-          {matches.length > TOTAL_PAPERS && (
+          {hiddenInList > 0 && (
             <li
               className="animate-fade pl-6 pt-1 text-[12.5px] italic text-ink-500"
-              style={{ animationDelay: `${TITLE_LIST_BASE_DELAY_MS + TOTAL_PAPERS * REVEAL_STAGGER_MS}ms` }}
+              style={{ animationDelay: `${TITLE_LIST_BASE_DELAY_MS + visibleMatches.length * REVEAL_STAGGER_MS}ms` }}
             >
-              + {matches.length - TOTAL_PAPERS} more across your archive.
+              + {hiddenInList} more — see snippets below.
             </li>
           )}
         </ol>
@@ -125,17 +158,21 @@ function Paper({
   const showing = state === "showing";
 
   // While searching, every paper shimmers with a per-slot delay so the wave
-  // moves across the grid. While showing, the lit papers reveal in order
-  // and the unmatched ones recede simultaneously (no stagger on recede so
-  // the eye lands on the lit ones).
-  const revealDelay = showing && lit ? litIndex * REVEAL_STAGGER_MS : 0;
+  // moves across the grid. While showing, lit papers reveal in stagger
+  // order (capped) and unmatched papers recede simultaneously — the eye
+  // lands on the lit ones because the recede has no per-paper delay.
+  const revealDelay = showing && lit
+    ? Math.min(litIndex, REVEAL_STAGGER_CAP) * REVEAL_STAGGER_MS
+    : 0;
   const shimmerDelay = !showing ? slot * SHIMMER_STAGGER_MS : 0;
 
   return (
     <div
       className="relative transition-transform duration-700 ease-editorial"
       style={{
-        transform: `rotate(${rotation}deg) ${showing && lit ? "scale(1.12)" : showing ? "scale(0.86)" : "scale(1)"}`,
+        transform: `rotate(${rotation}deg) ${
+          showing && lit ? "scale(1.18)" : showing ? "scale(0.86)" : "scale(1)"
+        }`,
         transitionDelay: `${revealDelay}ms`,
       }}
     >
@@ -143,13 +180,13 @@ function Paper({
         viewBox="0 0 24 32"
         fill="none"
         stroke="currentColor"
-        strokeWidth="1.25"
+        strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className={`block h-12 w-9 transition-[color,opacity,filter] duration-700 ease-editorial sm:h-14 sm:w-10 ${
+        className={`block h-7 w-5 transition-[color,opacity,filter] duration-700 ease-editorial sm:h-10 sm:w-7 ${
           showing
             ? lit
-              ? "text-accent-600 opacity-100 drop-shadow-[0_3px_10px_rgba(180,94,44,0.28)]"
+              ? "text-accent-600 opacity-100 drop-shadow-[0_3px_10px_rgba(180,94,44,0.32)]"
               : "text-ink-300 opacity-25"
             : "animate-paper-shimmer text-ink-400"
         }`}
@@ -168,7 +205,7 @@ function Paper({
       </svg>
       {number !== null && showing && (
         <span
-          className="animate-fade absolute -right-1.5 -top-1.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-accent-700 px-1 font-mono text-[9.5px] font-medium text-ink-50 shadow-soft"
+          className="animate-fade absolute -right-1.5 -top-1.5 inline-flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-accent-700 px-1 font-mono text-[8.5px] font-medium text-ink-50 shadow-soft sm:h-[16px] sm:min-w-[16px] sm:text-[9px]"
           style={{ animationDelay: `${revealDelay + NUMBER_BADGE_DELAY_MS}ms` }}
         >
           {number}

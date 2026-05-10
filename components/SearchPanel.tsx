@@ -52,6 +52,20 @@ export function SearchPanel({ token, disabled }: { token: string; disabled?: boo
     }
   };
 
+  // Reset clears every piece of state the user might have produced and lands
+  // them back at the empty-input idle. Refocuses the input so the next query
+  // can start without a click. Shown next to Submit when there's anything to
+  // reset (committed query or unsubmitted text).
+  const onReset = () => {
+    setQuery("");
+    setCommittedQuery(null);
+    setResult(null);
+    setError(null);
+    setAlerting(false);
+    inputRef.current?.focus({ preventScroll: true });
+  };
+  const showReset = !busy && (committedQuery !== null || query.length > 0);
+
   return (
     <div className="flex flex-col">
       {/* === Compose zone ===
@@ -81,7 +95,16 @@ export function SearchPanel({ token, disabled }: { token: string; disabled?: boo
             )}
           />
         </div>
-        <div className="flex items-center justify-end pt-1">
+        <div className="flex items-center justify-end gap-4 pt-1">
+          {showReset && (
+            <button
+              type="button"
+              onClick={onReset}
+              className="text-[12.5px] text-ink-400 transition-colors hover:text-ink-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-50"
+            >
+              Reset
+            </button>
+          )}
           <button type="submit" className="btn-primary group gap-1.5" disabled={disabled || busy}>
             {busy ? (
               <>
