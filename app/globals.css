@@ -207,7 +207,7 @@ body {
   .tag-accent {
     @apply inline-flex items-center rounded-full border border-accent-200 bg-accent-50 px-2.5 py-0.5 text-[11px] font-medium tracking-tightish text-accent-700;
   }
-  /* Recurring-theme chip. Calm at rest; on hover the archive quietly warms —
+  /* Recurring-theme chip. Calm at rest; on hover the library quietly warms —
      soft accent tint, a delicate ambient ring, and a barely-there lift. Motion
      stays restrained so the panel still reads as a literary surface. */
   .theme-chip {
@@ -216,8 +216,8 @@ body {
 
   /* === Editorial accent rule ===
      RESERVED for AI voice moments only:
-       1. The "Editor" eyebrow above an AI response.
-       2. The "Cited from your archive" eyebrow above source citations.
+       1. The curator eyebrow above an AI response.
+       2. The source-citation eyebrow above cited material.
      Do NOT use as generic chrome before page headers, settings labels,
      or section markers. The mark loses meaning when it appears everywhere.
   */
@@ -297,7 +297,7 @@ body {
 }
 
 /* === Editorial shimmer ===
-   Very-low-amplitude opacity oscillation. Used on archive marginalia in
+   Very-low-amplitude opacity oscillation. Used on library marginalia in
    the closing section to suggest a quiet, breathing system without
    crossing into animation noise. 12-second cycle, opacity 1 → 0.78 → 1.
    Different elements receive different `animation-delay` values so the
@@ -314,7 +314,7 @@ body {
 
 /* === Editorial draw ===
    Line scales out from its origin to suggest the eye is reading or the
-   editor is annotating. Used for connector hairlines and accent rules
+   curator is annotating. Used for connector hairlines and accent rules
    that should "draw in" after the surrounding section settles. Always
    pair with `transform-origin: left center` (or `top center` for
    verticals) to control direction.

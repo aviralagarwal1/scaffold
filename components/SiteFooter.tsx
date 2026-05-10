@@ -4,13 +4,16 @@ import { usePathname } from "next/navigation";
 
 export function SiteFooter() {
   const pathname = usePathname();
-  const isWorkspace = pathname?.startsWith("/workspace");
+  // The full editorial colophon belongs to the marketing surfaces — landing
+  // and About. Every other page (workspace, account, auth, /publications/new) gets the
+  // quieter minimal footer so the reading surface stays calm.
+  const isMarketing = pathname === "/" || pathname === "/about";
 
-  if (isWorkspace) {
-    return <WorkspaceFooter />;
+  if (isMarketing) {
+    return <LandingFooter />;
   }
 
-  return <LandingFooter />;
+  return <WorkspaceFooter />;
 }
 
 function LandingFooter() {
