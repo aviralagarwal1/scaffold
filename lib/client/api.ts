@@ -1,8 +1,10 @@
 import type {
   CreateWorkspaceRequest,
   CreateWorkspaceResponse,
+  AccountWorkspaceSummary,
   WorkspaceOverview,
 } from "@/types/workspace";
+import type { RegisterRequest, UserProfile } from "@/types/auth";
 import type { PostSummary } from "@/types/post";
 import type {
   AskRequest,
@@ -63,11 +65,29 @@ async function request<T>(input: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  register(body: RegisterRequest) {
+    return request<UserProfile>("/api/auth/register", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+  },
+  me() {
+    return request<UserProfile>("/api/me");
+  },
+  updateProfile(body: Pick<UserProfile, "editorName">) {
+    return request<UserProfile>("/api/me", {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    });
+  },
   createWorkspace(body: CreateWorkspaceRequest) {
     return request<CreateWorkspaceResponse>("/api/workspaces", {
       method: "POST",
       body: JSON.stringify(body),
     });
+  },
+  listWorkspaces() {
+    return request<AccountWorkspaceSummary[]>("/api/workspaces");
   },
   getWorkspace(token: string) {
     return request<WorkspaceOverview>(`/api/workspaces/${encodeURIComponent(token)}`);

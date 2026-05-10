@@ -43,6 +43,23 @@ export interface WorkspaceOverview {
   ingestionError: string | null;
 }
 
+export type WorkspaceVerificationStatus = "unverified" | "pending" | "verified";
+export type WorkspaceRole = "owner" | "editor" | "viewer";
+
+export interface AccountWorkspaceSummary {
+  id: string;
+  token: string | null;
+  publicationUrl: string;
+  publicationName: string | null;
+  status: WorkspaceStatus;
+  verificationStatus: WorkspaceVerificationStatus;
+  role: WorkspaceRole;
+  createdAt: string;
+  updatedAt: string;
+  lastIngestedAt: string | null;
+  workspaceUrl: string;
+}
+
 export interface CreateWorkspaceRequest {
   publicationUrl: string;
 }
