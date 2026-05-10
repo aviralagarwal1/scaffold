@@ -205,7 +205,7 @@ export function DistributionPanel({
         {!loading && visible.length === 0 && (
           <EmptyState
             eyebrow="No drafts yet"
-            title="Nothing to repurpose."
+            title="Your best posts deserve a second audience."
             description="Pick a post above and generate drafts for any platform."
           />
         )}
@@ -249,10 +249,13 @@ function PlatformFolderButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "group inline-flex items-center justify-center gap-2.5 rounded-md border border-ink-200 bg-white px-4 py-2.5 text-[13px] font-medium tracking-tightish text-ink-800 shadow-soft transition-all duration-200 ease-editorial",
+        // Base: structure only. Colors and borders live in the conditional
+        // branches so the selected state cleanly wins (no tailwind-merge here,
+        // so any color in the base would coexist with the selected color).
+        "group inline-flex items-center justify-center gap-2.5 rounded-md border px-4 py-2.5 text-[13px] font-medium tracking-tightish shadow-soft transition-all duration-200 ease-editorial",
         selected
-          ? "border-accent-400 bg-accent-100/50 text-ink-900 shadow-[inset_0_0_0_1px_rgba(180,94,44,0.18),0_0_0_3px_rgba(232,194,164,0.22)]"
-          : "hover:-translate-y-px hover:border-accent-300 hover:bg-accent-50/40 hover:text-ink-900 hover:shadow-lift",
+          ? "border-accent-400 bg-accent-100 text-ink-900 shadow-[inset_0_0_0_1px_rgba(180,94,44,0.18),0_0_0_3px_rgba(232,194,164,0.22)]"
+          : "border-ink-200 bg-white text-ink-800 hover:-translate-y-px hover:border-accent-300 hover:bg-accent-50/40 hover:text-ink-900 hover:shadow-lift",
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-50",
         "disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:border-ink-200 disabled:hover:bg-white disabled:hover:shadow-soft",
       )}

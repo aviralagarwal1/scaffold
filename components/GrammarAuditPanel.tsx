@@ -154,8 +154,8 @@ export function GrammarAuditPanel({
 
         {issues && issues.length === 0 && !busy && (
           <EmptyState
-            eyebrow="Nothing audited yet"
-            title="Run an audit to begin."
+            eyebrow="No audits yet"
+            title="Even the best drafts have stragglers."
             description="We'll surface recurring grammar and style patterns across your archive. Once results land, you can filter them by post or severity."
           />
         )}
