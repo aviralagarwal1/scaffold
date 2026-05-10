@@ -548,10 +548,6 @@ function WorkspacesCard({ workspaces }: { workspaces: AccountWorkspaceSummary[] 
       <header className="flex items-start justify-between gap-4">
         <div>
           <span className="type-eyebrow text-accent-700">Workspaces</span>
-          <h2 className="mt-2 font-serif text-[22px] leading-snug tracking-tightish text-ink-900">
-            {pluralize(workspaces.length, "publication")} on{" "}
-            <em className="font-serif italic text-ink-700">your desk.</em>
-          </h2>
         </div>
         <Link href="/publications/new" className="btn-secondary group shrink-0" aria-label="Add workspace">
           <span aria-hidden="true" className="mr-1.5 text-[15px] leading-none text-accent-500 group-hover:text-accent-700">
