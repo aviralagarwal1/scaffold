@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useSession } from "next-auth/react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { api, ApiClientError } from "@/lib/client/api";
 import { cn } from "@/lib/client/cn";
 
@@ -9,6 +10,8 @@ export function SubstackUrlForm({
   autoFocus = false,
   redirect = true,
   captureGlobalKeystrokes = false,
+  routeToRegister = false,
+  authenticatedFallback,
 }: {
   autoFocus?: boolean;
   redirect?: boolean;
@@ -16,8 +19,22 @@ export function SubstackUrlForm({
    *  into this input. Used on the landing hero so visitors can just start
    *  typing without clicking. Linear/Raycast-style. */
   captureGlobalKeystrokes?: boolean;
+  /** Landing-hook mode. Instead of creating the workspace immediately, hand
+   *  the URL off to /register so the visitor creates an account first; the
+   *  workspace is then provisioned after they finish signing up. Used by the
+   *  landing hero, where every workspace must be tied to an account. */
+  routeToRegister?: boolean;
+  /** What to render when the visitor is already signed in. The landing hero
+   *  passes a quiet "Open my desk" CTA so a returning user isn't asked to
+   *  paste a URL we already know how to find. */
+  authenticatedFallback?: ReactNode;
 }) {
   const router = useRouter();
+  // Session-aware: routeToRegister is the visitor-mode hook. If the user is
+  // already signed in, we skip the /register handoff and provision the
+  // workspace right here — they don't need to "create an account" again.
+  const { status } = useSession();
+  const isAuthenticated = status === "authenticated";
   const [url, setUrl] = useState("");
   const [focused, setFocused] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -92,14 +109,24 @@ export function SubstackUrlForm({
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!url.trim()) {
+    const trimmed = url.trim();
+    if (!trimmed) {
       triggerAlert();
       return;
     }
     setError(null);
     setBusy(true);
+
+    // Landing-hook flow for visitors only. Logged-in users on the landing
+    // page get the direct create-and-route path so they aren't bounced
+    // through /register just to fill in a URL we already have.
+    if (routeToRegister && !isAuthenticated) {
+      router.push(`/register?publicationUrl=${encodeURIComponent(trimmed)}`);
+      return;
+    }
+
     try {
-      const res = await api.createWorkspace({ publicationUrl: url.trim() });
+      const res = await api.createWorkspace({ publicationUrl: trimmed });
       if (redirect) {
         router.push(res.workspaceUrl);
       }
@@ -112,6 +139,13 @@ export function SubstackUrlForm({
       setBusy(false);
     }
   };
+
+  // If the caller passed an authenticated fallback and the visitor is signed
+  // in, hand off entirely. The landing hero uses this so we never show a
+  // returning user the "paste your URL" composer they don't need.
+  if (authenticatedFallback && isAuthenticated) {
+    return <>{authenticatedFallback}</>;
+  }
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
@@ -138,7 +172,7 @@ export function SubstackUrlForm({
             alerting && "!border-ink-400",
           )}
           disabled={busy}
-          aria-label="Substack URL"
+          aria-label="Publication URL"
           aria-invalid={alerting || undefined}
           spellCheck={false}
           autoCapitalize="off"

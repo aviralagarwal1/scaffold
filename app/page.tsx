@@ -5,7 +5,7 @@ import { SubstackUrlForm } from "@/components/SubstackUrlForm";
 const STEPS = [
   {
     title: "Start your workspace.",
-    body: "Paste your Substack URL or custom domain. We only read public posts.",
+    body: "Paste your publication URL or custom domain. We only read public posts.",
   },
   {
     title: "We read your library.",
@@ -45,6 +45,12 @@ const CITED_POSTS = [
 export default function HomePage() {
   return (
     <>
+      {/* Logged-in visitors stay on the landing — they may want to re-read
+          the brand, share the link, or just look around. The nav UserMenu
+          and the swapped hero CTA ("Open my desk →" via SubstackUrlForm's
+          authenticatedFallback) make the logged-in state obvious without
+          forcing a redirect. */}
+
       {/* Hero */}
       <section className="relative overflow-hidden border-b border-ink-200/60">
         <div
@@ -83,7 +89,11 @@ export default function HomePage() {
             </p>
 
             <div className="animate-rise animate-delay-3 mt-10 max-w-xl">
-              <SubstackUrlForm captureGlobalKeystrokes />
+              <SubstackUrlForm
+                captureGlobalKeystrokes
+                routeToRegister
+                authenticatedFallback={<ReturningVisitorCTA />}
+              />
             </div>
           </div>
 
@@ -182,12 +192,12 @@ export default function HomePage() {
 
       {/* Closing — the realization moment.
           The composition is a centered emotional anchor surrounded by
-          floating archive marginalia: small, low-contrast post fragments
+          floating library marginalia: small, low-contrast post fragments
           that read as memory traces from the writer's own work. They
           breathe in and out at slightly different rhythms via a subtle
           shimmer, suggesting a quiet system that's already paying
           attention. The CTA names what the user actually leaves with —
-          a memory of their archive — rather than a tool action. */}
+          a memory of their library — rather than a tool action. */}
       <section className="animate-rise animate-delay-6 relative overflow-hidden bg-white">
         {/* Soft accent wash anchored top-center, echoing the hero's bronze
             warmth at the close. */}
@@ -249,12 +259,40 @@ export default function HomePage() {
             </p>
 
             <div className="mt-12 flex justify-center">
-              <LogoCTA href="/new" label="Build my memory" />
+              <LogoCTA
+                href="/register"
+                label="Build my memory"
+                authenticatedHref="/account"
+                authenticatedLabel="Open my desk"
+              />
             </div>
           </div>
         </div>
       </section>
     </>
+  );
+}
+
+/**
+ * Hero CTA for returning, signed-in visitors. The composer asks for a URL
+ * we already have on file, so we replace it with one black button that
+ * takes them back to their desk. Same animated arrow signature as the
+ * SubstackUrlForm submit so the swap feels like a quieter version of the
+ * same affordance, not a different surface.
+ */
+function ReturningVisitorCTA() {
+  return (
+    <Link href="/account" className="btn-primary btn-primary-lg group relative px-6">
+      <span className="relative inline-flex items-center gap-2">
+        <span>Open my desk</span>
+        <span
+          aria-hidden="true"
+          className="text-ink-300 transition-transform duration-200 ease-editorial group-hover:translate-x-0.5 group-hover:text-ink-50"
+        >
+          →
+        </span>
+      </span>
+    </Link>
   );
 }
 
@@ -327,7 +365,7 @@ function Cite({ n }: { n: number }) {
 
 /**
  * Primary answer card — the AI's voice. Drop-cap quote mark, serif body,
- * inline citation markers, and an editor footer that explicitly names how
+ * inline citation markers, and a curator footer that explicitly names how
  * many posts grounded the response. The footer's "grounded in N posts"
  * cross-references the citation column.
  */
@@ -354,7 +392,7 @@ function PrimaryAnswerCard() {
         <figcaption className="mt-7 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-ink-200/60 pt-4">
           <span className="flex items-center gap-2">
             <span className="accent-rule" />
-            <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent-700">Editor</span>
+            <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent-700">Curator</span>
           </span>
           <span className="text-ink-300" aria-hidden="true">
             ·
@@ -475,11 +513,11 @@ function SampleAnswerCard() {
             </div>
           </div>
 
-          {/* Editor response */}
+          {/* Curator response */}
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-2">
               <span className="accent-rule" />
-              <span className="text-eyebrow font-medium uppercase text-accent-700">Editor</span>
+              <span className="text-eyebrow font-medium uppercase text-accent-700">Curator</span>
               <span className="text-ink-300" aria-hidden="true">
               </span>
               <span className="text-[11px] normal-case tracking-normal text-ink-500"></span>

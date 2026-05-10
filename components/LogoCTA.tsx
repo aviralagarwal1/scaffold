@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { useState } from "react";
 
 // Idle sparkles drift around the glyph at staggered delays so the group
@@ -21,16 +22,37 @@ const BURST_DIRECTIONS = [0, 45, 90, 135, 180, 225, 270, 315];
  * The § wordmark as an interactive CTA. Idle: gentle breathe, soft pulsing
  * glow, occasional sparkles around the glyph. Hover: brightens, faster
  * cadence, the label fades in. Click: radial sparkle burst, then navigates.
+ *
+ * The logged-in props let the same mark serve a returning user without
+ * re-pitching the marketing copy. On the landing page, "Build my memory →
+ * /register" becomes "Open my desk → /account" once the visitor is
+ * authenticated, so the CTA stops asking them to sign up for an account
+ * they already have.
  */
-export function LogoCTA({ href, label }: { href: string; label: string }) {
+export function LogoCTA({
+  href,
+  label,
+  authenticatedHref,
+  authenticatedLabel,
+}: {
+  href: string;
+  label: string;
+  authenticatedHref?: string;
+  authenticatedLabel?: string;
+}) {
   const [burstKey, setBurstKey] = useState(0);
+  const { status } = useSession();
+  const isAuthenticated = status === "authenticated";
+
+  const finalHref = isAuthenticated && authenticatedHref ? authenticatedHref : href;
+  const finalLabel = isAuthenticated && authenticatedLabel ? authenticatedLabel : label;
 
   return (
     <div className="group flex flex-col items-center gap-3">
       <Link
-        href={href}
+        href={finalHref}
         onClick={() => setBurstKey((k) => k + 1)}
-        aria-label={label}
+        aria-label={finalLabel}
         className="logo-cta"
       >
         <span aria-hidden="true" className="logo-cta-glow" />
@@ -74,7 +96,7 @@ export function LogoCTA({ href, label }: { href: string; label: string }) {
         )}
       </Link>
       <span className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-ink-400 opacity-0 transition-opacity duration-300 ease-editorial group-hover:opacity-100">
-        {label}
+        {finalLabel}
       </span>
     </div>
   );
