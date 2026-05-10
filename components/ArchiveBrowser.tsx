@@ -33,8 +33,8 @@ export function ArchiveBrowser({ posts }: { posts: PostSummary[] }) {
     return (
       <EmptyState
         eyebrow="Library"
-        title="No posts ingested yet."
-        description="Once your library finishes ingesting, your posts will show up here. Browse, search, and use them as the basis for distribution drafts."
+        title="No posts in your library yet."
+        description="Once your library finishes syncing, your posts will show up here. Browse, search, and use them as the basis for distribution drafts."
       />
     );
   }

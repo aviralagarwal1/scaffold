@@ -309,7 +309,7 @@ function Composer({
   disabled?: boolean;
   busy: boolean;
 }) {
-  const ghostText = disabled ? "Workspace still ingesting" : "Start exploring your writing...";
+  const ghostText = disabled ? "Library still syncing" : "Start exploring your writing...";
   const ref = useRef<HTMLTextAreaElement>(null);
   const canSend = !disabled && !busy && draft.trim().length > 0;
 

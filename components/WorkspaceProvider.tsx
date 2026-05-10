@@ -75,7 +75,7 @@ export function WorkspaceProvider({ token, children }: { token: string; children
         pollRef.current = setTimeout(tick, POLL_MS);
       }
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Re-ingest failed.");
+      setError(err instanceof ApiClientError ? err.message : "Sync failed.");
     } finally {
       setReingesting(false);
     }

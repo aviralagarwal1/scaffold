@@ -20,12 +20,12 @@ export function NotReadyNotice({
     <div className={cn("panel flex flex-col gap-3 p-5", className)}>
       <span className="type-eyebrow text-ink-400">Not yet available</span>
       <div className="type-h3">
-        {isFailed ? `${feature} needs an ingested library.` : `${feature} unlocks once ingestion finishes.`}
+        {isFailed ? `${feature} needs your library synced.` : `${feature} unlocks once syncing finishes.`}
       </div>
       <p className="type-body">
         {isWorking
           ? "We're still reading your library in the background."
-          : "Head back to the overview to retry ingestion."}
+          : "Head back to the overview to retry the sync."}
       </p>
       <div className="pt-1">
         <Link href={`/workspace/${token}`} className="btn-secondary">

@@ -11,6 +11,6 @@ export async function POST(_request: Request, context: RouteContext) {
     await ingestWorkspace(token);
     return NextResponse.json(await getWorkspaceOverview(token));
   } catch (error) {
-    return apiError(error, "Could not ingest archive.");
+    return apiError(error, "Could not sync your library.");
   }
 }

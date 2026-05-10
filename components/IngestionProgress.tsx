@@ -33,7 +33,7 @@ export function IngestionProgress({
   if (status === "failed") {
     return (
       <div className="panel flex flex-col gap-3 border-critical-100 bg-critical-100/30 p-5">
-        <span className="type-eyebrow text-critical-700">Ingestion failed</span>
+        <span className="type-eyebrow text-critical-700">Sync failed</span>
         <div className="type-h3">We couldn't read this publication.</div>
         <p className="type-body text-ink-700">
           {error ?? "Try double-checking the URL. If the publication is brand new, it may not have a public RSS feed yet."}
@@ -41,7 +41,7 @@ export function IngestionProgress({
         {onRetry && (
           <div>
             <button onClick={onRetry} className="btn-secondary">
-              Try ingestion again
+              Try syncing again
             </button>
           </div>
         )}
@@ -60,7 +60,7 @@ export function IngestionProgress({
     ? PHRASES[phraseIndex]
     : status === "ready"
       ? "Your library is ready."
-      : "Partial library ingested.";
+      : "Some posts couldn't be read.";
 
   return (
     <div className="panel flex flex-col gap-2.5 p-5">
