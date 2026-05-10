@@ -2,11 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import type { ReactNode } from "react";
+import { UserMenu } from "./UserMenu";
 
 export function SiteHeader() {
   const pathname = usePathname();
   const isLanding = pathname === "/";
+  const { status } = useSession();
+  const isAuthenticated = status === "authenticated";
 
   return (
     <header className="sticky top-0 z-30 border-b border-ink-200/60 bg-ink-50/85 backdrop-blur-md">
@@ -18,43 +22,66 @@ export function SiteHeader() {
         >
           <Wordmark size={isLanding ? "lg" : "sm"} />
         </Link>
-        <nav className="flex items-center gap-1">{renderNavItem(pathname)}</nav>
+        <nav className="flex items-center gap-2">{renderNavItems(pathname, isAuthenticated)}</nav>
       </div>
     </header>
   );
 }
 
-// Nav item is contextual:
-//   /workspace/[token]/(any non-settings page) → "Sync Workspace" → settings.
-//   /about                                      → no nav item (already there).
-//   anywhere else on the landing side (/, /new) → "About" link.
-// /new still exists as a route (the sparkly logo on the landing page links
-// there) — we just don't surface a button for it from the nav bar.
-function renderNavItem(pathname: string | null): ReactNode {
+// Nav is contextual. Order is: workspace context → marketing/auth context.
+//
+// - Workspace pages (non-settings): Sync Workspace is the workspace's own
+//   verb; the UserMenu sits beside it as the global identity affordance.
+// - About is a landing-page affordance only. Once someone is registering,
+//   setting up, or working, the nav should stay task-focused.
+// - Auth chips depend on session. Logged out → Log in + Register. Logged in
+//   → UserMenu (which reveals the email, an Account link, and Sign out).
+//   Account is no longer a separate chip — it lives inside the menu so the
+//   nav stays compact and there's exactly one identity surface to look at.
+function renderNavItems(pathname: string | null, isAuthenticated: boolean): ReactNode {
   if (!pathname) return null;
 
   if (pathname.startsWith("/workspace/")) {
-    const segments = pathname.split("/").filter(Boolean); // ["workspace", token, ...]
+    const segments = pathname.split("/").filter(Boolean);
     const token = segments[1];
     const subpath = segments[2];
     if (!token) return null;
-    if (subpath === "settings") return null;
     return (
-      <Link href={`/workspace/${token}/settings`} className="btn-secondary">
-        Sync Workspace
-      </Link>
+      <>
+        {subpath !== "settings" && (
+          <Link href={`/workspace/${token}/settings`} className="btn-secondary">
+            Sync Workspace
+          </Link>
+        )}
+        {isAuthenticated && <UserMenu />}
+      </>
     );
   }
 
-  if (pathname === "/about") return null;
-
   return (
-    <Link
-      href="/about"
-      className="text-[13px] font-medium text-ink-700 transition-colors duration-150 ease-editorial hover:text-accent-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-50"
-    >
-      About
-    </Link>
+    <>
+      {pathname === "/" && (
+        <Link href="/about" className="btn-secondary">
+          About
+        </Link>
+      )}
+      {isAuthenticated ? (
+        <UserMenu />
+      ) : (
+        <>
+          {pathname !== "/login" && (
+            <Link href="/login" className="btn-secondary">
+              Log In
+            </Link>
+          )}
+          {pathname !== "/register" && (
+            <Link href="/register" className="btn-primary">
+              Register
+            </Link>
+          )}
+        </>
+      )}
+    </>
   );
 }
 
