@@ -22,14 +22,15 @@ export default function SettingsPage() {
   const { token, overview, reingest, reingesting } = useWorkspace();
 
   // Certification beat: when a sync transitions from running → done with no
-  // fresh error, hold the button in a "Synced." state for ~2.2s so the user
-  // gets clear visual confirmation that wasn't otherwise apparent.
+  // fresh error, hold the button in a "Synced." state for ~3.5s so the user
+  // gets clear visual confirmation that wasn't otherwise apparent. Bloom ring
+  // fires in the first ~1.1s; the rest is dwell time so the eye can register.
   const [justSynced, setJustSynced] = useState(false);
   const wasReingesting = useRef(false);
   useEffect(() => {
     if (!reingesting && wasReingesting.current && !overview?.ingestionError) {
       setJustSynced(true);
-      const t = setTimeout(() => setJustSynced(false), 2200);
+      const t = setTimeout(() => setJustSynced(false), 3500);
       wasReingesting.current = reingesting;
       return () => clearTimeout(t);
     }
