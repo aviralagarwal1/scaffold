@@ -5,7 +5,15 @@ import type {
   WorkspaceOverview,
   UpdateWorkspaceRequest,
 } from "@/types/workspace";
-import type { RegisterRequest, RegisterVerificationResponse, UpdateProfileRequest, UserProfile } from "@/types/auth";
+import type {
+  PasswordResetConfirmRequest,
+  PasswordResetRequest,
+  PasswordResetRequestResponse,
+  RegisterRequest,
+  RegisterVerificationResponse,
+  UpdateProfileRequest,
+  UserProfile,
+} from "@/types/auth";
 import type { PostSummary } from "@/types/post";
 import type {
   AskRequest,
@@ -72,13 +80,17 @@ export const api = {
       body: JSON.stringify(body),
     });
   },
-  requestEmailVerification() {
-    return request<{ ok: true; alreadyVerified: boolean; delivery?: "email" | "console" }>(
-      "/api/auth/verify-email/request",
-      {
-        method: "POST",
-      },
-    );
+  requestPasswordReset(body: PasswordResetRequest) {
+    return request<PasswordResetRequestResponse>("/api/auth/password-reset/request", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+  },
+  confirmPasswordReset(body: PasswordResetConfirmRequest) {
+    return request<{ ok: true }>("/api/auth/password-reset/confirm", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
   },
   me() {
     return request<UserProfile>("/api/me");

@@ -197,11 +197,11 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
           href={
             isRegister
               ? `/login${incomingPublicationUrl ? `?publicationUrl=${encodeURIComponent(incomingPublicationUrl)}` : ""}`
-              : `/register${incomingPublicationUrl ? `?publicationUrl=${encodeURIComponent(incomingPublicationUrl)}` : ""}`
+              : `/forgot-password${email.trim() ? `?email=${encodeURIComponent(email.trim())}` : ""}`
           }
           className="btn-link"
         >
-          {isRegister ? "Already have an account?" : "Create an account"}
+          {isRegister ? "Already have an account?" : "Forgot password?"}
         </Link>
         <button type="submit" className="btn-primary group" disabled={busy}>
           <span className="relative inline-flex items-center gap-2">

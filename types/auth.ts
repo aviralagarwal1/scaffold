@@ -15,6 +15,21 @@ export interface RegisterVerificationResponse {
   delivery: "email" | "console";
 }
 
+export interface PasswordResetRequest {
+  email: string;
+}
+
+export interface PasswordResetRequestResponse {
+  ok: true;
+  delivery?: "email" | "console";
+}
+
+export interface PasswordResetConfirmRequest {
+  email: string;
+  token: string;
+  password: string;
+}
+
 export interface UserProfile {
   id: string;
   email: string | null;
