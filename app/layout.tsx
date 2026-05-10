@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from "next";
+import { getServerSession } from "next-auth";
 import "./globals.css";
 import { AppShell } from "@/components/AppShell";
+import { Providers } from "@/components/Providers";
+import { authOptions } from "@/lib/server/auth/options";
 
 export const metadata: Metadata = {
   title: "Scaffold",
@@ -20,11 +23,14 @@ export const viewport: Viewport = {
   colorScheme: "light",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const session = await getServerSession(authOptions);
   return (
     <html lang="en">
       <body>
-        <AppShell>{children}</AppShell>
+        <Providers session={session}>
+          <AppShell>{children}</AppShell>
+        </Providers>
       </body>
     </html>
   );
