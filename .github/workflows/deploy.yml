@@ -1,0 +1,107 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: cloud-run-deploy
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  PROJECT_ID: scaffold-496000
+  PROJECT_NUMBER: "115995315434"
+  REGION: us-east1
+  SERVICE_NAME: substack-ai
+  ARTIFACT_REPOSITORY: substack-ai
+  IMAGE_NAME: substack-ai
+  WORKLOAD_IDENTITY_PROVIDER: projects/115995315434/locations/global/workloadIdentityPools/github-actions/providers/github
+  SERVICE_ACCOUNT: github-actions-deployer@scaffold-496000.iam.gserviceaccount.com
+
+jobs:
+  deploy:
+    name: Build and deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node for validation
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Validate copy contracts and tests
+        run: npm run check:static
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.SERVICE_ACCOUNT }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Build image with Cloud Build
+        run: |
+          IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/${IMAGE_NAME}:${GITHUB_SHA}"
+          echo "IMAGE=${IMAGE}" >> "${GITHUB_ENV}"
+          gcloud builds submit --quiet --suppress-logs --tag "${IMAGE}" .
+
+      - name: Verify production migrations before deployment
+        run: |
+          DATABASE_SECRET_VERSION="$(gcloud secrets versions describe latest --secret=substack-ai-database-url --project="${PROJECT_ID}" --format='value(name)' | awk -F/ '{print $NF}')"
+          [[ "${DATABASE_SECRET_VERSION}" =~ ^[0-9]+$ ]]
+          DATABASE_URL="$(gcloud secrets versions access "${DATABASE_SECRET_VERSION}" --secret=substack-ai-database-url --project="${PROJECT_ID}")"
+          MASKED_DATABASE_URL="${DATABASE_URL//%/%25}"
+          MASKED_DATABASE_URL="${MASKED_DATABASE_URL//$'\r'/%0D}"
+          MASKED_DATABASE_URL="${MASKED_DATABASE_URL//$'\n'/%0A}"
+          echo "::add-mask::${MASKED_DATABASE_URL}"
+          export DATABASE_URL
+          node scripts/check-runtime.mjs
+          echo "DATABASE_SECRET_VERSION=${DATABASE_SECRET_VERSION}" >> "${GITHUB_ENV}"
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy "${SERVICE_NAME}" \
+            --quiet \
+            --project="${PROJECT_ID}" \
+            --region="${REGION}" \
+            --platform=managed \
+            --image="${IMAGE}" \
+            --allow-unauthenticated \
+            --port=8080 \
+            --memory=1Gi \
+            --cpu=1 \
+            --min-instances=0 \
+            --max-instances=1 \
+            --timeout=300 \
+            --remove-env-vars=OPENAI_MODEL,WORKSPACE_DAILY_TOKEN_LIMIT \
+            --update-env-vars="APP_BASE_URL=https://scaffold.aviralagarwal.com,NEXTAUTH_URL=https://scaffold.aviralagarwal.com,EMAIL_FROM=Scaffold <scaffold@aviralagarwal.com>,ANTHROPIC_MODEL=claude-sonnet-4-5,FREE_MONTHLY_TOKEN_LIMIT=500000,FREE_ACTIVE_PUBLICATION_LIMIT=1,FREE_PRICE_CENTS=0,PRO_MONTHLY_TOKEN_LIMIT=2000000,PRO_ACTIVE_PUBLICATION_LIMIT=3,PRO_PRICE_CENTS=800,TOKEN_USAGE_TIME_ZONE=America/New_York,PYTHON=python3" \
+            --update-secrets=DATABASE_URL=substack-ai-database-url:${DATABASE_SECRET_VERSION},NEXTAUTH_SECRET=substack-ai-nextauth-secret:latest,RESEND_API_KEY=substack-ai-resend-api-key:latest,ANTHROPIC_API_KEY=substack-ai-anthropic-api-key:latest,STRIPE_SECRET_KEY=substack-ai-stripe-secret-key:latest,STRIPE_PRO_PRICE_ID=substack-ai-stripe-pro-price-id:latest,STRIPE_WEBHOOK_SECRET=substack-ai-stripe-webhook-secret:latest
+
+      - name: Check Cloud Run env contract
+        run: npm run prod:env:check -- --skip-secret-values
+
+      - name: Verify deployment
+        run: |
+          URL="$(gcloud run services describe "${SERVICE_NAME}" \
+            --project="${PROJECT_ID}" \
+            --region="${REGION}" \
+            --format='value(status.url)')"
+          echo "Cloud Run URL: ${URL}"
+          curl --fail --silent --show-error --head "${URL}"
