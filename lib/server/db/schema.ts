@@ -344,3 +344,9 @@ export const featureFlags = pgTable("feature_flags", {
   description: text("description"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+export const appState = pgTable("app_state", {
+  key: varchar("key", { length: 120 }).primaryKey(),
+  value: jsonb("value").$type<unknown>().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});

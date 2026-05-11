@@ -2,8 +2,11 @@ import type { GrammarIssue, Idea, RepurposeDraft, SavedIdea, SearchResponse, Sea
 import type { Post, PostChunk, PostSummary } from "@/types/post";
 import type { ArchiveTheme, TokenUsageFeature, TokenUsageSummary, Workspace, WorkspaceOverview, WorkspaceStatus } from "@/types/workspace";
 import { randomBytes, randomUUID } from "crypto";
+import { eq } from "drizzle-orm";
 import { mkdir, readFile, rename, writeFile } from "fs/promises";
 import path from "path";
+import { getDb } from "@/lib/server/db";
+import { appState } from "@/lib/server/db/schema";
 import { AppError } from "./errors";
 import { chunkText, excerpt } from "./text";
 
@@ -28,6 +31,7 @@ interface TokenUsageEvent {
 
 const DATA_DIR = path.join(process.cwd(), ".data");
 const DATA_FILE = path.join(DATA_DIR, "substack-ai.json");
+const APP_STATE_KEY = "workspace-store";
 let mutationQueue = Promise.resolve();
 const TOKEN_USAGE_WINDOW_HOURS = 24;
 const TOKEN_USAGE_RETENTION_MS = TOKEN_USAGE_WINDOW_HOURS * 60 * 60 * 1000 * 7;
@@ -185,6 +189,16 @@ const emptyDb = (): Database => ({
 });
 
 async function readDb(): Promise<Database> {
+  if (process.env.DATABASE_URL) {
+    const db = getDb();
+    const [row] = await db
+      .select({ value: appState.value })
+      .from(appState)
+      .where(eq(appState.key, APP_STATE_KEY))
+      .limit(1);
+    return { ...emptyDb(), ...((row?.value as Partial<Database> | undefined) ?? {}) };
+  }
+
   try {
     const raw = await readFile(DATA_FILE, "utf8");
     return { ...emptyDb(), ...JSON.parse(raw) };
@@ -197,6 +211,18 @@ async function readDb(): Promise<Database> {
 }
 
 async function writeDb(db: Database): Promise<void> {
+  if (process.env.DATABASE_URL) {
+    const database = getDb();
+    await database
+      .insert(appState)
+      .values({ key: APP_STATE_KEY, value: db, updatedAt: new Date() })
+      .onConflictDoUpdate({
+        target: appState.key,
+        set: { value: db, updatedAt: new Date() },
+      });
+    return;
+  }
+
   await mkdir(DATA_DIR, { recursive: true });
   const tempFile = path.join(DATA_DIR, `substack-ai.${process.pid}.${Date.now()}.${randomUUID()}.tmp`);
   await writeFile(tempFile, JSON.stringify(db, null, 2), "utf8");
