@@ -48,7 +48,7 @@ jobs:
         run: |
           IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/${IMAGE_NAME}:${GITHUB_SHA}"
           echo "IMAGE=${IMAGE}" >> "${GITHUB_ENV}"
-          gcloud builds submit --quiet --tag "${IMAGE}" .
+          gcloud builds submit --quiet --suppress-logs --tag "${IMAGE}" .
 
       - name: Deploy to Cloud Run
         run: |
