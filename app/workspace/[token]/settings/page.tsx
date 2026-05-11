@@ -24,42 +24,42 @@ const TOKEN_ACTIONS = [
   {
     label: "Build workspace",
     estimate: [30_000, 75_000],
-    note: "Feed read, chunk indexing, and recurring-theme curation.",
+    note: "Reads the feed, indexes chunks, and curates recurring themes.",
   },
   {
     label: "Ask questions",
     estimate: [12_000, 25_000],
-    note: "A short conversation of roughly three to five grounded replies.",
+    note: "Grounds a short conversation in retrieved library passages.",
   },
   {
     label: "Evaluate drafts",
     estimate: [6_000, 12_000],
-    note: "One draft review against nearby library context.",
+    note: "Reviews one draft against nearby library context.",
   },
   {
     label: "Proofread posts",
     estimate: [5_000, 30_000],
-    note: "Library-wide heuristic scan; larger libraries cost more.",
+    note: "Scans the library for style-preserving clarity edits.",
   },
   {
     label: "Explore ideas",
     estimate: [4_000, 8_000],
-    note: "Theme-grounded idea generation.",
+    note: "Generates article ideas from recurring themes.",
   },
   {
     label: "Draft distribution",
     estimate: [1_000, 4_000],
-    note: "One platform draft from one source post.",
+    note: "Turns one source post into one platform draft.",
   },
   {
     label: "Surface directions",
     estimate: [1_000, 2_000],
-    note: "A small prompt-suggestion call.",
+    note: "Suggests a small set of library-aware prompts.",
   },
   {
     label: "Search quotes",
     estimate: [0, 0],
-    note: "Literal library search; no model call.",
+    note: "Searches the library literally; no model call.",
   },
 ] as const;
 
@@ -259,8 +259,8 @@ function TokenUsagePanel({ usage }: { usage: TokenUsageSummary }) {
             Usage
           </h3>
           <p className="mt-1 text-[12.5px] leading-relaxed text-ink-500">
-            You&apos;ve used {usage.used.toLocaleString()} of {usage.limit.toLocaleString()} tokens for this workspace today.
-            Limits reset {dayPrefix}{resetMonth} {ordinal(resetDay)} at {resetLabel}.
+            You&apos;ve used {usage.used.toLocaleString()} of {usage.limit.toLocaleString()} available tokens today.
+            The cards below estimate usage per action. Limits reset {dayPrefix}{resetMonth} {ordinal(resetDay)} at {resetLabel}.
           </p>
         </div>
       </header>
@@ -336,7 +336,7 @@ function TokenActionRow({
       : `~${Math.max(1, percentLow)}-${Math.max(1, percentHigh)}%`;
 
   return (
-    <div className="rounded-md border border-ink-200/70 bg-ink-50/40 px-3 py-2.5">
+    <div className="rounded-md border border-ink-200/70 bg-ink-50/40 px-3 py-2.5 transition-all duration-200 ease-editorial hover:-translate-y-px hover:border-accent-300 hover:bg-accent-50/40 hover:shadow-soft">
       <div className="flex items-baseline justify-between gap-3">
         <span className="font-medium text-[13px] text-ink-800">{action.label}</span>
         <span className="shrink-0 font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-500">
