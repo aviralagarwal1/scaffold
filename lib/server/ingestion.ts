@@ -15,6 +15,8 @@ const INGESTION_FAILURE =
 
 export async function ingestWorkspace(token: string) {
   const workspace = await getWorkspaceByToken(token);
+  const previousStatus = workspace.status;
+  const previousError = workspace.ingestionError;
   await assertWorkspaceTokenBudget(token, 20_000, "sync");
   await setWorkspaceStatus(token, "ingesting");
 
@@ -32,7 +34,10 @@ export async function ingestWorkspace(token: string) {
     const archiveThemes = reusableThemes ?? await analyzeArchiveThemes(feed.posts, feed.publicationName, { token });
     return await replaceWorkspacePosts(token, feed.publicationName, feed.posts, archiveThemes);
   } catch (error) {
-    if (error instanceof AppError && error.status === 429) throw error;
+    if (error instanceof AppError && error.status === 429) {
+      await setWorkspaceStatus(token, previousStatus, previousError);
+      throw error;
+    }
     console.error("Ingestion failed", error);
     return setWorkspaceStatus(token, "failed", INGESTION_FAILURE);
   }

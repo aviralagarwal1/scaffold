@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { useWorkspace } from "@/components/WorkspaceProvider";
 import { api, ApiClientError } from "@/lib/client/api";
 import { cn } from "@/lib/client/cn";
-import { formatDate, hostnameOf, pluralize } from "@/lib/client/format";
+import { formatDate, hostnameOf, pluralize, statusLabel } from "@/lib/client/format";
 import type { UserProfile } from "@/types/auth";
 import type { TokenUsageSummary } from "@/types/workspace";
 
@@ -84,17 +84,36 @@ export default function SettingsPage() {
     };
   }, []);
 
-  const [justSynced, setJustSynced] = useState(false);
-  const wasReingesting = useRef(false);
+  const [syncResult, setSyncResult] = useState<"success" | "failed" | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
-    if (!reingesting && wasReingesting.current && !overview?.ingestionError) {
-      setJustSynced(true);
-      const t = setTimeout(() => setJustSynced(false), 3500);
-      wasReingesting.current = reingesting;
-      return () => clearTimeout(t);
+    return () => {
+      if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    };
+  }, []);
+
+  const flashSyncResult = (result: "success" | "failed") => {
+    setSyncResult(result);
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    syncTimerRef.current = setTimeout(() => {
+      setSyncResult(null);
+      setSyncError(null);
+    }, result === "success" ? 3500 : 4500);
+  };
+
+  const syncWorkspace = async () => {
+    setSyncResult(null);
+    setSyncError(null);
+    try {
+      await reingest();
+      flashSyncResult("success");
+    } catch (err) {
+      setSyncError(err instanceof ApiClientError ? err.message : "Could not sync workspace.");
+      flashSyncResult("failed");
     }
-    wasReingesting.current = reingesting;
-  }, [reingesting, overview?.ingestionError]);
+  };
 
   if (!overview) return null;
 
@@ -128,14 +147,21 @@ export default function SettingsPage() {
           initial={overview.publicationName ?? hostnameOf(overview.publicationUrl)}
           token={token}
           onSaved={refetch}
-          syncAction={<SyncWorkspaceButton reingest={reingest} reingesting={reingesting} justSynced={justSynced} />}
+          syncAction={
+            <SyncWorkspaceButton
+              onSync={syncWorkspace}
+              reingesting={reingesting}
+              syncResult={syncResult}
+              syncError={syncError}
+            />
+          }
         />
 
         <dl className="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-6 gap-y-1.5 border-t border-ink-200/60 pt-3 text-[12.5px] text-ink-700">
           <dt className="text-ink-500">URL</dt>
           <dd className="font-mono text-[12px] text-ink-600">{overview.publicationUrl}</dd>
           <dt className="text-ink-500">Status</dt>
-          <dd className="capitalize">{overview.status}</dd>
+          <dd>{statusLabel(overview.status)}</dd>
           <dt className="text-ink-500">Posts</dt>
           <dd>{pluralize(overview.postCount, "post")}</dd>
           <dt className="text-ink-500">Last read</dt>
@@ -175,22 +201,30 @@ export default function SettingsPage() {
 }
 
 function SyncWorkspaceButton({
-  reingest,
+  onSync,
   reingesting,
-  justSynced,
+  syncResult,
+  syncError,
 }: {
-  reingest: () => Promise<void>;
+  onSync: () => Promise<void>;
   reingesting: boolean;
-  justSynced: boolean;
+  syncResult: "success" | "failed" | null;
+  syncError: string | null;
 }) {
+  const justSynced = syncResult === "success";
+  const syncFailed = syncResult === "failed";
+
   return (
     <button
       type="button"
-      onClick={reingest}
-      disabled={reingesting || justSynced}
+      onClick={onSync}
+      disabled={reingesting || justSynced || syncFailed}
+      title={syncFailed && syncError ? syncError : undefined}
       className={`group inline-flex h-9 items-center gap-2 self-start rounded-md border bg-white px-4 text-[13px] font-medium shadow-soft transition-colors duration-300 ease-editorial disabled:cursor-not-allowed ${
         justSynced
           ? "border-positive-100 text-positive-700"
+          : syncFailed
+            ? "border-critical-100 text-critical-700"
           : "border-ink-200 text-ink-800 hover:border-accent-300 hover:bg-accent-50/40 disabled:opacity-60"
       }`}
     >
@@ -211,6 +245,24 @@ function SyncWorkspaceButton({
             </svg>
           </span>
           <span className="animate-fade font-serif italic text-positive-700">Synced.</span>
+        </>
+      ) : syncFailed ? (
+        <>
+          <span className="relative inline-flex h-3 w-3 shrink-0 items-center justify-center" aria-hidden="true">
+            <span className="absolute inline-flex h-3 w-3 animate-editorial-bloom rounded-full bg-critical-500/30" />
+            <svg
+              viewBox="0 0 12 12"
+              className="relative h-[11px] w-[11px] animate-fade text-critical-700"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+            >
+              <path d="M3.2 3.2 L8.8 8.8" />
+              <path d="M8.8 3.2 L3.2 8.8" />
+            </svg>
+          </span>
+          <span className="animate-fade font-serif italic text-critical-700">Could not be synced.</span>
         </>
       ) : reingesting ? (
         <>

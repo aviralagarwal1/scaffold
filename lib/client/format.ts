@@ -1,4 +1,5 @@
 import type { DistributionPlatform } from "@/types/ai";
+import type { WorkspaceStatus } from "@/types/workspace";
 
 export function formatDate(value: string | null | undefined, opts?: { withTime?: boolean }): string {
   if (!value) return "";
@@ -75,8 +76,18 @@ export function platformCharLimit(platform: DistributionPlatform): number {
   }
 }
 
-export function statusLabel(status: string): string {
-  return status.charAt(0).toUpperCase() + status.slice(1);
+export function statusLabel(status: WorkspaceStatus): string {
+  switch (status) {
+    case "ready":
+      return "Live";
+    case "pending":
+    case "ingesting":
+      return "Syncing";
+    case "partial":
+      return "Partial";
+    case "failed":
+      return "Failed";
+  }
 }
 
 export function hostnameOf(url: string): string {

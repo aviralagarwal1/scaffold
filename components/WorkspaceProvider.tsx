@@ -75,6 +75,7 @@ export function WorkspaceProvider({ token, children }: { token: string; children
       }
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Sync failed.");
+      throw err;
     } finally {
       setReingesting(false);
     }

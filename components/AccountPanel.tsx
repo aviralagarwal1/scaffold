@@ -9,7 +9,7 @@ import { api, ApiClientError } from "@/lib/client/api";
 import { cn } from "@/lib/client/cn";
 import { sanitizeAsTyped, validateCuratorName } from "@/lib/client/curator-name";
 import { sanitizeCreatorAsTyped, validateCreatorName } from "@/lib/client/creator-name";
-import { formatRelative, hostnameOf, pluralize } from "@/lib/client/format";
+import { formatRelative, hostnameOf, pluralize, statusLabel } from "@/lib/client/format";
 import { LoadingState } from "./states";
 import { TokenUsageBadge } from "./TokenUsageBadge";
 
@@ -653,14 +653,14 @@ function StatusBadge({ status }: { status: WorkspaceStatus }) {
   const config = (() => {
     switch (status) {
       case "ready":
-        return { label: "Ready", className: "border-positive-100 bg-positive-100/40 text-positive-700" };
+        return { label: statusLabel(status), className: "border-positive-100 bg-positive-100/40 text-positive-700" };
       case "ingesting":
       case "pending":
-        return { label: "Reading", className: "border-accent-200 bg-accent-50 text-accent-700" };
+        return { label: statusLabel(status), className: "border-accent-200 bg-accent-50 text-accent-700" };
       case "partial":
-        return { label: "Partial", className: "border-accent-200 bg-accent-50/60 text-accent-700" };
+        return { label: statusLabel(status), className: "border-accent-200 bg-accent-50/60 text-accent-700" };
       case "failed":
-        return { label: "Failed", className: "border-critical-100 bg-critical-100/40 text-critical-700" };
+        return { label: statusLabel(status), className: "border-critical-100 bg-critical-100/40 text-critical-700" };
     }
   })();
 
