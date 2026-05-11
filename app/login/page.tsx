@@ -7,16 +7,33 @@ export const metadata = {
   title: "Sign in · Scaffold",
 };
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ verified?: string }>;
+}) {
+  const params = await searchParams;
+  const emailJustVerified = params?.verified === "1";
+
   return (
     <AuthSurface
-      eyebrow="§ / Return"
+      eyebrow={emailJustVerified ? "§ / Verified" : "§ / Return"}
       headline={
-        <>
-          Return to <em className="font-serif italic text-ink-700">your desk.</em>
-        </>
+        emailJustVerified ? (
+          <>
+            Open <em className="font-serif italic text-ink-700">your desk.</em>
+          </>
+        ) : (
+          <>
+            Return to <em className="font-serif italic text-ink-700">your desk.</em>
+          </>
+        )
       }
-      subhead="Your workspaces, your saved ideas, and your curator — all where you left them."
+      subhead={
+        emailJustVerified
+          ? "Your email is verified. Sign in once to open your workspace."
+          : "Your workspaces, your saved ideas, and your curator — all where you left them."
+      }
     >
       <Suspense fallback={null}>
         <AuthedRedirect />
