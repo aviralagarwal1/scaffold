@@ -31,7 +31,7 @@ export default async function LoginPage({
       }
       subhead={
         emailJustVerified
-          ? "Your email is verified. Sign in once to open your workspace."
+          ? "Your email is verified. Sign in to open your workspace."
           : "Your workspaces, your saved ideas, and your curator — all where you left them."
       }
     >
