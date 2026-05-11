@@ -5,7 +5,17 @@ import { AppShell } from "@/components/AppShell";
 import { Providers } from "@/components/Providers";
 import { authOptions } from "@/lib/server/auth/options";
 
+function publicAppUrl(): URL {
+  const raw = process.env.APP_BASE_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
+  try {
+    return new URL(raw);
+  } catch {
+    return new URL("http://localhost:3000");
+  }
+}
+
 export const metadata: Metadata = {
+  metadataBase: publicAppUrl(),
   title: "Scaffold",
   description:
     "Build an AI-powered workspace around a publication library, then get tailored feedback, ideas, and distribution drafts grounded in the writing.",

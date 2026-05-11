@@ -19,9 +19,14 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=8080
+ENV PYTHON=python3
 
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
+
+COPY requirements.txt ./
+RUN apk add --no-cache python3 py3-pip && \
+    python3 -m pip install --no-cache-dir --break-system-packages -r requirements.txt
 
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./

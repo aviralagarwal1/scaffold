@@ -1,10 +1,28 @@
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
 import { AccountPanel } from "@/components/AccountPanel";
+import { authOptions } from "@/lib/server/auth/options";
 
 export const metadata = {
   title: "Account · Scaffold",
 };
 
-export default function AccountPage() {
+type AccountPageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function AccountPage({ searchParams }: AccountPageProps) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    const params = await searchParams;
+    const callbackParams = new URLSearchParams();
+    for (const [key, value] of Object.entries(params ?? {})) {
+      if (typeof value === "string") callbackParams.set(key, value);
+    }
+    const callbackUrl = callbackParams.size > 0 ? `/account?${callbackParams.toString()}` : "/account";
+    redirect(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+  }
+
   return (
     <section className="relative overflow-hidden">
       {/* Continuity wash. Same warm bronze the marketing hero and auth pages
