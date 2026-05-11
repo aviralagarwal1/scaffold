@@ -44,9 +44,9 @@ export function UserMenu() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  // Fetch the creator's identity once we know we're authenticated. The 401
-  // case is silently swallowed — the menu falls back to session data, which
-  // is enough to render something sensible.
+  // Fetch the creator's identity once we know we're authenticated. If the
+  // account row is gone but a JWT cookie remains, clear the stale session
+  // instead of showing logged-in chrome.
   const loadProfile = useCallback(() => {
     if (status !== "authenticated") return;
     let active = true;
@@ -57,7 +57,9 @@ export function UserMenu() {
       })
       .catch((err) => {
         if (!active) return;
-        if (err instanceof ApiClientError && err.status === 401) return;
+        if (err instanceof ApiClientError && (err.status === 401 || err.status === 404)) {
+          void signOut({ callbackUrl: "/" });
+        }
       });
     return () => {
       active = false;

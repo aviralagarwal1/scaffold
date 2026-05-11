@@ -1,7 +1,6 @@
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { AccountPanel } from "@/components/AccountPanel";
-import { authOptions } from "@/lib/server/auth/options";
+import { getCurrentUserId } from "@/lib/server/auth/current";
 
 export const metadata = {
   title: "Account · Scaffold",
@@ -12,8 +11,8 @@ type AccountPageProps = {
 };
 
 export default async function AccountPage({ searchParams }: AccountPageProps) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const userId = await getCurrentUserId();
+  if (!userId) {
     const params = await searchParams;
     const callbackParams = new URLSearchParams();
     for (const [key, value] of Object.entries(params ?? {})) {
