@@ -1,0 +1,14 @@
+.git
+.next
+.venv
+.claude
+.data
+node_modules
+npm-debug.log*
+*.log
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+key.json
+secrets.*
