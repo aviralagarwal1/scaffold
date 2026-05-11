@@ -49,7 +49,7 @@ function renderNavItems(pathname: string | null, isAuthenticated: boolean): Reac
     return (
       <>
         {subpath !== "settings" && (
-          <Link href={`/workspace/${token}/settings`} className="btn-secondary">
+          <Link href={`/workspace/${token}/settings#sync`} className="btn-secondary">
             Sync Workspace
           </Link>
         )}

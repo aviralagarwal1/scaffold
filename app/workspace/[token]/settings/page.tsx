@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
-import { PrivateLinkBanner } from "@/components/PrivateLinkBanner";
 import { useWorkspace } from "@/components/WorkspaceProvider";
 import { api, ApiClientError } from "@/lib/client/api";
 import { cn } from "@/lib/client/cn";
@@ -113,25 +112,23 @@ export default function SettingsPage() {
 
       <ProfilePanel profile={profile} creatorDisplay={creatorDisplay} />
 
-      <PrivateLinkBanner token={token} />
-
       <TokenUsagePanel usage={overview.tokenUsage} />
 
-      <section className="panel flex flex-col gap-4 p-5">
-        <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <section id="sync" className="scroll-mt-28 panel flex flex-col gap-4 p-5">
+        <header>
           <div>
             <h3 className="font-serif text-[18px] leading-snug tracking-tightish text-ink-900">Publication</h3>
             <p className="mt-1 text-[12.5px] leading-snug text-ink-500">
               Settings and library sync for this workspace.
             </p>
           </div>
-          <SyncWorkspaceButton reingest={reingest} reingesting={reingesting} justSynced={justSynced} />
         </header>
 
         <PublicationNameField
           initial={overview.publicationName ?? hostnameOf(overview.publicationUrl)}
           token={token}
           onSaved={refetch}
+          syncAction={<SyncWorkspaceButton reingest={reingest} reingesting={reingesting} justSynced={justSynced} />}
         />
 
         <dl className="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-6 gap-y-1.5 border-t border-ink-200/60 pt-3 text-[12.5px] text-ink-700">
@@ -191,7 +188,7 @@ function SyncWorkspaceButton({
       type="button"
       onClick={reingest}
       disabled={reingesting || justSynced}
-      className={`group inline-flex h-10 items-center gap-2 self-start rounded-md border bg-white px-3.5 text-[13px] font-medium shadow-soft transition-colors duration-300 ease-editorial disabled:cursor-not-allowed ${
+      className={`group inline-flex h-9 items-center gap-2 self-start rounded-md border bg-white px-4 text-[13px] font-medium shadow-soft transition-colors duration-300 ease-editorial disabled:cursor-not-allowed ${
         justSynced
           ? "border-positive-100 text-positive-700"
           : "border-ink-200 text-ink-800 hover:border-accent-300 hover:bg-accent-50/40 disabled:opacity-60"
@@ -394,10 +391,12 @@ function PublicationNameField({
   initial,
   token,
   onSaved,
+  syncAction,
 }: {
   initial: string;
   token: string;
   onSaved: () => Promise<void>;
+  syncAction: React.ReactNode;
 }) {
   const [name, setName] = useState(initial);
   const [busy, setBusy] = useState(false);
@@ -459,6 +458,7 @@ function PublicationNameField({
           <button type="submit" className="btn-primary" disabled={busy || name.trim() === initial.trim()}>
             {busy ? "Saving..." : "Save"}
           </button>
+          {syncAction}
         </div>
       </div>
       {error && <p className="font-serif italic text-[12.5px] text-ink-500">{error}</p>}
