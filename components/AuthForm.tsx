@@ -148,18 +148,6 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         </div>
       )}
 
-      {isRegister && incomingPublicationUrl && (
-        <div className="-mt-1 flex items-start gap-3 rounded-md border border-accent-200/70 bg-accent-50/50 px-3 py-2.5">
-          <span className="mt-0.5 font-serif text-[14px] leading-none text-accent-500" aria-hidden="true">§</span>
-          <div className="min-w-0">
-            <p className="text-[12.5px] leading-snug text-ink-700">
-              We&rsquo;ll wire <span className="font-medium text-ink-900">{incomingPublicationUrl}</span> in once
-              you&rsquo;ve named yourself and your curator on the next page.
-            </p>
-          </div>
-        </div>
-      )}
-
       <label className="flex flex-col gap-2">
         <span className="type-eyebrow text-ink-400">Email</span>
         <input
