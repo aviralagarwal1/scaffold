@@ -3,12 +3,14 @@ import { NextResponse } from "next/server";
 import { generateDraftFeedback } from "@/lib/server/ai";
 import { apiError } from "@/lib/server/errors";
 import { readJson, requireString } from "@/lib/server/http";
+import { requireWorkspaceAccess } from "@/lib/server/workspace-access";
 
 type RouteContext = { params: Promise<{ token: string }> };
 
 export async function POST(request: Request, context: RouteContext) {
   try {
     const { token } = await context.params;
+    await requireWorkspaceAccess(token, "edit");
     const body = await readJson<DraftFeedbackRequest>(request);
     const focus = Array.isArray(body.focus)
       ? body.focus.filter((value): value is string => typeof value === "string")

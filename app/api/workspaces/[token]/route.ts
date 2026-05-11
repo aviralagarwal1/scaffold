@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { canEditAccountWorkspace, updateAccountWorkspacePublicationName } from "@/lib/server/account-workspaces";
-import { requireCurrentUserId } from "@/lib/server/auth/current";
+import { updateAccountWorkspacePublicationName } from "@/lib/server/account-workspaces";
 import { apiError, AppError } from "@/lib/server/errors";
 import { readJson } from "@/lib/server/http";
 import { getWorkspaceOverview, updateWorkspacePublicationName } from "@/lib/server/store";
+import { requireWorkspaceAccess } from "@/lib/server/workspace-access";
 
 type RouteContext = { params: Promise<{ token: string }> };
 type UpdateWorkspaceRequest = { publicationName?: unknown };
@@ -11,6 +11,7 @@ type UpdateWorkspaceRequest = { publicationName?: unknown };
 export async function GET(_request: Request, context: RouteContext) {
   try {
     const { token } = await context.params;
+    await requireWorkspaceAccess(token);
     return NextResponse.json(await getWorkspaceOverview(token));
   } catch (error) {
     return apiError(error, "Could not load workspace.");
@@ -20,15 +21,9 @@ export async function GET(_request: Request, context: RouteContext) {
 export async function PATCH(request: Request, context: RouteContext) {
   try {
     const { token } = await context.params;
+    await requireWorkspaceAccess(token, "edit");
     const body = await readJson<UpdateWorkspaceRequest>(request);
     const publicationName = requirePublicationName(body.publicationName);
-
-    if (process.env.DATABASE_URL) {
-      const userId = await requireCurrentUserId();
-      if (!(await canEditAccountWorkspace(userId, token))) {
-        throw new AppError("You can edit only publications on your own desk.", 403);
-      }
-    }
 
     const overview = await updateWorkspacePublicationName(token, publicationName);
     if (process.env.DATABASE_URL) {

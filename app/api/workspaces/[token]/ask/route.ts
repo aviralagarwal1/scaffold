@@ -3,12 +3,14 @@ import { NextResponse } from "next/server";
 import { answerArchiveQuestion } from "@/lib/server/ai";
 import { apiError } from "@/lib/server/errors";
 import { readJson, requireString } from "@/lib/server/http";
+import { requireWorkspaceAccess } from "@/lib/server/workspace-access";
 
 type RouteContext = { params: Promise<{ token: string }> };
 
 export async function POST(request: Request, context: RouteContext) {
   try {
     const { token } = await context.params;
+    await requireWorkspaceAccess(token, "edit");
     const body = await readJson<AskRequest>(request);
     return NextResponse.json(await answerArchiveQuestion(token, requireString(body.message, "Ask a question.")));
   } catch (error) {

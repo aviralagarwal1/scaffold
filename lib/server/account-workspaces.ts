@@ -115,14 +115,42 @@ export async function recordOwnedWorkspace(userId: string, input: OwnedWorkspace
 
 export async function canEditAccountWorkspace(userId: string, token: string): Promise<boolean> {
   const db = getDb();
+  const [workspace] = await db
+    .select({ id: workspaces.id, ownerUserId: workspaces.ownerUserId })
+    .from(workspaces)
+    .where(eq(workspaces.token, token))
+    .limit(1);
+
+  if (!workspace) return false;
+  if (workspace.ownerUserId === userId) return true;
+
   const [membership] = await db
     .select({ role: workspaceMemberships.role })
     .from(workspaceMemberships)
-    .innerJoin(workspaces, eq(workspaces.id, workspaceMemberships.workspaceId))
-    .where(and(eq(workspaceMemberships.userId, userId), eq(workspaces.token, token)))
+    .where(and(eq(workspaceMemberships.userId, userId), eq(workspaceMemberships.workspaceId, workspace.id)))
     .limit(1);
 
   return Boolean(membership && membership.role !== "viewer");
+}
+
+export async function canViewAccountWorkspace(userId: string, token: string): Promise<boolean> {
+  const db = getDb();
+  const [workspace] = await db
+    .select({ id: workspaces.id, ownerUserId: workspaces.ownerUserId })
+    .from(workspaces)
+    .where(eq(workspaces.token, token))
+    .limit(1);
+
+  if (!workspace) return false;
+  if (workspace.ownerUserId === userId) return true;
+
+  const [membership] = await db
+    .select({ userId: workspaceMemberships.userId })
+    .from(workspaceMemberships)
+    .where(and(eq(workspaceMemberships.userId, userId), eq(workspaceMemberships.workspaceId, workspace.id)))
+    .limit(1);
+
+  return Boolean(membership);
 }
 
 export async function updateAccountWorkspacePublicationName(token: string, publicationName: string): Promise<void> {

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { generateDistributionDrafts } from "@/lib/server/ai";
 import { AppError, apiError } from "@/lib/server/errors";
 import { readJson, requireString } from "@/lib/server/http";
+import { requireWorkspaceAccess } from "@/lib/server/workspace-access";
 
 type RouteContext = { params: Promise<{ token: string }> };
 
@@ -11,6 +12,7 @@ const platforms: DistributionPlatform[] = ["twitter", "linkedin", "facebook", "i
 export async function POST(request: Request, context: RouteContext) {
   try {
     const { token } = await context.params;
+    await requireWorkspaceAccess(token, "edit");
     const body = await readJson<DistributionRequest>(request);
     const postId = requireString(body.postId, "Choose a post to repurpose.");
     const platform = requireString(body.platform, "Choose a platform.") as DistributionPlatform;

@@ -22,6 +22,10 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
     const raw = params?.get("publicationUrl") ?? "";
     return raw.trim();
   }, [params]);
+  const callbackUrl = useMemo(() => {
+    const raw = params?.get("callbackUrl") ?? "";
+    return raw.startsWith("/") && !raw.startsWith("//") ? raw : "";
+  }, [params]);
   const initialEmail = useMemo(() => {
     const raw = params?.get("email") ?? "";
     return raw.trim();
@@ -95,7 +99,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
       const tail = incomingPublicationUrl
         ? `?publicationUrl=${encodeURIComponent(incomingPublicationUrl)}`
         : "";
-      router.push(`/account${tail}`);
+      router.push(callbackUrl || `/account${tail}`);
       router.refresh();
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Could not continue.");

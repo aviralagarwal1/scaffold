@@ -30,13 +30,16 @@ export function AuthedRedirect({
   useEffect(() => {
     if (status !== "authenticated") return;
     const url = params?.get("publicationUrl");
+    const callbackUrl = params?.get("callbackUrl") ?? "";
+    const safeCallbackUrl = callbackUrl.startsWith("/") && !callbackUrl.startsWith("//") ? callbackUrl : "";
     const tail = url ? `?publicationUrl=${encodeURIComponent(url)}` : "";
+    const destination = safeCallbackUrl || `${to}${tail}`;
     if (delayMs <= 0) {
-      router.replace(`${to}${tail}`);
+      router.replace(destination);
       return;
     }
     const timer = window.setTimeout(() => {
-      router.replace(`${to}${tail}`);
+      router.replace(destination);
     }, delayMs);
     return () => window.clearTimeout(timer);
   }, [status, params, router, to, delayMs]);
