@@ -107,6 +107,9 @@ async function sendPasswordResetEmail(
       from,
       to: email,
       subject: "Reset your Scaffold password",
+      headers: {
+        "X-Entity-Ref-ID": randomBytes(16).toString("hex"),
+      },
       text: [
         "Reset your Scaffold password.",
         "",

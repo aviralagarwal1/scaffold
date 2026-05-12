@@ -223,6 +223,9 @@ async function sendVerificationEmail(
       from,
       to: email,
       subject: "Verify your Scaffold account",
+      headers: {
+        "X-Entity-Ref-ID": randomBytes(16).toString("hex"),
+      },
       text: [
         "Welcome to Scaffold.",
         "",
