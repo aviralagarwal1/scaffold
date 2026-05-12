@@ -13,9 +13,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@auth/drizzle-adapter": "^1.11.2",
     "drizzle-orm": "^0.45.2",
-    "nanoid": "5.1.5",
     "next": "16.2.6",
     "next-auth": "^4.24.14",
     "postgres": "^3.4.9",
