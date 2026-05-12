@@ -1,22 +1,11 @@
-"use client";
-
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { redirect } from "next/navigation";
 import { SubstackUrlForm } from "@/components/SubstackUrlForm";
+import { getCurrentUserId } from "@/lib/server/auth/current";
 
-export default function NewPublicationPage() {
-  const router = useRouter();
-  const { status } = useSession();
-
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      router.replace("/register");
-    }
-  }, [status, router]);
-
-  if (status !== "authenticated") {
-    return <div className="min-h-[calc(100svh-3.5rem)]" aria-hidden="true" />;
+export default async function NewPublicationPage() {
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    redirect("/register");
   }
 
   return (
