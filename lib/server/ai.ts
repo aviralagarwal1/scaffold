@@ -343,13 +343,13 @@ export async function analyzeArchiveThemes(
   const modelCandidates = await generateThemeCandidates(context, publicationName, usage);
   const candidates = mergeThemeCandidates([...deterministicCandidates, ...modelCandidates]);
   if (candidates.length === 0) {
-    console.warn("Archive theme candidate generation unavailable; using deterministic fallback.");
+    console.warn("Library theme candidate generation unavailable; using deterministic fallback.");
     return [];
   }
 
   const themes = await curateArchiveThemes(context, publicationName, candidates, new Set(posts.map((post) => post.id)), usage);
   if (themes.length === 0) {
-    console.warn("Archive theme curation returned no usable themes; using deterministic fallback.");
+    console.warn("Library theme curation returned no usable themes; using deterministic fallback.");
     return buildFallbackCuratedThemes(candidates);
   }
   return themes;

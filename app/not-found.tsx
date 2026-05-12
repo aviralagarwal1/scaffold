@@ -10,7 +10,7 @@ export default function NotFound() {
         Nothing here.
       </h1>
       <p className="animate-rise animate-delay-3 mt-3 font-serif text-[16.5px] leading-relaxed text-ink-600">
-        If you were looking for a workspace, double-check the private link you were given. Otherwise, start a new one.
+        If you were looking for a workspace, double-check the workspace link. Otherwise, start a new one.
       </p>
       <div className="animate-rise animate-delay-4 mt-10 flex justify-center gap-3">
         <Link href="/" className="btn-secondary">

@@ -17,10 +17,10 @@ const STEPS = [
   },
 ];
 
-// The §03 section reuses the SampleAnswerCard's archive — the three posts
+// The §03 section reuses the SampleAnswerCard's library context — the three posts
 // the AI cites in its primary answer. Same titles, same dates as the hero
 // preview, so the brand world stays internally consistent: this is a real
-// archive that surfaces the same evidence wherever you encounter it.
+// library surface that cites the same evidence wherever you encounter it.
 const CITED_POSTS = [
   {
     date: "Mar 14",
@@ -164,7 +164,7 @@ export default function HomePage() {
           The composition makes the editorial claim literal: a single AI
           answer (left, primary) carries inline citation markers, and the
           right column is the actual evidence — three numbered post-citations
-          pulled from the archive. The shared numbers tether the two sides
+          pulled from the library. The shared numbers tether the two sides
           without needing a literal connector line. */}
       <section className="animate-rise animate-delay-5 border-b border-ink-200/60">
         <div className="mx-auto max-w-6xl px-6 py-24">
@@ -211,7 +211,7 @@ export default function HomePage() {
         />
 
         <div className="relative mx-auto max-w-6xl px-6 py-32 md:py-40">
-          {/* Marginalia — fragments of the archive surrounding the moment.
+          {/* Marginalia — fragments of the library surrounding the moment.
               Hidden below lg to keep the centered content uncrowded on
               tablet/mobile. Each fragment shimmers on its own phase. */}
           <ArchiveFragment
@@ -297,7 +297,7 @@ function ReturningVisitorCTA() {
 }
 
 /**
- * Archive marginalia. Floats around the closing section's centered moment as
+ * Library marginalia. Floats around the closing section's centered moment as
  * fragments of the writer's own work — date in mono caps with an accent dot
  * before it, italic excerpt beneath. No card chrome, no border, no fill —
  * these read as notes drifting in the page margins, not UI surfaces.

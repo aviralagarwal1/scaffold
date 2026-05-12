@@ -23,7 +23,7 @@ export default function OverviewPage() {
         <PrivateLinkBanner token={token} />
       </div>
 
-      {/* Ingestion status — only when not ready. Once ready, the nav header
+      {/* Sync status — only when not ready. Once ready, the nav header
           carries the live status, so we don't repeat it as a panel. */}
       {showIngestion && (
         <div className="animate-rise animate-delay-2">
@@ -83,7 +83,7 @@ export default function OverviewPage() {
           )}
         </section>
 
-        {/* Right: archive rail — themes above, latest post below, one composed surface */}
+        {/* Right: library rail — themes above, latest post below, one composed surface */}
         <aside className="animate-rise animate-delay-4 md:col-span-5">
           <ArchiveRail
             themes={overview.archiveThemes}

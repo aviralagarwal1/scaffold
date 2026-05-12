@@ -21,7 +21,7 @@ export function IdeasPanel({ token, disabled }: { token: string; disabled?: bool
   // Compose state.
   // - selectedLensLabel: the chip the user has committed to (single-select).
   // - customThemes: user-added theme labels. Persisted separately from the
-  //   workspace's recurring themes (those only refresh on archive sync).
+  //   workspace's recurring themes (those only refresh on library sync).
   // - notes: required brainstorm/feeling text that grounds the theme.
   const [selectedLensLabel, setSelectedLensLabel] = useState<string | null>(null);
   const [customThemes, setCustomThemes] = useState<string[]>([]);

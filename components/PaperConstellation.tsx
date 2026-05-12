@@ -9,7 +9,7 @@ import type { SearchResult } from "@/types/ai";
 //   > 72       → density hurts both noticeability and the paper SVG itself.
 // 16×3 keeps the canvas cinematic and short (~125px tall), so matches don't
 // drown to the bottom of the screen. The "shelf of papers" silhouette also
-// reads more archive-evocative than a square block.
+// reads more library-evocative than a square block.
 const COLS = 16;
 const ROWS = 3;
 const TOTAL_PAPERS = COLS * ROWS;

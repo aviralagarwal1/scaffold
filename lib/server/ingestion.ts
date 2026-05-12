@@ -38,7 +38,7 @@ export async function ingestWorkspace(token: string) {
       await setWorkspaceStatus(token, previousStatus, previousError);
       throw error;
     }
-    console.error("Ingestion failed", error);
+    console.error("Workspace sync failed", error);
     return setWorkspaceStatus(token, "failed", INGESTION_FAILURE);
   }
 }
