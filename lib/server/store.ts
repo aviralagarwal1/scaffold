@@ -454,6 +454,28 @@ export async function createWorkspace(publicationUrl: string): Promise<Workspace
   });
 }
 
+export async function deleteWorkspacesByTokens(tokens: string[]): Promise<void> {
+  const wanted = new Set(tokens.filter(Boolean));
+  if (wanted.size === 0) return;
+
+  await mutateDb((db) => {
+    const workspaceIds = new Set(
+      db.workspaces
+        .filter((workspace) => wanted.has(workspace.token))
+        .map((workspace) => workspace.id)
+    );
+    if (workspaceIds.size === 0) return;
+
+    db.workspaces = db.workspaces.filter((workspace) => !workspaceIds.has(workspace.id));
+    db.posts = db.posts.filter((post) => !workspaceIds.has(post.workspaceId));
+    db.chunks = db.chunks.filter((chunk) => !workspaceIds.has(chunk.workspaceId));
+    db.repurposeDrafts = db.repurposeDrafts.filter((draft) => !workspaceIds.has(draft.workspaceId));
+    db.grammarIssues = db.grammarIssues.filter((issue) => !workspaceIds.has(issue.workspaceId));
+    db.savedIdeas = db.savedIdeas.filter((idea) => !workspaceIds.has(idea.workspaceId));
+    db.tokenUsageEvents = (db.tokenUsageEvents ?? []).filter((event) => !workspaceIds.has(event.workspaceId));
+  });
+}
+
 export async function getWorkspaceByToken(token: string): Promise<Workspace> {
   const db = await readDb();
   const workspace = db.workspaces.find((item) => item.token === token);

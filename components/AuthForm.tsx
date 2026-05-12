@@ -31,6 +31,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
     return raw.trim();
   }, [params]);
   const emailJustVerified = params?.get("verified") === "1";
+  const accountDeleted = isRegister && params?.get("deleted") === "1";
 
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
@@ -142,6 +143,12 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
 
   return (
     <form onSubmit={onSubmit} className="panel flex flex-col gap-5 p-6" noValidate>
+      {accountDeleted && (
+        <div className="-mt-1 rounded-md border border-ink-200 bg-ink-50 px-3 py-2 text-[13px] text-ink-700">
+          Account deleted. You can start again here.
+        </div>
+      )}
+
       {!isRegister && emailJustVerified && (
         <div className="-mt-1 rounded-md border border-positive-100 bg-positive-100/40 px-3 py-2 text-[13px] text-positive-700">
           Email verified. Sign in to open your desk.

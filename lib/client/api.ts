@@ -101,6 +101,11 @@ export const api = {
       body: JSON.stringify(body),
     });
   },
+  deleteAccount() {
+    return request<{ ok: true }>("/api/me", {
+      method: "DELETE",
+    });
+  },
   createWorkspace(body: CreateWorkspaceRequest) {
     return request<CreateWorkspaceResponse>("/api/workspaces", {
       method: "POST",

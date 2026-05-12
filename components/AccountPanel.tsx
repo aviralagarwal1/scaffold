@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { signOut } from "next-auth/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { UserProfile } from "@/types/auth";
 import type { AccountWorkspaceSummary, TokenUsageSummary, WorkspaceStatus } from "@/types/workspace";
@@ -10,6 +11,7 @@ import { cn } from "@/lib/client/cn";
 import { sanitizeAsTyped, validateCuratorName } from "@/lib/client/curator-name";
 import { sanitizeCreatorAsTyped, validateCreatorName } from "@/lib/client/creator-name";
 import { formatRelative, hostnameOf, pluralize, statusLabel } from "@/lib/client/format";
+import { ConfirmButton } from "./ConfirmButton";
 import { LoadingState } from "./states";
 import { TokenUsageBadge } from "./TokenUsageBadge";
 
@@ -181,6 +183,7 @@ export function AccountPanel() {
         workspaces={workspaces}
         onGateContinue={promptMissingNames}
       />
+      {workspaces.length > 0 && <AccountDeletionPanel />}
     </div>
   );
 }
@@ -676,5 +679,47 @@ function StatusBadge({ status }: { status: WorkspaceStatus }) {
       )}
       {config.label}
     </span>
+  );
+}
+
+function AccountDeletionPanel() {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const deleteAccount = async () => {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await api.deleteAccount();
+      await signOut({ callbackUrl: "/register?deleted=1" });
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : "Could not delete account.");
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="panel-quiet flex flex-col gap-4 border-critical-100/70 bg-critical-100/20 p-6">
+      <div>
+        <span className="type-eyebrow text-critical-700">Danger Zone</span>
+        <h2 className="mt-2 font-serif text-[22px] leading-snug tracking-tightish text-ink-900">
+          Delete account.
+        </h2>
+        <p className="mt-2 max-w-2xl text-[13.5px] leading-relaxed text-ink-600">
+          Permanently deletes your account, profile, and owned workspaces. This action cannot be undone.
+        </p>
+      </div>
+      {error && <p className="font-serif italic text-[12.5px] text-critical-700">{error}</p>}
+      <ConfirmButton
+        label="Delete account"
+        confirmLabel="Delete permanently"
+        busyLabel="Deleting..."
+        busy={busy}
+        onConfirm={deleteAccount}
+        className="inline-flex h-9 items-center justify-center self-start rounded-md border border-critical-100 bg-white px-3.5 text-[13px] font-medium text-critical-700 shadow-soft transition-colors duration-150 ease-editorial hover:border-critical-200 hover:bg-critical-100/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-critical-500/40 disabled:cursor-not-allowed disabled:opacity-50"
+        armedClassName="border-critical-200 bg-critical-100 text-critical-700 ring-2 ring-critical-500/35"
+      />
+    </section>
   );
 }

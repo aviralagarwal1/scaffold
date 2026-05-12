@@ -1,10 +1,11 @@
-import { eq } from "drizzle-orm";
+import { eq, like, or } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { requireCurrentUserId } from "@/lib/server/auth/current";
 import { getDb } from "@/lib/server/db";
-import { profiles, users } from "@/lib/server/db/schema";
+import { profiles, users, verificationTokens, workspaces } from "@/lib/server/db/schema";
 import { apiError, AppError } from "@/lib/server/errors";
 import { readJson } from "@/lib/server/http";
+import { deleteWorkspacesByTokens } from "@/lib/server/store";
 
 type UpdateProfileRequest = {
   creatorName?: unknown;
@@ -51,6 +52,51 @@ export async function PATCH(request: Request) {
     return NextResponse.json(await loadProfile(userId));
   } catch (error) {
     return apiError(error, "Could not update profile.");
+  }
+}
+
+export async function DELETE() {
+  try {
+    const userId = await requireCurrentUserId();
+    const db = getDb();
+    const [user] = await db
+      .select({ email: users.email })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    if (!user) throw new AppError("User not found.", 404);
+
+    const ownedWorkspaces = await db
+      .select({ token: workspaces.token })
+      .from(workspaces)
+      .where(eq(workspaces.ownerUserId, userId));
+    await deleteWorkspacesByTokens(
+      ownedWorkspaces.map((workspace) => workspace.token).filter((token): token is string => Boolean(token))
+    );
+
+    await db.transaction(async (tx) => {
+      if (user.email) {
+        await tx
+          .delete(verificationTokens)
+          .where(
+            or(
+              eq(verificationTokens.identifier, `email:${user.email}`),
+              eq(verificationTokens.identifier, `password-reset:${user.email}`),
+              like(verificationTokens.identifier, `registration:${user.email}:%`)
+            )
+          );
+      }
+
+      const [deleted] = await tx
+        .delete(users)
+        .where(eq(users.id, userId))
+        .returning({ id: users.id });
+      if (!deleted) throw new AppError("User not found.", 404);
+    });
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    return apiError(error, "Could not delete account.");
   }
 }
 
