@@ -226,21 +226,15 @@ body {
   }
 
   /* === Section marker ===
-     Editorial chapter mark for landing-page sections. Echoes the §
-     in the wordmark; signals "this is a discrete passage of the page."
+     Editorial passage mark for landing-page sections. Echoes the §
+     in the wordmark without implying a missing first numbered chapter.
      Use ONCE per top-level section, never inside cards or panels.
   */
   .section-marker {
-    @apply flex items-baseline gap-2 font-mono text-[11px] uppercase tracking-[0.16em];
+    @apply flex items-baseline gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-accent-700;
   }
-  .section-marker > .section-number {
-    @apply text-accent-700;
-  }
-  .section-marker > .section-divider {
-    @apply text-ink-300;
-  }
-  .section-marker > .section-title {
-    @apply text-ink-500;
+  .section-marker > .section-symbol {
+    @apply font-serif text-[16px] leading-none;
   }
 
   /* === Anchored prose === */

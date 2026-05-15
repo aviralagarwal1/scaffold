@@ -105,11 +105,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* § 02 — How it works */}
+      {/* § — How it works */}
       <section className="animate-rise animate-delay-4 border-b border-ink-200/60 bg-white">
         <div className="mx-auto max-w-6xl px-6 py-24">
           <header className="mb-14">
-            <SectionMarker number="02" title="How it works" />
+            <SectionMarker title="How it works" />
             <h2 className="mt-4 font-serif text-[34px] leading-[1.1] tracking-tightish text-ink-900 md:text-[44px]">
               Three steps.{" "}
               {/* The italic phrase has a hairline accent rule that draws in
@@ -160,7 +160,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* § 03 — Why it works
+      {/* § — Why it works
           The composition makes the editorial claim literal: a single AI
           answer (left, primary) carries inline citation markers, and the
           right column is the actual evidence — three numbered post-citations
@@ -169,7 +169,7 @@ export default function HomePage() {
       <section className="animate-rise animate-delay-5 border-b border-ink-200/60">
         <div className="mx-auto max-w-6xl px-6 py-24">
           <header className="mb-14">
-            <SectionMarker number="03" title="Why it works" />
+            <SectionMarker title="Why it works" />
             <h2 className="mt-4 font-serif text-[34px] leading-[1.1] tracking-tightish text-ink-900 md:text-[44px]">
               Every answer is{" "}
               <span className="relative inline-block italic text-ink-700">
@@ -242,7 +242,7 @@ export default function HomePage() {
           {/* Center content */}
           <div className="relative mx-auto max-w-2xl text-left md:text-center">
             <div className="md:hidden">
-              <SectionMarker number="04" title="Start your workspace" />
+              <SectionMarker title="Start your workspace" />
               <h2 className="mt-4 font-serif text-[34px] leading-[1.1] tracking-tightish text-ink-900 min-[390px]:text-[38px]">
                 Start from your library.{" "}
                 <span className="relative inline-block italic text-ink-700">
@@ -354,12 +354,11 @@ function ArchiveFragment({
   );
 }
 
-function SectionMarker({ number, title }: { number: string; title: string }) {
+function SectionMarker({ title }: { title: string }) {
   return (
     <div className="section-marker">
-      <span className="section-number">§ {number}</span>
-      <span className="section-divider" aria-hidden="true">
-        /
+      <span className="section-symbol site-wordmark-mark" aria-hidden="true">
+        §
       </span>
       <span className="section-title">{title}</span>
     </div>
