@@ -3,7 +3,7 @@
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { api, ApiClientError } from "@/lib/client/api";
 import { cn } from "@/lib/client/cn";
 
@@ -13,6 +13,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
   const router = useRouter();
   const params = useSearchParams();
   const isRegister = mode === "register";
+  const passwordInputId = useId();
 
   // Landing-hook handoff. If the visitor came from the marketing hero with a
   // publication URL, we carry it through register → /account so the workspace
@@ -35,6 +36,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
 
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [verificationDelivery, setVerificationDelivery] = useState<"email" | "console" | null>(null);
@@ -169,21 +171,36 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         />
       </label>
 
-      <label className="flex flex-col gap-2">
-        <span className="type-eyebrow text-ink-400">Password</span>
-        <input
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          className={cn("input", passwordAlerting && "animate-editorial-nudge !border-ink-400")}
-          type="password"
-          autoComplete={isRegister ? "new-password" : "current-password"}
-          disabled={busy}
-          aria-invalid={passwordAlerting || undefined}
-        />
+      <div className="flex flex-col gap-2">
+        <label htmlFor={passwordInputId} className="type-eyebrow text-ink-400">
+          Password
+        </label>
+        <span className="relative block">
+          <input
+            id={passwordInputId}
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            className={cn("input pr-10", passwordAlerting && "animate-editorial-nudge !border-ink-400")}
+            type={showPassword ? "text" : "password"}
+            autoComplete={isRegister ? "new-password" : "current-password"}
+            disabled={busy}
+            aria-invalid={passwordAlerting || undefined}
+          />
+          <button
+            type="button"
+            className="absolute inset-y-0 right-0 inline-flex w-10 items-center justify-center rounded-r-md text-ink-400 transition-colors hover:text-ink-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300 disabled:cursor-not-allowed disabled:opacity-45"
+            onClick={() => setShowPassword((visible) => !visible)}
+            disabled={busy}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-pressed={showPassword}
+          >
+            <PasswordEyeIcon crossed={showPassword} />
+          </button>
+        </span>
         {isRegister && (
           <span className="text-[11.5px] leading-snug text-ink-400">At least 8 characters.</span>
         )}
-      </label>
+      </div>
 
       {error && (
         <div className="rounded-md border border-critical-100 bg-critical-100/40 px-3 py-2 text-[13px] text-critical-700">
@@ -223,5 +240,24 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         </button>
       </div>
     </form>
+  );
+}
+
+function PasswordEyeIcon({ crossed }: { crossed: boolean }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-4 w-4"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="1.8"
+    >
+      <path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z" />
+      <circle cx="12" cy="12" r="2.6" />
+      {crossed && <path d="M4.5 4.5 19.5 19.5" />}
+    </svg>
   );
 }
