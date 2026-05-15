@@ -14,7 +14,7 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-30 border-b border-ink-200/60 bg-ink-50/85 backdrop-blur-md">
-      <div className={`mx-auto flex max-w-6xl items-center justify-between px-6 ${isLanding ? "h-16 md:h-[72px]" : "h-14"}`}>
+      <div className={`mx-auto flex max-w-6xl items-center justify-between px-4 sm:px-6 ${isLanding ? "h-16 md:h-[72px]" : "h-14"}`}>
         <Link
           href="/"
           className="group flex items-center transition-opacity duration-200 ease-editorial hover:opacity-80"
@@ -22,7 +22,7 @@ export function SiteHeader() {
         >
           <Wordmark size={isLanding ? "lg" : "sm"} />
         </Link>
-        <nav className="flex items-center gap-3">{renderNavItems(pathname, isAuthenticated)}</nav>
+        <nav className="flex shrink-0 items-center gap-2 sm:gap-3">{renderNavItems(pathname, isAuthenticated)}</nav>
       </div>
     </header>
   );
@@ -61,7 +61,7 @@ function renderNavItems(pathname: string | null, isAuthenticated: boolean): Reac
   return (
     <>
       {pathname === "/" && (
-        <Link href="/about" className="btn-secondary">
+        <Link href="/about" className="btn-secondary hidden sm:inline-flex">
           About
         </Link>
       )}
@@ -103,14 +103,14 @@ function Wordmark({ size = "sm" }: { size?: "sm" | "lg" }) {
     <span className={`flex items-baseline ${isLg ? "gap-2" : "gap-1.5"} leading-none`}>
       <span
         aria-hidden="true"
-        className={`site-wordmark-mark font-serif text-accent-500 ${isLg ? "text-[24px]" : "text-[16px]"}`}
+        className={`site-wordmark-mark font-serif text-accent-500 ${isLg ? "text-[21px] sm:text-[24px]" : "text-[16px]"}`}
         style={{ transform: "translateY(0.5px)" }}
       >
         §
       </span>
       <span
         className={`font-serif tracking-tightish text-ink-900 ${
-          isLg ? "text-[26px]" : "text-[17px]"
+          isLg ? "text-[23px] sm:text-[26px]" : "text-[17px]"
         }`}
       >
         Scaffold

@@ -98,16 +98,16 @@ body {
 
   /* === Buttons === */
   .btn-primary {
-    @apply inline-flex h-9 items-center justify-center rounded-md bg-ink-900 px-4 text-[13px] font-medium tracking-tightish text-ink-50 shadow-soft transition-colors duration-150 ease-editorial hover:bg-ink-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-50 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-md bg-ink-900 px-4 text-[13px] font-medium tracking-tightish text-ink-50 shadow-soft transition-colors duration-150 ease-editorial hover:bg-ink-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-50 disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-primary-lg {
     @apply h-11 px-5 text-sm;
   }
   .btn-secondary {
-    @apply inline-flex h-9 items-center justify-center rounded-md border border-ink-200 bg-white px-3.5 text-[13px] font-medium text-ink-800 transition-colors duration-150 ease-editorial hover:border-ink-300 hover:bg-ink-75 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-50 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-md border border-ink-200 bg-white px-3.5 text-[13px] font-medium text-ink-800 transition-colors duration-150 ease-editorial hover:border-ink-300 hover:bg-ink-75 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-50 disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-ghost {
-    @apply inline-flex h-9 items-center justify-center rounded-md px-3 text-[13px] font-medium text-ink-600 transition-colors duration-150 hover:bg-ink-100 hover:text-ink-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300;
+    @apply inline-flex h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-md px-3 text-[13px] font-medium text-ink-600 transition-colors duration-150 hover:bg-ink-100 hover:text-ink-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300;
   }
   .btn-link {
     @apply inline-flex items-center gap-1 text-[13px] font-medium text-ink-800 underline-offset-[3px] transition-colors hover:text-accent-700 hover:underline;

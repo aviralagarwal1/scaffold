@@ -68,7 +68,7 @@ export default function HomePage() {
                 line is shorter than the last, tapering toward the warm
                 punchline noun. The em with the underline accent sits on
                 line two so the eye lands on it before the final word. */}
-            <h1 className="animate-rise animate-delay-1 font-serif text-[44px] leading-[1.04] tracking-tighter2 text-ink-900 md:text-[60px] md:leading-[1.02]">
+            <h1 className="animate-rise animate-delay-1 font-serif text-[40px] leading-[1.04] tracking-tighter2 text-ink-900 min-[390px]:text-[44px] md:text-[60px] md:leading-[1.02]">
               <span className="block">Agents that know</span>
               <span className="block">
                 your {" "}
@@ -84,8 +84,8 @@ export default function HomePage() {
             </h1>
 
             <p className="animate-rise animate-delay-2 mt-7 max-w-[46ch] font-serif text-[18px] leading-[1.55] text-ink-700 md:text-[19px]">
-              A working memory of everything you've published. The patterns you stopped noticing become visible, the
-              half-finished essays return, and every editorial note cites the work behind it.
+              A working memory of everything you've published. The patterns you stopped noticing resurface, the
+              half-finished essays reconnect, and every note cites the evidence behind it.
             </p>
 
             <div className="animate-rise animate-delay-3 mt-10 max-w-xl">
@@ -160,7 +160,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* § 03 — Grounded answers
+      {/* § 03 — Why it works
           The composition makes the editorial claim literal: a single AI
           answer (left, primary) carries inline citation markers, and the
           right column is the actual evidence — three numbered post-citations
@@ -169,7 +169,7 @@ export default function HomePage() {
       <section className="animate-rise animate-delay-5 border-b border-ink-200/60">
         <div className="mx-auto max-w-6xl px-6 py-24">
           <header className="mb-14">
-            <SectionMarker number="03" title="Grounded answers" />
+            <SectionMarker number="03" title="Why it works" />
             <h2 className="mt-4 font-serif text-[34px] leading-[1.1] tracking-tightish text-ink-900 md:text-[44px]">
               Every answer is{" "}
               <span className="relative inline-block italic text-ink-700">
@@ -240,25 +240,44 @@ export default function HomePage() {
           />
 
           {/* Center content */}
-          <div className="relative mx-auto max-w-2xl text-center">
-            <h2 className="font-serif text-[44px] leading-[1.04] tracking-tighter2 text-ink-900 md:text-[60px]">
-              Stop pasting your posts
-              <br />
-              into ChatGPT.
-            </h2>
-            <p className="mx-auto mt-7 max-w-prose font-serif text-[19px] leading-[1.55] text-ink-700 md:text-[20px]">
-              Everything is already in your library. The patterns, the voice, the unfinished ideas.{" "}
-              <span className="relative inline-block whitespace-nowrap">
-                <em className="italic text-ink-900">We just give it memory.</em>
-                <span
-                  aria-hidden="true"
-                  className="animate-editorial-draw absolute -bottom-0.5 left-0 right-0 h-[1.5px] bg-accent-300/70"
-                  style={{ animationDelay: "1.1s" }}
-                />
-              </span>
-            </p>
+          <div className="relative mx-auto max-w-2xl text-left md:text-center">
+            <div className="md:hidden">
+              <SectionMarker number="04" title="Start your workspace" />
+              <h2 className="mt-4 font-serif text-[34px] leading-[1.1] tracking-tightish text-ink-900 min-[390px]:text-[38px]">
+                Start from your library.{" "}
+                <span className="relative inline-block italic text-ink-700">
+                  Build with memory.
+                  <span
+                    aria-hidden="true"
+                    className="animate-editorial-draw absolute -bottom-0.5 left-0 right-3 h-[1.5px] bg-accent-300/70"
+                    style={{ animationDelay: "0.7s" }}
+                  />
+                </span>
+              </h2>
+              <p className="mt-5 font-serif text-[18px] leading-[1.55] text-ink-700">
+                The patterns, voice, and unfinished ideas are already there.
+              </p>
+            </div>
+            <div className="hidden md:block">
+              <h2 className="font-serif text-[60px] leading-[1.04] tracking-tighter2 text-ink-900">
+                Stop pasting your posts
+                <br />
+                into ChatGPT.
+              </h2>
+              <p className="mx-auto mt-7 max-w-prose font-serif text-[20px] leading-[1.55] text-ink-700">
+                Everything is already in your library. The patterns, the voice, the unfinished ideas.{" "}
+                <span className="relative inline-block whitespace-nowrap">
+                  <em className="italic text-ink-900">We just give it memory.</em>
+                  <span
+                    aria-hidden="true"
+                    className="animate-editorial-draw absolute -bottom-0.5 left-0 right-0 h-[1.5px] bg-accent-300/70"
+                    style={{ animationDelay: "1.1s" }}
+                  />
+                </span>
+              </p>
+            </div>
 
-            <div className="mt-12 flex justify-center">
+            <div className="mt-10 flex justify-center md:mt-12">
               <LogoCTA
                 href="/register"
                 label="Build my memory"
