@@ -31,7 +31,7 @@ function LandingFooter() {
             colophon closes a printed book. */}
         <div className="mx-auto mt-9 flex w-full max-w-[280px] items-center gap-3">
           <span aria-hidden="true" className="h-px flex-1 bg-ink-200" />
-          <span aria-hidden="true" className="font-serif text-[15px] leading-none text-accent-500/80">
+          <span aria-hidden="true" className="site-wordmark-mark font-serif text-[15px] leading-none text-accent-500/80">
             §
           </span>
           <span aria-hidden="true" className="h-px flex-1 bg-ink-200" />

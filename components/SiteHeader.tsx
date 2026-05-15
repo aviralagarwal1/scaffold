@@ -103,7 +103,7 @@ function Wordmark({ size = "sm" }: { size?: "sm" | "lg" }) {
     <span className={`flex items-baseline ${isLg ? "gap-2" : "gap-1.5"} leading-none`}>
       <span
         aria-hidden="true"
-        className={`font-serif text-accent-500 ${isLg ? "text-[24px]" : "text-[16px]"}`}
+        className={`site-wordmark-mark font-serif text-accent-500 ${isLg ? "text-[24px]" : "text-[16px]"}`}
         style={{ transform: "translateY(0.5px)" }}
       >
         §

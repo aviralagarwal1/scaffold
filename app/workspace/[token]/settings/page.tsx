@@ -177,7 +177,7 @@ export default function SettingsPage() {
       <section className="flex justify-center py-12">
         <div className="relative inline-flex h-[6.5rem] w-[6.5rem] items-center justify-center" aria-hidden="true">
           <span className="logo-cta-glow" />
-          <span className="logo-cta-mark">§</span>
+          <span className="site-wordmark-mark logo-cta-mark">§</span>
           {SPARKLES.map((s, i) => (
             <span
               key={i}

@@ -538,3 +538,9 @@ body {
   }
   .logo-cta { transition: none !important; }
 }
+
+@media (hover: none) and (pointer: coarse) {
+  .site-wordmark-mark {
+    font-family: Georgia, Cambria, "Times New Roman", serif;
+  }
+}

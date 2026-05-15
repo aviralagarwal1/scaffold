@@ -176,7 +176,7 @@ export function UserMenu() {
                 role="menuitem"
                 className="flex items-center gap-2 px-3.5 py-1.5 text-[13px] text-ink-700 transition-colors hover:bg-ink-50 hover:text-ink-900"
               >
-                <span aria-hidden="true" className="font-serif text-[13px] leading-none text-accent-500">
+                <span aria-hidden="true" className="site-wordmark-mark font-serif text-[13px] leading-none text-accent-500">
                   §
                 </span>
                 Account

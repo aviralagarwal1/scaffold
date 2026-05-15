@@ -56,7 +56,7 @@ export function LogoCTA({
         className="logo-cta"
       >
         <span aria-hidden="true" className="logo-cta-glow" />
-        <span aria-hidden="true" className="logo-cta-mark">§</span>
+        <span aria-hidden="true" className="site-wordmark-mark logo-cta-mark">§</span>
 
         {SPARKLES.map((s, i) => (
           <span
