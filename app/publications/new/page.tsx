@@ -18,8 +18,7 @@ export default async function NewPublicationPage() {
           Add a <em className="font-serif italic text-ink-700">publication</em> to your desk.
         </h1>
         <p className="animate-rise animate-delay-3 mt-5 max-w-prose font-serif text-[17px] leading-relaxed text-ink-600">
-          Paste your publication link. We read the public library in the background and open a workspace
-          on your desk.
+          Paste your publication link. We'll read the public posts and open your workspace when it's ready. Larger libraries can take a few minutes.
         </p>
         <div className="animate-rise animate-delay-4 mt-10">
           <SubstackUrlForm autoFocus />

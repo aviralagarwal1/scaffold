@@ -48,6 +48,7 @@ export function SubstackUrlForm({
   const [focused, setFocused] = useState(false);
   const [busy, setBusy] = useState(false);
   const [readingPhraseIndex, setReadingPhraseIndex] = useState(0);
+  const [showSlowNotice, setShowSlowNotice] = useState(false);
   const [alerting, setAlerting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -67,6 +68,15 @@ export function SubstackUrlForm({
       2800,
     );
     return () => window.clearInterval(id);
+  }, [busy]);
+
+  useEffect(() => {
+    if (!busy) {
+      setShowSlowNotice(false);
+      return;
+    }
+    const id = window.setTimeout(() => setShowSlowNotice(true), 45000);
+    return () => window.clearTimeout(id);
   }, [busy]);
 
   // Type-anywhere capture: when enabled, any printable keystroke on the page
@@ -243,6 +253,12 @@ export function SubstackUrlForm({
           </span>
         </button>
       </div>
+
+      {showSlowNotice && (
+        <p className="-mt-2 text-right text-[12.5px] leading-relaxed text-ink-500" role="status" aria-live="polite">
+          Still reading your library. Larger publications can take a few minutes.
+        </p>
+      )}
 
       {/* Real API errors only. Empty-input validation is handled by the
           nudge above — no red-text shaming for forgetting to type. */}
