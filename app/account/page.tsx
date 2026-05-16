@@ -44,7 +44,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
             Your <em className="font-serif italic text-ink-700">desk.</em>
           </h1>
           <p className="animate-rise animate-delay-3 mt-4 font-serif text-[16.5px] leading-relaxed text-ink-600">
-            One account, many publications. Each workspace becomes an editorial memory of the writing.
+            One account for your publications. Each workspace becomes an editorial memory of the writing.
           </p>
         </header>
 
