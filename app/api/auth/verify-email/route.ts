@@ -26,7 +26,8 @@ export async function GET(request: Request) {
     return NextResponse.redirect(redirectUrl);
   } catch {
     const redirectUrl = new URL("/login", appOrigin);
-    redirectUrl.searchParams.set("emailVerified", "0");
+    redirectUrl.searchParams.set("verified", "0");
+    if (email) redirectUrl.searchParams.set("email", email);
     return NextResponse.redirect(redirectUrl);
   }
 }

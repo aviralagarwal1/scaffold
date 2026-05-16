@@ -106,7 +106,7 @@ async function sendPasswordResetEmail(
     body: JSON.stringify({
       from,
       to: email,
-      subject: "Reset your Scaffold password",
+      subject: "Reset your Scaffold account password",
       headers: {
         "X-Entity-Ref-ID": randomBytes(16).toString("hex"),
       },
