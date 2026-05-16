@@ -1,3 +1,4 @@
+import type { Post } from "@/types/post";
 import { fetchSubstackFeed } from "./rss";
 import {
   assertWorkspaceTokenBudget,
@@ -14,6 +15,13 @@ const INGESTION_FAILURE =
   "We could not automatically read this publication. Try checking the URL or paste post links manually.";
 
 export async function ingestWorkspace(token: string) {
+  return ingestWorkspaceWithFeed(token);
+}
+
+export async function ingestWorkspaceWithFeed(
+  token: string,
+  preloadedFeed?: { publicationName: string | null; posts: Post[] }
+) {
   const workspace = await getWorkspaceByToken(token);
   const previousStatus = workspace.status;
   const previousError = workspace.ingestionError;
@@ -21,7 +29,7 @@ export async function ingestWorkspace(token: string) {
   await setWorkspaceStatus(token, "ingesting");
 
   try {
-    const feed = await fetchSubstackFeed(workspace.publicationUrl, workspace.id);
+    const feed = preloadedFeed ?? await fetchSubstackFeed(workspace.publicationUrl, workspace.id);
     const reusableThemes = await getReusableArchiveThemes(token, feed.posts);
     const indexingTokens = 1200 + feed.posts.reduce((total, post) => total + Math.ceil(post.contentText.length / 6), 0);
     await assertWorkspaceTokenBudget(token, indexingTokens, "sync");

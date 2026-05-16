@@ -6,6 +6,7 @@ import { apiError, AppError } from "@/lib/server/errors";
 import { readJson } from "@/lib/server/http";
 import { hashPassword } from "@/lib/server/auth/password";
 import { sendRegistrationVerification, sendVerificationForEmail } from "@/lib/server/auth/email-verification";
+import { normalizePublicationUrl as normalizePublicationOrigin } from "@/lib/server/url";
 
 type RegisterRequest = {
   email?: unknown;
@@ -22,7 +23,7 @@ export async function POST(request: Request) {
     const password = requirePassword(body.password);
     const creatorName = normalizeCreatorName(body.creatorName);
     const editorName = normalizeCuratorName(body.editorName);
-    const publicationUrl = normalizePublicationUrl(body.publicationUrl);
+    const publicationUrl = normalizeOptionalPublicationUrl(body.publicationUrl);
 
     const db = getDb();
     const [existing] = await db
@@ -100,10 +101,10 @@ function normalizeCuratorName(value: unknown): string {
   return editorName;
 }
 
-function normalizePublicationUrl(value: unknown): string | null {
+function normalizeOptionalPublicationUrl(value: unknown): string | null {
   if (value === undefined || value === null || value === "") return null;
   if (typeof value !== "string") throw new AppError("Enter a valid publication URL.", 400);
   const publicationUrl = value.trim();
   if (!publicationUrl) return null;
-  return publicationUrl;
+  return normalizePublicationOrigin(publicationUrl);
 }

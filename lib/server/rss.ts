@@ -26,7 +26,7 @@ const RSS_HEADERS = {
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 };
 
-interface ParsedFeedPost {
+export interface ParsedFeedPost {
   title: string;
   subtitle: string | null;
   url: string;
@@ -37,6 +37,13 @@ interface ParsedFeedPost {
 }
 
 interface ParsedFeed {
+  publicationName: string | null;
+  posts: ParsedFeedPost[];
+}
+
+export interface PublicationFeed {
+  publicationUrl: string;
+  feedUrl: string;
   publicationName: string | null;
   posts: ParsedFeedPost[];
 }
@@ -101,7 +108,13 @@ function looksLikeXml(value: string): boolean {
   return trimmed.startsWith("<?xml") || trimmed.startsWith("<rss") || trimmed.startsWith("<feed");
 }
 
-async function fetchFeedXml(feedUrl: string): Promise<string> {
+async function fetchFeedXml(feedUrl: string): Promise<{ xml: string; feedUrl: string }> {
+  const attempted = new Set<string>();
+  return fetchFeedXmlCandidate(feedUrl, attempted);
+}
+
+async function fetchFeedXmlCandidate(feedUrl: string, attempted: Set<string>): Promise<{ xml: string; feedUrl: string }> {
+  attempted.add(feedUrl);
   try {
     const response = await fetch(feedUrl, {
       headers: RSS_HEADERS,
@@ -111,12 +124,17 @@ async function fetchFeedXml(feedUrl: string): Promise<string> {
 
     const body = await response.text();
     if (response.ok && looksLikeXml(body)) {
-      return body;
+      return { xml: body, feedUrl: response.url || feedUrl };
+    }
+
+    const redirectedFeedUrl = redirectedOriginFeedUrl(feedUrl, response.url);
+    if (redirectedFeedUrl && !attempted.has(redirectedFeedUrl)) {
+      return fetchFeedXmlCandidate(redirectedFeedUrl, attempted);
     }
 
     if (isBlockingStatus(response.status) || (response.ok && !looksLikeXml(body))) {
       const fallback = await fetchFeedXmlWithCurlCffi(feedUrl);
-      if (fallback) return fallback;
+      if (fallback) return { xml: fallback, feedUrl };
     }
 
     const reason = response.ok ? "RSS endpoint did not return XML." : `RSS endpoint returned ${response.status}.`;
@@ -127,7 +145,7 @@ async function fetchFeedXml(feedUrl: string): Promise<string> {
     }
 
     const fallback = await fetchFeedXmlWithCurlCffi(feedUrl);
-    if (fallback) return fallback;
+    if (fallback) return { xml: fallback, feedUrl };
 
     throw error;
   }
@@ -193,24 +211,53 @@ export async function fetchSubstackFeed(publicationUrl: string, workspaceId: str
   publicationName: string | null;
   posts: Post[];
 }> {
-  const xml = await fetchFeedXml(feedUrlForPublication(publicationUrl));
-  const parsed = parseFeed(xml);
-  const now = new Date().toISOString();
+  const feed = await fetchPublicationFeed(publicationUrl);
 
   return {
-    publicationName: parsed.publicationName,
-    posts: parsed.posts.map((post) => ({
-      id: randomUUID(),
-      workspaceId,
-      title: post.title,
-      subtitle: post.subtitle,
-      url: post.url,
-      publishedAt: post.publishedAt,
-      author: post.author,
-      contentText: post.contentText,
-      contentHtml: post.contentHtml,
-      wordCount: wordCount(post.contentText),
-      createdAt: now
-    }))
+    publicationName: feed.publicationName,
+    posts: materializeFeedPosts(feed, workspaceId)
   };
+}
+
+export async function fetchPublicationFeed(publicationUrl: string): Promise<PublicationFeed> {
+  const fetched = await fetchFeedXml(feedUrlForPublication(publicationUrl));
+  const parsed = parseFeed(fetched.xml);
+
+  return {
+    publicationUrl,
+    feedUrl: fetched.feedUrl,
+    publicationName: parsed.publicationName,
+    posts: parsed.posts
+  };
+}
+
+export function materializeFeedPosts(feed: PublicationFeed, workspaceId: string): Post[] {
+  const now = new Date().toISOString();
+
+  return feed.posts.map((post) => ({
+    id: randomUUID(),
+    workspaceId,
+    title: post.title,
+    subtitle: post.subtitle,
+    url: post.url,
+    publishedAt: post.publishedAt,
+    author: post.author,
+    contentText: post.contentText,
+    contentHtml: post.contentHtml,
+    wordCount: wordCount(post.contentText),
+    createdAt: now
+  }));
+}
+
+function redirectedOriginFeedUrl(requestedFeedUrl: string, responseUrl: string): string | null {
+  if (!responseUrl) return null;
+
+  try {
+    const requested = new URL(requestedFeedUrl);
+    const redirected = new URL(responseUrl);
+    if (requested.origin === redirected.origin) return null;
+    return feedUrlForPublication(redirected.origin);
+  } catch {
+    return null;
+  }
 }
