@@ -485,7 +485,7 @@ function PublicationNameField({
       await api.updateWorkspace(token, { publicationName });
       await onSaved();
       setSaved(true);
-      window.setTimeout(() => setSaved(false), 2400);
+      window.setTimeout(() => setSaved(false), 1800);
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Could not update publication.");
     } finally {
@@ -520,12 +520,24 @@ function PublicationNameField({
 
 function SavedPip() {
   return (
-    <span className="animate-fade flex items-center gap-1.5 font-serif italic text-[13px] text-positive-700">
-      <span className="relative inline-flex h-2 w-2 items-center justify-center" aria-hidden="true">
-        <span className="absolute inline-flex h-2 w-2 animate-editorial-bloom rounded-full bg-positive-500/40" />
-        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-positive-500" />
-      </span>
-      Saved.
+    <span
+      className="animate-fade relative inline-flex h-5 w-5 items-center justify-center text-positive-700"
+      role="status"
+      aria-label="Saved"
+    >
+      <span className="absolute inline-flex h-4 w-4 animate-editorial-bloom rounded-full bg-positive-500/35" />
+      <svg
+        viewBox="0 0 12 12"
+        className="relative h-3.5 w-3.5 animate-fade"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M2.5 6.4 L5 8.8 L9.6 3.6" />
+      </svg>
     </span>
   );
 }
