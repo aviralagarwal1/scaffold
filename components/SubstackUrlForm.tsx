@@ -15,6 +15,13 @@ const READING_PHRASES = [
   "Organizing your sources...",
 ] as const;
 
+const SLOW_NOTICES = [
+  { startsAt: 20000, lastsFor: 8000, message: "Still reading your library." },
+  { startsAt: 45000, lastsFor: 12000, message: "Larger publications can take a few minutes." },
+  { startsAt: 90000, lastsFor: 20000, message: "Still working through the public posts." },
+  { startsAt: 150000, lastsFor: 30000, message: "This is taking longer than usual. Keep this tab open." },
+] as const;
+
 export function SubstackUrlForm({
   autoFocus = false,
   redirect = true,
@@ -48,7 +55,7 @@ export function SubstackUrlForm({
   const [focused, setFocused] = useState(false);
   const [busy, setBusy] = useState(false);
   const [readingPhraseIndex, setReadingPhraseIndex] = useState(0);
-  const [showSlowNotice, setShowSlowNotice] = useState(false);
+  const [slowNoticeIndex, setSlowNoticeIndex] = useState<number | null>(null);
   const [alerting, setAlerting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -72,11 +79,19 @@ export function SubstackUrlForm({
 
   useEffect(() => {
     if (!busy) {
-      setShowSlowNotice(false);
+      setSlowNoticeIndex(null);
       return;
     }
-    const id = window.setTimeout(() => setShowSlowNotice(true), 45000);
-    return () => window.clearTimeout(id);
+    const timers: number[] = [];
+    SLOW_NOTICES.forEach((notice, index) => {
+      timers.push(window.setTimeout(() => setSlowNoticeIndex(index), notice.startsAt));
+      timers.push(
+        window.setTimeout(() => {
+          setSlowNoticeIndex((current) => (current === index ? null : current));
+        }, notice.startsAt + notice.lastsFor),
+      );
+    });
+    return () => timers.forEach((id) => window.clearTimeout(id));
   }, [busy]);
 
   // Type-anywhere capture: when enabled, any printable keystroke on the page
@@ -254,9 +269,9 @@ export function SubstackUrlForm({
         </button>
       </div>
 
-      {showSlowNotice && (
+      {slowNoticeIndex !== null && (
         <p className="-mt-2 text-right text-[12.5px] leading-relaxed text-ink-500" role="status" aria-live="polite">
-          Still reading your library. Larger publications can take a few minutes.
+          {SLOW_NOTICES[slowNoticeIndex].message}
         </p>
       )}
 
