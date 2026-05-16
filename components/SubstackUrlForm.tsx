@@ -24,12 +24,14 @@ const SLOW_NOTICES = [
 
 export function SubstackUrlForm({
   autoFocus = false,
+  initialUrl = "",
   redirect = true,
   captureGlobalKeystrokes = false,
   routeToRegister = false,
   authenticatedFallback,
 }: {
   autoFocus?: boolean;
+  initialUrl?: string;
   redirect?: boolean;
   /** Capture printable keystrokes from anywhere on the page and route them
    *  into this input. Used on the landing hero so visitors can just start
@@ -37,8 +39,8 @@ export function SubstackUrlForm({
   captureGlobalKeystrokes?: boolean;
   /** Landing-hook mode. Instead of creating the workspace immediately, hand
    *  the URL off to /register so the visitor creates an account first; the
-   *  workspace is then provisioned after they finish signing up. Used by the
-   *  landing hero, where every workspace must be tied to an account. */
+   *  URL is confirmed later on /publications/new. Used by the landing hero,
+   *  where every workspace must be tied to an account. */
   routeToRegister?: boolean;
   /** What to render when the visitor is already signed in. The landing hero
    *  passes a quiet "Open my desk" CTA so a returning user isn't asked to
@@ -47,11 +49,10 @@ export function SubstackUrlForm({
 }) {
   const router = useRouter();
   // Session-aware: routeToRegister is the visitor-mode hook. If the user is
-  // already signed in, we skip the /register handoff and provision the
-  // workspace right here — they don't need to "create an account" again.
+  // already signed in, the caller can replace this form with a desk CTA.
   const { status } = useSession();
   const isAuthenticated = status === "authenticated";
-  const [url, setUrl] = useState("");
+  const [url, setUrl] = useState(initialUrl);
   const [focused, setFocused] = useState(false);
   const [busy, setBusy] = useState(false);
   const [readingPhraseIndex, setReadingPhraseIndex] = useState(0);
@@ -64,6 +65,21 @@ export function SubstackUrlForm({
   // caret sits on the LEFT (where typing actually begins) with the ghost
   // text trailing — visual position now matches the real cursor's reality.
   const showCue = url.length === 0 && !focused;
+
+  useEffect(() => {
+    setUrl(initialUrl);
+  }, [initialUrl]);
+
+  useEffect(() => {
+    if (!autoFocus || !initialUrl) return;
+    const id = window.setTimeout(() => {
+      const input = inputRef.current;
+      if (!input) return;
+      input.focus({ preventScroll: true });
+      input.setSelectionRange(input.value.length, input.value.length);
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [autoFocus, initialUrl]);
 
   useEffect(() => {
     if (!busy) {

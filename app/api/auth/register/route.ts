@@ -6,7 +6,6 @@ import { apiError, AppError } from "@/lib/server/errors";
 import { readJson } from "@/lib/server/http";
 import { hashPassword } from "@/lib/server/auth/password";
 import { sendRegistrationVerification, sendVerificationForEmail } from "@/lib/server/auth/email-verification";
-import { normalizePublicationUrl as normalizePublicationOrigin } from "@/lib/server/url";
 
 type RegisterRequest = {
   email?: unknown;
@@ -106,5 +105,6 @@ function normalizeOptionalPublicationUrl(value: unknown): string | null {
   if (typeof value !== "string") throw new AppError("Enter a valid publication URL.", 400);
   const publicationUrl = value.trim();
   if (!publicationUrl) return null;
-  return normalizePublicationOrigin(publicationUrl);
+  if (publicationUrl.length > 2048) throw new AppError("Enter a shorter publication URL.", 400);
+  return publicationUrl;
 }

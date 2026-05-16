@@ -2,10 +2,20 @@ import { redirect } from "next/navigation";
 import { SubstackUrlForm } from "@/components/SubstackUrlForm";
 import { getCurrentUserId } from "@/lib/server/auth/current";
 
-export default async function NewPublicationPage() {
+export default async function NewPublicationPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ publicationUrl?: string }>;
+}) {
   const userId = await getCurrentUserId();
+  const params = await searchParams;
+  const initialPublicationUrl = typeof params?.publicationUrl === "string" ? params.publicationUrl.trim() : "";
   if (!userId) {
-    redirect("/register");
+    redirect(
+      initialPublicationUrl
+        ? `/register?publicationUrl=${encodeURIComponent(initialPublicationUrl)}`
+        : "/register",
+    );
   }
 
   return (
@@ -21,7 +31,7 @@ export default async function NewPublicationPage() {
           Paste your publication link. We'll read the public posts and open your workspace when it's ready. Larger libraries can take a few minutes.
         </p>
         <div className="animate-rise animate-delay-4 mt-10">
-          <SubstackUrlForm autoFocus />
+          <SubstackUrlForm autoFocus initialUrl={initialPublicationUrl} />
         </div>
       </div>
     </div>

@@ -15,10 +15,8 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
   const isRegister = mode === "register";
   const passwordInputId = useId();
 
-  // Landing-hook handoff. If the visitor came from the marketing hero with a
-  // publication URL, we carry it through register → /account so the workspace
-  // can be auto-provisioned once they finish naming themselves and their
-  // curator on the side-by-side gate.
+  // Landing-hook handoff. The raw URL is carried through auth and confirmed
+  // on /publications/new, where validation and workspace creation happen.
   const incomingPublicationUrl = useMemo(() => {
     const raw = params?.get("publicationUrl") ?? "";
     return raw.trim();
@@ -95,15 +93,12 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         return;
       }
 
-      // Both flows land on /account. Register users see the gate (Creator +
-      // Curator unset, publication CTA hidden); login users see whatever
-      // state their account is already in. The publicationUrl from the
-      // landing hook rides along on the URL so /account can auto-provision
-      // once they finish naming.
-      const tail = incomingPublicationUrl
-        ? `?publicationUrl=${encodeURIComponent(incomingPublicationUrl)}`
+      // A carried publication URL goes to the confirm step. Otherwise, use
+      // the requested callback or the account desk.
+      const publicationDestination = incomingPublicationUrl
+        ? `/publications/new?publicationUrl=${encodeURIComponent(incomingPublicationUrl)}`
         : "";
-      router.push(callbackUrl || `/account${tail}`);
+      router.push(publicationDestination || callbackUrl || "/account");
       router.refresh();
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Could not continue.");

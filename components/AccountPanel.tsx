@@ -34,13 +34,9 @@ export function AccountPanel() {
   const [loadBusy, setLoadBusy] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  // Landing-hook URL travels through register → /account so we can
-  // auto-provision once the user finishes naming themselves and their
-  // curator. We hold it in state so the consumer flow can clear it when
-  // it's been used without trimming the rest of the URL bar.
+  // Legacy landing-hook URLs that still arrive at /account are sent to the
+  // confirmable /publications/new form instead of starting sync here.
   const [pendingPublicationUrl, setPendingPublicationUrl] = useState<string | null>(null);
-  const [provisioning, setProvisioning] = useState(false);
-  const [provisionError, setProvisionError] = useState<string | null>(null);
   const [creatorAlertSignal, setCreatorAlertSignal] = useState(0);
   const [curatorAlertSignal, setCuratorAlertSignal] = useState(0);
   const [creatorFocusSignal, setCreatorFocusSignal] = useState(0);
@@ -50,6 +46,11 @@ export function AccountPanel() {
     const raw = params?.get("publicationUrl");
     if (raw) setPendingPublicationUrl(raw.trim());
   }, [params]);
+
+  useEffect(() => {
+    if (!pendingPublicationUrl) return;
+    router.replace(`/publications/new?publicationUrl=${encodeURIComponent(pendingPublicationUrl)}`);
+  }, [pendingPublicationUrl, router]);
 
   useEffect(() => {
     let active = true;
@@ -95,41 +96,6 @@ export function AccountPanel() {
     setCreatorFocusSignal((signal) => signal + 1);
   }, [creatorReady]);
 
-  // Auto-provision: once both names are settled and there's a pending URL
-  // from the landing hook, create the workspace. The user already opted in
-  // by submitting the URL on the marketing surface; bouncing them through
-  // /publications/new just to click submit again is friction.
-  useEffect(() => {
-    if (!gateOpen || !pendingPublicationUrl || provisioning) return;
-    let active = true;
-    setProvisioning(true);
-    setProvisionError(null);
-    api
-      .createWorkspace({ publicationUrl: pendingPublicationUrl })
-      .then(() => api.listWorkspaces())
-      .then((next) => {
-        if (!active) return;
-        setWorkspaces(next);
-        setPendingPublicationUrl(null);
-        // Clear the query param so a refresh doesn't re-trigger.
-        router.replace("/account");
-      })
-      .catch((err) => {
-        if (!active) return;
-        setProvisionError(
-          err instanceof ApiClientError
-            ? err.message
-            : "Saved your names — but we couldn't read your publication. Add it manually below.",
-        );
-      })
-      .finally(() => {
-        if (active) setProvisioning(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [gateOpen, pendingPublicationUrl, provisioning, router]);
-
   if (loadBusy) {
     return (
       <div className="panel p-6">
@@ -170,16 +136,11 @@ export function AccountPanel() {
       </div>
 
       {/* Bottom row morphs based on state:
-          1. Pending URL + still gated → "complete the gate" hint with URL chip.
-          2. Pending URL + provisioning → quiet reading state.
-          3. Gate closed (no URL waiting) → soft prompt to finish the gate.
-          4. Gate open + no workspaces → big "Add your publication →" CTA.
-          5. Gate open + workspaces exist → workspace list with header + button. */}
+          1. Gate closed → soft prompt to finish the gate.
+          2. Gate open + no workspaces → big "Add your publication →" CTA.
+          3. Gate open + workspaces exist → workspace list with header + button. */}
       <PublicationsRegion
         gateOpen={gateOpen}
-        pendingPublicationUrl={pendingPublicationUrl}
-        provisioning={provisioning}
-        provisionError={provisionError}
         workspaces={workspaces}
         onGateContinue={promptMissingNames}
       />
@@ -460,35 +421,14 @@ function CuratorCard({
 // === Bottom row — gate-aware publications region ===================
 function PublicationsRegion({
   gateOpen,
-  pendingPublicationUrl,
-  provisioning,
-  provisionError,
   workspaces,
   onGateContinue,
 }: {
   gateOpen: boolean;
-  pendingPublicationUrl: string | null;
-  provisioning: boolean;
-  provisionError: string | null;
   workspaces: AccountWorkspaceSummary[];
   onGateContinue: () => void;
 }) {
-  // 1 — pending URL while still provisioning (gate just opened).
-  if (pendingPublicationUrl && provisioning) {
-    return (
-      <section className="panel-quiet flex items-center gap-3 px-5 py-5">
-        <span className="relative inline-flex h-2 w-2 shrink-0" aria-hidden="true">
-          <span className="absolute inline-flex h-2 w-2 animate-editorial-pulse rounded-full bg-accent-400/60" />
-          <span className="relative inline-flex h-2 w-2 animate-editorial-pulse rounded-full bg-accent-500" />
-        </span>
-        <p className="font-serif italic text-[14px] text-ink-600">
-          Reading <span className="not-italic font-mono text-[12.5px] text-ink-700">{pendingPublicationUrl}</span>...
-        </p>
-      </section>
-    );
-  }
-
-  // 2 — gate still closed.
+  // 1 — gate still closed.
   if (!gateOpen) {
     return (
       <section className="flex justify-end">
@@ -511,7 +451,7 @@ function PublicationsRegion({
     );
   }
 
-  // 3 — gate open, no workspaces yet → big primary CTA.
+  // 2 — gate open, no workspaces yet → big primary CTA.
   if (workspaces.length === 0) {
     return (
       <section className="flex flex-col items-start gap-4 rounded-md border border-dashed border-ink-200 bg-white/70 px-6 py-8">
@@ -524,9 +464,6 @@ function PublicationsRegion({
             One workspace per publication, with its own library, themes, and drafts.
           </p>
         </div>
-        {provisionError && (
-          <p className="font-serif italic text-[12.5px] text-ink-500">{provisionError}</p>
-        )}
         <Link href="/publications/new" className="btn-primary btn-primary-lg group">
           <span className="relative inline-flex items-center gap-2">
             <span>Add your publication</span>
@@ -542,7 +479,7 @@ function PublicationsRegion({
     );
   }
 
-  // 4 — gate open, workspaces exist → list with + Add button.
+  // 3 — gate open, workspaces exist → list with + Add button.
   return <WorkspacesCard workspaces={workspaces} />;
 }
 

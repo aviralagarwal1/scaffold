@@ -5,7 +5,7 @@ export interface RegisterRequest {
   creatorName?: string;
   /** The curator name. Optional at registration; /account captures the real value before setup completes. */
   editorName?: string;
-  /** Optional landing-page handoff to preserve after email verification. */
+  /** Optional raw landing-page handoff to preserve until /publications/new confirmation. */
   publicationUrl?: string;
 }
 

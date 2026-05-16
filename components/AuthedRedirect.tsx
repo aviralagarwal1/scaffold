@@ -13,8 +13,8 @@ import { useEffect } from "react";
  * register before the route changes; on /login and /register we redirect
  * immediately because there's no value in showing them a stale auth form.
  *
- * The publicationUrl param (carried from the landing hook through
- * /register → /onboarding) is preserved on the destination URL.
+ * The publicationUrl param from the landing hook sends authenticated users
+ * to /publications/new so they can confirm it before sync starts.
  */
 export function AuthedRedirect({
   to = "/account",
@@ -32,8 +32,9 @@ export function AuthedRedirect({
     const url = params?.get("publicationUrl");
     const callbackUrl = params?.get("callbackUrl") ?? "";
     const safeCallbackUrl = callbackUrl.startsWith("/") && !callbackUrl.startsWith("//") ? callbackUrl : "";
-    const tail = url ? `?publicationUrl=${encodeURIComponent(url)}` : "";
-    const destination = safeCallbackUrl || `${to}${tail}`;
+    const destination = url
+      ? `/publications/new?publicationUrl=${encodeURIComponent(url)}`
+      : safeCallbackUrl || to;
     if (delayMs <= 0) {
       router.replace(destination);
       return;
