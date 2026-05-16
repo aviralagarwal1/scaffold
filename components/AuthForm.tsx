@@ -15,8 +15,8 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
   const isRegister = mode === "register";
   const passwordInputId = useId();
 
-  // Landing-hook handoff. The raw URL is carried through auth and confirmed
-  // on /publications/new, where validation and workspace creation happen.
+  // Landing-hook handoff. The raw URL is carried through auth, then the
+  // account gate, before it is confirmed on /publications/new.
   const incomingPublicationUrl = useMemo(() => {
     const raw = params?.get("publicationUrl") ?? "";
     return raw.trim();
@@ -93,12 +93,12 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         return;
       }
 
-      // A carried publication URL goes to the confirm step. Otherwise, use
-      // the requested callback or the account desk.
-      const publicationDestination = incomingPublicationUrl
-        ? `/publications/new?publicationUrl=${encodeURIComponent(incomingPublicationUrl)}`
+      // A carried publication URL goes through the account gate first.
+      // Otherwise, use the requested callback or the account desk.
+      const accountDestination = incomingPublicationUrl
+        ? `/account?publicationUrl=${encodeURIComponent(incomingPublicationUrl)}`
         : "";
-      router.push(publicationDestination || callbackUrl || "/account");
+      router.push(accountDestination || callbackUrl || "/account");
       router.refresh();
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Could not continue.");

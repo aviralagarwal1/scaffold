@@ -18,7 +18,7 @@ const READING_PHRASES = [
 const SLOW_NOTICES = [
   { startsAt: 20000, lastsFor: 8000, message: "Still reading your library." },
   { startsAt: 45000, lastsFor: 12000, message: "Larger publications can take a few minutes." },
-  { startsAt: 90000, lastsFor: 20000, message: "Still working through the public posts." },
+  { startsAt: 90000, lastsFor: 20000, message: "Still learning about your amazing posts." },
   { startsAt: 150000, lastsFor: 30000, message: "This is taking longer than usual. Keep this tab open." },
 ] as const;
 

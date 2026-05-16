@@ -14,7 +14,7 @@ import { useEffect } from "react";
  * immediately because there's no value in showing them a stale auth form.
  *
  * The publicationUrl param from the landing hook sends authenticated users
- * to /publications/new so they can confirm it before sync starts.
+ * through /account so the Creator/Curator gate runs before sync starts.
  */
 export function AuthedRedirect({
   to = "/account",
@@ -33,7 +33,7 @@ export function AuthedRedirect({
     const callbackUrl = params?.get("callbackUrl") ?? "";
     const safeCallbackUrl = callbackUrl.startsWith("/") && !callbackUrl.startsWith("//") ? callbackUrl : "";
     const destination = url
-      ? `/publications/new?publicationUrl=${encodeURIComponent(url)}`
+      ? `/account?publicationUrl=${encodeURIComponent(url)}`
       : safeCallbackUrl || to;
     if (delayMs <= 0) {
       router.replace(destination);

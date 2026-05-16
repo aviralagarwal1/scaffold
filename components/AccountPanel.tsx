@@ -34,8 +34,8 @@ export function AccountPanel() {
   const [loadBusy, setLoadBusy] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  // Legacy landing-hook URLs that still arrive at /account are sent to the
-  // confirmable /publications/new form instead of starting sync here.
+  // Landing-hook URLs wait here until Creator and Curator are saved, then
+  // move to the confirmable /publications/new form without starting sync.
   const [pendingPublicationUrl, setPendingPublicationUrl] = useState<string | null>(null);
   const [creatorAlertSignal, setCreatorAlertSignal] = useState(0);
   const [curatorAlertSignal, setCuratorAlertSignal] = useState(0);
@@ -46,11 +46,6 @@ export function AccountPanel() {
     const raw = params?.get("publicationUrl");
     if (raw) setPendingPublicationUrl(raw.trim());
   }, [params]);
-
-  useEffect(() => {
-    if (!pendingPublicationUrl) return;
-    router.replace(`/publications/new?publicationUrl=${encodeURIComponent(pendingPublicationUrl)}`);
-  }, [pendingPublicationUrl, router]);
 
   useEffect(() => {
     let active = true;
@@ -76,6 +71,11 @@ export function AccountPanel() {
   const creatorReady = !isUnsetCreator(profile?.creatorName);
   const curatorReady = !isUnsetCurator(profile?.editorName);
   const gateOpen = creatorReady && curatorReady;
+
+  useEffect(() => {
+    if (!pendingPublicationUrl || !gateOpen) return;
+    router.replace(`/publications/new?publicationUrl=${encodeURIComponent(pendingPublicationUrl)}`);
+  }, [gateOpen, pendingPublicationUrl, router]);
 
   const promptMissingNames = useCallback(() => {
     if (creatorReady && curatorReady) return;
