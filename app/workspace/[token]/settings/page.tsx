@@ -1,13 +1,13 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { DangerConfirmDialog } from "@/components/DangerConfirmDialog";
 import { PageHeader } from "@/components/PageHeader";
 import { useWorkspace } from "@/components/WorkspaceProvider";
 import { api, ApiClientError } from "@/lib/client/api";
 import { cn } from "@/lib/client/cn";
 import { formatDate, hostnameOf, pluralize, statusLabel } from "@/lib/client/format";
-import type { UserProfile } from "@/types/auth";
 import type { TokenUsageSummary } from "@/types/workspace";
 
 const SPARKLES = [
@@ -19,73 +19,14 @@ const SPARKLES = [
   { top: "38%", left: "-2%", fontSize: "6px", delay: "3.8s" },
 ];
 
-const TOKEN_ACTIONS = [
-  {
-    label: "Build workspace",
-    estimate: [30_000, 75_000],
-    note: "Reads the feed, indexes chunks, and curates recurring themes.",
-  },
-  {
-    label: "Ask questions",
-    estimate: [12_000, 25_000],
-    note: "Grounds a short conversation in retrieved library passages.",
-  },
-  {
-    label: "Evaluate drafts",
-    estimate: [6_000, 12_000],
-    note: "Reviews one draft against nearby library context.",
-  },
-  {
-    label: "Proofread posts",
-    estimate: [5_000, 30_000],
-    note: "Scans the library for style-preserving clarity edits.",
-  },
-  {
-    label: "Explore ideas",
-    estimate: [4_000, 8_000],
-    note: "Generates article ideas from recurring themes.",
-  },
-  {
-    label: "Draft distribution",
-    estimate: [1_000, 4_000],
-    note: "Turns one source post into one platform draft.",
-  },
-  {
-    label: "Surface directions",
-    estimate: [1_000, 2_000],
-    note: "Suggests a small set of library-aware prompts.",
-  },
-  {
-    label: "Search quotes",
-    estimate: [0, 0],
-    note: "Searches the library literally; no model call.",
-  },
-] as const;
-
 export default function SettingsPage() {
+  const router = useRouter();
   const { token, overview, refetch, reingest, reingesting } = useWorkspace();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    api
-      .me()
-      .then((p) => {
-        if (active) setProfile(p);
-      })
-      .catch((err) => {
-        if (!active) return;
-        if (!(err instanceof ApiClientError) || err.status !== 401) {
-          // Settings remain useful even if account context cannot load.
-        }
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
-
   const [syncResult, setSyncResult] = useState<"success" | "failed" | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -115,21 +56,30 @@ export default function SettingsPage() {
     }
   };
 
+  const deletePublication = async () => {
+    if (deleteBusy) return;
+    setDeleteBusy(true);
+    setDeleteError(null);
+    try {
+      await api.deleteWorkspace(token);
+      router.push("/account");
+      router.refresh();
+    } catch (err) {
+      setDeleteError(err instanceof ApiClientError ? err.message : "Could not delete publication.");
+      setDeleteBusy(false);
+    }
+  };
+
   if (!overview) return null;
 
-  const creatorDisplay =
-    profile?.creatorName?.trim() ||
-    (profile?.email?.includes("@") ? profile.email.split("@")[0] : "") ||
-    null;
+  const publicationDeleteName = overview.publicationName ?? hostnameOf(overview.publicationUrl);
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Configure your workspace."
-        meta="Profile is account-wide. Publication and library settings belong to this workspace."
+        title="View your workspace."
+        meta="Manage this publication's name, sync, usage, and library settings."
       />
-
-      <ProfilePanel profile={profile} creatorDisplay={creatorDisplay} />
 
       <TokenUsagePanel usage={overview.tokenUsage} />
 
@@ -173,6 +123,48 @@ export default function SettingsPage() {
           </div>
         )}
       </section>
+
+      <section className="panel flex flex-col gap-4 border-critical-100/70 p-5">
+        <header>
+          <span className="type-eyebrow text-critical-700">Danger Zone</span>
+          <p className="mt-2 max-w-5xl text-[12.5px] leading-relaxed text-ink-500">
+            Removes this workspace and frees the publication slot. Monthly tokens already used by this publication still count until the next reset.
+          </p>
+        </header>
+        {deleteError && <p className="text-[12.5px] text-critical-700">{deleteError}</p>}
+        <button
+          type="button"
+          onClick={() => {
+            setDeleteError(null);
+            setDeleteDialogOpen(true);
+          }}
+          disabled={deleteBusy}
+          className="inline-flex h-9 items-center justify-center self-start rounded-md border border-critical-100 bg-white px-3.5 text-[13px] font-medium text-critical-700 shadow-soft transition-colors duration-150 ease-editorial hover:border-critical-500 hover:bg-critical-100/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-critical-500/40 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Delete publication
+        </button>
+      </section>
+
+      <DangerConfirmDialog
+        open={deleteDialogOpen}
+        title="Delete Publication"
+        description={
+          <p>
+            This removes the workspace and frees the publication slot. Monthly tokens already used by this publication
+            still count until the next reset.
+          </p>
+        }
+        confirmationValue={publicationDeleteName}
+        confirmationLabel="Type this publication name to confirm"
+        actionLabel="Delete publication"
+        busyLabel="Deleting..."
+        busy={deleteBusy}
+        error={deleteError}
+        onClose={() => {
+          if (!deleteBusy) setDeleteDialogOpen(false);
+        }}
+        onConfirm={deletePublication}
+      />
 
       <section className="flex justify-center py-12">
         <div className="relative inline-flex h-[6.5rem] w-[6.5rem] items-center justify-center" aria-hidden="true">
@@ -244,7 +236,7 @@ function SyncWorkspaceButton({
               <path d="M2.5 6.4 L5 8.8 L9.6 3.6" />
             </svg>
           </span>
-          <span className="animate-fade font-serif italic text-positive-700">Synced.</span>
+          <span className="animate-fade text-positive-700">Synced.</span>
         </>
       ) : syncFailed ? (
         <>
@@ -262,7 +254,7 @@ function SyncWorkspaceButton({
               <path d="M8.8 3.2 L3.2 8.8" />
             </svg>
           </span>
-          <span className="animate-fade font-serif italic text-critical-700">Could not be synced.</span>
+          <span className="animate-fade text-critical-700">Could not be synced.</span>
         </>
       ) : reingesting ? (
         <>
@@ -270,11 +262,11 @@ function SyncWorkspaceButton({
             <span className="absolute inline-flex h-full w-full animate-editorial-pulse rounded-full bg-ink-400/40" />
             <span className="relative inline-flex h-2 w-2 animate-editorial-pulse rounded-full bg-ink-400" />
           </span>
-          <span className="font-serif italic text-ink-500">Syncing your workspace...</span>
+          <span className="text-ink-500">Syncing your workspace...</span>
         </>
       ) : (
         <>
-          <span className="font-serif italic text-ink-500 group-hover:text-ink-700">Sync workspace</span>
+          <span className="text-ink-500 group-hover:text-ink-700">Sync workspace</span>
           <span aria-hidden="true" className="btn-ask-arrow text-ink-400 group-hover:text-accent-700">→</span>
         </>
       )}
@@ -308,8 +300,8 @@ function TokenUsagePanel({ usage }: { usage: TokenUsageSummary }) {
             Usage
           </h3>
           <p className="mt-1 text-[12.5px] leading-relaxed text-ink-500">
-            You&apos;ve used {usage.used.toLocaleString()} of {usage.limit.toLocaleString()} available tokens today.
-            The cards below estimate usage per action. Limits reset {dayPrefix}{resetMonth} {ordinal(resetDay)} at {resetLabel}.
+            You&apos;ve used {usage.used.toLocaleString()} of {usage.limit.toLocaleString()} available tokens this month.
+            Limits reset {dayPrefix}{resetMonth} {ordinal(resetDay)} at {resetLabel}. Deleted publications remain counted until reset.
           </p>
         </div>
       </header>
@@ -326,12 +318,6 @@ function TokenUsagePanel({ usage }: { usage: TokenUsageSummary }) {
           )}
           style={{ width: `${usage.percent}%` }}
         />
-      </div>
-
-      <div className="grid gap-2 border-t border-ink-200/60 pt-3 sm:grid-cols-2">
-        {TOKEN_ACTIONS.map((action) => (
-          <TokenActionRow key={action.label} action={action} limit={usage.limit} />
-        ))}
       </div>
     </section>
   );
@@ -366,77 +352,6 @@ function isTomorrow(now: Date, target: Date, timeZone: string): boolean {
   const tomorrow = partsFor(next);
   const targetParts = partsFor(target);
   return tomorrow.year === targetParts.year && tomorrow.month === targetParts.month && tomorrow.day === targetParts.day;
-}
-
-function TokenActionRow({
-  action,
-  limit,
-}: {
-  action: (typeof TOKEN_ACTIONS)[number];
-  limit: number;
-}) {
-  const [low, high] = action.estimate;
-  const percentLow = Math.round((low / limit) * 100);
-  const percentHigh = Math.round((high / limit) * 100);
-  const percentLabel = high === 0
-    ? "0%"
-    : percentLow === percentHigh
-      ? `~${Math.max(1, percentLow)}%`
-      : `~${Math.max(1, percentLow)}-${Math.max(1, percentHigh)}%`;
-
-  return (
-    <div className="rounded-md border border-ink-200/70 bg-ink-50/40 px-3 py-2.5 transition-all duration-200 ease-editorial hover:-translate-y-px hover:border-accent-300 hover:bg-accent-50/40 hover:shadow-soft">
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="font-medium text-[13px] text-ink-800">{action.label}</span>
-        <span className="shrink-0 font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-500">
-          {percentLabel}
-        </span>
-      </div>
-      <p className="mt-1 text-[12px] leading-snug text-ink-500">{action.note}</p>
-    </div>
-  );
-}
-
-function ProfilePanel({
-  profile,
-  creatorDisplay,
-}: {
-  profile: UserProfile | null;
-  creatorDisplay: string | null;
-}) {
-  return (
-    <section className="panel flex flex-col gap-4 p-5">
-      <header className="flex items-start justify-between gap-3">
-        <div>
-          <h3 className="font-serif text-[18px] leading-snug tracking-tightish text-ink-900">Profile</h3>
-          <p className="mt-1 text-[12.5px] leading-snug text-ink-500">Account-wide identity.</p>
-        </div>
-        <Link href="/account" className="btn-secondary shrink-0">
-          Manage account
-        </Link>
-      </header>
-      <div className="grid gap-2 sm:grid-cols-3">
-        <ProfileRow label="Creator" value={creatorDisplay} />
-        <ProfileRow label="Email" value={profile?.email ?? null} />
-        <ProfileRow label="Curator" value={profile?.editorName ?? null} />
-      </div>
-    </section>
-  );
-}
-
-function ProfileRow({ label, value }: { label: string; value: string | null }) {
-  return (
-    <Link
-      href="/account"
-      className="group rounded-md border border-ink-200/70 bg-ink-50/40 px-3 py-2.5 transition-all duration-200 ease-editorial hover:border-accent-300 hover:bg-accent-50/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300"
-      title="Profile fields are managed in account settings."
-    >
-      <span className="type-eyebrow text-ink-400">{label}</span>
-      <span className="mt-1 block truncate text-[13px] text-ink-800">
-        <ProfileValue value={value} />
-      </span>
-    </Link>
-  );
 }
 
 function PublicationNameField({
@@ -513,7 +428,7 @@ function PublicationNameField({
           {syncAction}
         </div>
       </div>
-      {error && <p className="font-serif italic text-[12.5px] text-ink-500">{error}</p>}
+      {error && <p className="text-[12.5px] text-ink-500">{error}</p>}
     </form>
   );
 }
@@ -542,7 +457,3 @@ function SavedPip() {
   );
 }
 
-function ProfileValue({ value }: { value?: string | null }) {
-  if (value && value.trim().length > 0) return <>{value}</>;
-  return <span className="font-serif italic text-ink-400">Not set</span>;
-}
