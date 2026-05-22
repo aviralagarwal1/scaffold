@@ -88,7 +88,7 @@ export default function HomePage() {
             </h1>
 
             <p className="animate-rise animate-delay-2 mt-7 max-w-[46ch] font-serif text-[18px] leading-[1.55] text-ink-700 md:text-[19px]">
-              A working memory of everything you've published. The patterns you stopped noticing resurface, the
+              A working memory of everything you've written. The patterns you stopped noticing resurface, the
               half-finished essays reconnect, and every note cites the evidence behind it.
             </p>
 
