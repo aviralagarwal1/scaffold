@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { LogoCTA } from "@/components/LogoCTA";
 import { SubstackUrlForm } from "@/components/SubstackUrlForm";
+import { planConfig } from "@/lib/server/plans";
 
 const STEPS = [
   {
@@ -43,6 +44,9 @@ const CITED_POSTS = [
 ];
 
 export default function HomePage() {
+  const freePlan = planConfig("free");
+  const premiumPlan = planConfig("pro");
+
   return (
     <>
       {/* Logged-in visitors stay on the landing — they may want to re-read
@@ -126,32 +130,16 @@ export default function HomePage() {
             </h2>
           </header>
 
-          {/* Connector hairline behind the numerals. Draws in left → right
-              after the section settles, suggesting the eye moving across
-              the steps. The numerals "rest on" the line; their backgrounds
-              interrupt it so the line reads as a single continuous trace. */}
           <ol className="relative grid gap-x-10 gap-y-12 md:grid-cols-3">
-            <span
-              aria-hidden="true"
-              className="animate-editorial-draw pointer-events-none absolute left-0 right-0 top-[22px] hidden h-px bg-gradient-to-r from-accent-200/0 via-accent-300/55 to-accent-200/0 md:block"
-              style={{ animationDelay: "0.45s" }}
-            />
             {STEPS.map((s, i) => (
-              <li
-                key={s.title}
-                className={`group relative flex flex-col gap-3 ${
-                  i > 0 ? "md:border-l md:border-ink-200/60 md:pl-8" : ""
-                }`}
-              >
-                {/* Numeral with paper-tone background to interrupt the
-                    connector line. Darkens on group hover. */}
-                <span className="relative -mx-1 inline-block w-fit bg-white px-1 font-serif text-[44px] leading-none text-accent-300/90 transition-colors duration-300 ease-editorial group-hover:text-accent-500">
+              <li key={s.title} className="group relative flex flex-col gap-3">
+                <span className="relative -mx-1 inline-block w-fit bg-white px-1 font-serif text-[44px] leading-none text-accent-500 transition-transform duration-300 ease-editorial group-hover:-translate-y-0.5">
                   {String(i + 1).padStart(2, "0")}
                 </span>
-                <h3 className="font-serif text-[19px] leading-snug tracking-tightish text-ink-900 transition-colors duration-300 ease-editorial">
+                <h3 className="font-serif text-[19px] leading-snug tracking-tightish text-ink-900">
                   {s.title}
                 </h3>
-                <p className="text-[14.5px] leading-relaxed text-ink-600 transition-colors duration-300 ease-editorial group-hover:text-ink-700">
+                <p className="text-[14.5px] leading-relaxed text-ink-600">
                   {s.body}
                 </p>
               </li>
@@ -198,7 +186,48 @@ export default function HomePage() {
           shimmer, suggesting a quiet system that's already paying
           attention. The CTA names what the user actually leaves with —
           a memory of their library — rather than a tool action. */}
-      <section className="animate-rise animate-delay-6 relative overflow-hidden bg-white">
+      {/* Monthly plans */}
+      <section className="animate-rise animate-delay-6 border-b border-ink-200/60 bg-white">
+        <div className="mx-auto max-w-6xl px-6 py-24">
+          <header className="mb-14">
+            <SectionMarker title="Monthly Plans" />
+            <h2 className="mt-4 font-serif text-[34px] leading-[1.1] tracking-tightish text-ink-900 md:text-[44px]">
+              Start free.{" "}
+              <span className="relative inline-block italic text-ink-700">
+                Scale when ready.
+                <span
+                  aria-hidden="true"
+                  className="animate-editorial-draw absolute -bottom-0.5 left-0 right-3 h-[1.5px] bg-accent-300/70"
+                  style={{ animationDelay: "0.7s" }}
+                />
+              </span>
+            </h2>
+          </header>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <LandingPlanCard
+              title={freePlan.label}
+              price="Free"
+              features={[
+                { label: "Tokens", value: `${formatTokens(freePlan.monthlyTokenLimit)}/month` },
+                { label: "Libraries", value: `${freePlan.activePublicationLimit} publication` },
+                { label: "Scope", value: "One public library with conversation, search, and draft feedback." },
+              ]}
+            />
+            <LandingPlanCard
+              title={premiumPlan.label}
+              price={`$${(premiumPlan.priceCents / 100).toFixed(0)}/month`}
+              features={[
+                { label: "Tokens", value: `${formatTokens(premiumPlan.monthlyTokenLimit)}/month` },
+                { label: "Libraries", value: `${premiumPlan.activePublicationLimit} publications` },
+                { label: "Scope", value: "Larger libraries, multiple publications, and deeper analysis." },
+              ]}
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="animate-rise relative overflow-hidden bg-white">
         {/* Soft accent wash anchored top-center, echoing the hero's bronze
             warmth at the close. */}
         <div
@@ -265,7 +294,7 @@ export default function HomePage() {
                 into ChatGPT.
               </h2>
               <p className="mx-auto mt-7 max-w-prose font-serif text-[20px] leading-[1.55] text-ink-700">
-                Everything is already in your library. The patterns, the voice, the unfinished ideas.{" "}
+                Everything is already in your library. The structure, the style, the substance.{" "}
                 <span className="relative inline-block whitespace-nowrap">
                   <em className="italic text-ink-900">We just give it memory.</em>
                   <span
@@ -363,6 +392,44 @@ function SectionMarker({ title }: { title: string }) {
       <span className="section-title">{title}</span>
     </div>
   );
+}
+
+function LandingPlanCard({
+  title,
+  price,
+  features,
+}: {
+  title: string;
+  price: string;
+  features: Array<{ label: string; value: string }>;
+}) {
+  return (
+    <article className="group relative overflow-hidden rounded-md border border-ink-200/80 bg-white p-6 shadow-soft transition-all duration-300 ease-editorial hover:-translate-y-1 hover:border-ink-300 hover:bg-ink-50/50 hover:shadow-lift">
+      <span
+        aria-hidden="true"
+        className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-accent-200/0 via-accent-300 to-accent-200/0 opacity-0 transition-opacity duration-300 ease-editorial group-hover:opacity-100"
+      />
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="font-serif text-[24px] leading-tight tracking-tightish text-ink-900">{title}</h3>
+          <p className="mt-1 font-serif text-[15px] leading-snug tracking-tightish text-ink-500">{price}</p>
+        </div>
+      </div>
+
+      <ul className="mt-7 flex flex-col gap-3">
+        {features.map((feature) => (
+          <li key={feature.label} className="grid gap-1 border-t border-ink-200/60 pt-3 first:border-t-0 first:pt-0">
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-400">{feature.label}</span>
+            <span className="text-[14px] leading-relaxed text-ink-600">{feature.value}</span>
+          </li>
+        ))}
+      </ul>
+    </article>
+  );
+}
+
+function formatTokens(value: number) {
+  return value.toLocaleString();
 }
 
 /**
