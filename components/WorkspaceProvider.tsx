@@ -16,7 +16,7 @@ interface WorkspaceContextValue {
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
 
-const POLL_MS = 3500;
+const POLL_MS = 10_000;
 
 export function WorkspaceProvider({ token, children }: { token: string; children: ReactNode }) {
   const [overview, setOverview] = useState<WorkspaceOverview | null>(null);

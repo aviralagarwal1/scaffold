@@ -6,7 +6,8 @@ import { eq } from "drizzle-orm";
 import { mkdir, readFile, rename, writeFile } from "fs/promises";
 import path from "path";
 import { getDb } from "@/lib/server/db";
-import { appState } from "@/lib/server/db/schema";
+import { appState, users, workspaces as workspaceRows } from "@/lib/server/db/schema";
+import { planConfig } from "@/lib/server/plans";
 import { AppError } from "./errors";
 import { chunkText, excerpt } from "./text";
 
@@ -22,10 +23,17 @@ interface Database {
 
 interface TokenUsageEvent {
   id: string;
+  userId?: string | null;
   workspaceId: string;
   feature: TokenUsageFeature;
   label: string;
   tokens: number;
+  inputTokens?: number | null;
+  outputTokens?: number | null;
+  costUsdMicros?: number | null;
+  provider?: string | null;
+  model?: string | null;
+  estimated?: boolean;
   createdAt: string;
 }
 
@@ -33,10 +41,11 @@ const DATA_DIR = path.join(process.cwd(), ".data");
 const DATA_FILE = path.join(DATA_DIR, "substack-ai.json");
 const APP_STATE_KEY = "workspace-store";
 let mutationQueue = Promise.resolve();
-const TOKEN_USAGE_WINDOW_HOURS = 24;
-const TOKEN_USAGE_RETENTION_MS = TOKEN_USAGE_WINDOW_HOURS * 60 * 60 * 1000 * 7;
-const DEFAULT_WORKSPACE_TOKEN_LIMIT = 250_000;
+let dbCache: { value: Database; loadedAt: number } | null = null;
+let dbReadInFlight: Promise<Database> | null = null;
+const TOKEN_USAGE_RETENTION_MS = 1000 * 60 * 60 * 24 * 370;
 const DEFAULT_TOKEN_USAGE_TIME_ZONE = "America/New_York";
+const DB_CACHE_TTL_MS = 30_000;
 
 const SHORT_THEME_TERMS = new Set(["ai", "vc", "ml", "llm", "llms", "saas", "ipo", "ip"]);
 const THEME_LABEL_CONNECTORS = new Set(["and", "as", "for", "in", "of", "the", "to"]);
@@ -190,13 +199,25 @@ const emptyDb = (): Database => ({
 
 async function readDb(): Promise<Database> {
   if (process.env.DATABASE_URL) {
-    const db = getDb();
-    const [row] = await db
-      .select({ value: appState.value })
-      .from(appState)
-      .where(eq(appState.key, APP_STATE_KEY))
-      .limit(1);
-    return { ...emptyDb(), ...((row?.value as Partial<Database> | undefined) ?? {}) };
+    if (dbCache && Date.now() - dbCache.loadedAt < DB_CACHE_TTL_MS) {
+      return dbCache.value;
+    }
+    if (dbReadInFlight) return dbReadInFlight;
+
+    dbReadInFlight = (async () => {
+      const db = getDb();
+      const [row] = await db
+        .select({ value: appState.value })
+        .from(appState)
+        .where(eq(appState.key, APP_STATE_KEY))
+        .limit(1);
+      const value = { ...emptyDb(), ...((row?.value as Partial<Database> | undefined) ?? {}) };
+      dbCache = { value, loadedAt: Date.now() };
+      return value;
+    })().finally(() => {
+      dbReadInFlight = null;
+    });
+    return dbReadInFlight;
   }
 
   try {
@@ -220,6 +241,8 @@ async function writeDb(db: Database): Promise<void> {
         target: appState.key,
         set: { value: db, updatedAt: new Date() },
       });
+    dbCache = { value: db, loadedAt: Date.now() };
+    dbReadInFlight = null;
     return;
   }
 
@@ -242,12 +265,6 @@ async function mutateDb<T>(mutator: (db: Database) => T | Promise<T>): Promise<T
 
 function newToken(): string {
   return randomBytes(24).toString("base64url");
-}
-
-function workspaceTokenLimit(): number {
-  const raw = Number(process.env.WORKSPACE_DAILY_TOKEN_LIMIT);
-  if (!Number.isFinite(raw) || raw <= 0) return DEFAULT_WORKSPACE_TOKEN_LIMIT;
-  return Math.floor(raw);
 }
 
 function tokenUsageTimeZone(): string {
@@ -295,28 +312,25 @@ function zonedMidnightUtc(year: number, month: number, day: number, timeZone: st
   return new Date(utc);
 }
 
-function tokenUsageWindow(now: Date, timeZone: string): { start: Date; reset: Date } {
+function tokenUsageMonthWindow(now: Date, timeZone: string): { start: Date; reset: Date; hours: number } {
   const today = zonedParts(now, timeZone);
-  const tomorrowUtc = new Date(Date.UTC(today.year, today.month - 1, today.day + 1));
-  const tomorrow = {
-    year: tomorrowUtc.getUTCFullYear(),
-    month: tomorrowUtc.getUTCMonth() + 1,
-    day: tomorrowUtc.getUTCDate()
-  };
+  const nextMonthUtc = new Date(Date.UTC(today.year, today.month, 1));
+  const start = zonedMidnightUtc(today.year, today.month, 1, timeZone);
+  const reset = zonedMidnightUtc(nextMonthUtc.getUTCFullYear(), nextMonthUtc.getUTCMonth() + 1, 1, timeZone);
   return {
-    start: zonedMidnightUtc(today.year, today.month, today.day, timeZone),
-    reset: zonedMidnightUtc(tomorrow.year, tomorrow.month, tomorrow.day, timeZone)
+    start,
+    reset,
+    hours: Math.max(1, Math.round((reset.getTime() - start.getTime()) / (1000 * 60 * 60)))
   };
 }
 
-function tokenUsageSummary(events: TokenUsageEvent[], now = new Date()): TokenUsageSummary {
+function tokenUsageSummary(events: TokenUsageEvent[], limit: number, now = new Date()): TokenUsageSummary {
   const resetTimeZone = tokenUsageTimeZone();
-  const window = tokenUsageWindow(now, resetTimeZone);
+  const window = tokenUsageMonthWindow(now, resetTimeZone);
   const active = events
     .filter((event) => Date.parse(event.createdAt) >= window.start.getTime())
     .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
   const used = active.reduce((total, event) => total + event.tokens, 0);
-  const limit = workspaceTokenLimit();
   const remaining = Math.max(0, limit - used);
   const percent = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 100;
 
@@ -325,7 +339,8 @@ function tokenUsageSummary(events: TokenUsageEvent[], now = new Date()): TokenUs
     limit,
     remaining,
     percent,
-    windowHours: TOKEN_USAGE_WINDOW_HOURS,
+    windowHours: window.hours,
+    period: "month",
     resetsAt: window.reset.toISOString(),
     resetTimeZone,
     status: used >= limit ? "exhausted" : percent >= 80 ? "high" : "normal"
@@ -333,7 +348,7 @@ function tokenUsageSummary(events: TokenUsageEvent[], now = new Date()): TokenUs
 }
 
 function workspaceUsageSummary(db: Database, workspaceId: string, now = new Date()): TokenUsageSummary {
-  return tokenUsageSummary((db.tokenUsageEvents ?? []).filter((event) => event.workspaceId === workspaceId), now);
+  return tokenUsageSummary((db.tokenUsageEvents ?? []).filter((event) => event.workspaceId === workspaceId), planConfig("free").monthlyTokenLimit, now);
 }
 
 function formatResetTime(iso: string): string {
@@ -351,6 +366,8 @@ export async function getWorkspaceTokenUsage(token: string): Promise<TokenUsageS
   const db = await readDb();
   const workspace = db.workspaces.find((item) => item.token === token);
   if (!workspace) throw new AppError("Workspace not found.", 404);
+  const ownerUserId = await resolveWorkspaceOwnerUserId(token);
+  if (ownerUserId) return getAccountTokenUsageWithLimit(ownerUserId);
   return workspaceUsageSummary(db, workspace.id);
 }
 
@@ -360,10 +377,58 @@ export async function getWorkspaceTokenUsageMap(tokens: string[]): Promise<Map<s
   const summaries = new Map<string, TokenUsageSummary>();
   for (const workspace of db.workspaces) {
     if (wanted.has(workspace.token)) {
-      summaries.set(workspace.token, workspaceUsageSummary(db, workspace.id));
+      const ownerUserId = await resolveWorkspaceOwnerUserId(workspace.token);
+      summaries.set(
+        workspace.token,
+        ownerUserId ? await getAccountTokenUsageWithLimit(ownerUserId) : workspaceUsageSummary(db, workspace.id)
+      );
     }
   }
   return summaries;
+}
+
+export async function getAccountTokenUsage(userId: string): Promise<TokenUsageSummary> {
+  return getAccountTokenUsageWithLimit(userId);
+}
+
+function accountUsageSummary(
+  db: Database,
+  userId: string,
+  limit: number,
+  ownedTokens: string[],
+  now = new Date()
+): TokenUsageSummary {
+  const ownedWorkspaceIds = new Set(
+    db.workspaces
+      .filter((workspace) => ownedTokens.length === 0 || ownedTokens.includes(workspace.token))
+      .map((workspace) => workspace.id)
+  );
+  const events = (db.tokenUsageEvents ?? []).filter((event) =>
+    event.userId === userId || (!event.userId && ownedWorkspaceIds.has(event.workspaceId))
+  );
+  return tokenUsageSummary(events, limit, now);
+}
+
+async function accountPlanLimit(userId: string): Promise<number> {
+  if (!process.env.DATABASE_URL) return planConfig("free").monthlyTokenLimit;
+  const database = getDb();
+  const [row] = await database
+    .select({ plan: users.plan })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  return planConfig(row?.plan).monthlyTokenLimit;
+}
+
+async function resolveWorkspaceOwnerUserId(token: string): Promise<string | null> {
+  if (!process.env.DATABASE_URL) return null;
+  const database = getDb();
+  const [row] = await database
+    .select({ ownerUserId: workspaceRows.ownerUserId })
+    .from(workspaceRows)
+    .where(eq(workspaceRows.token, token))
+    .limit(1);
+  return row?.ownerUserId ?? null;
 }
 
 export async function assertWorkspaceTokenBudget(
@@ -371,29 +436,62 @@ export async function assertWorkspaceTokenBudget(
   estimatedTokens: number,
   feature: TokenUsageFeature
 ): Promise<TokenUsageSummary> {
-  const summary = await getWorkspaceTokenUsage(token);
+  const ownerUserId = await resolveWorkspaceOwnerUserId(token);
+  const summary = ownerUserId ? await getAccountTokenUsageWithLimit(ownerUserId) : await getWorkspaceTokenUsage(token);
   const estimate = Math.max(0, Math.ceil(estimatedTokens));
   if (summary.used >= summary.limit || estimate > summary.remaining) {
     throw new AppError(
-      `Token usage limit reached for this publication. It resets around ${formatResetTime(summary.resetsAt)}.`,
+      `Monthly token usage limit reached for this account. It resets around ${formatResetTime(summary.resetsAt)}.`,
       429
     );
   }
   return summary;
 }
 
+async function getAccountTokenUsageWithLimit(userId: string): Promise<TokenUsageSummary> {
+  const db = await readDb();
+  const limit = await accountPlanLimit(userId);
+  const ownedTokens = process.env.DATABASE_URL ? await accountWorkspaceTokens(userId) : [];
+  return accountUsageSummary(db, userId, limit, ownedTokens);
+}
+
+async function accountWorkspaceTokens(userId: string): Promise<string[]> {
+  if (!process.env.DATABASE_URL) return [];
+  const database = getDb();
+  const rows = await database
+    .select({ token: workspaceRows.token })
+    .from(workspaceRows)
+    .where(eq(workspaceRows.ownerUserId, userId));
+  return rows.map((row) => row.token).filter((token): token is string => Boolean(token));
+}
+
 export async function recordWorkspaceTokenUsage({
   token,
   feature,
   label,
-  tokens
+  tokens,
+  inputTokens = null,
+  outputTokens = null,
+  costUsdMicros = null,
+  provider = null,
+  model = null,
+  estimated = true
 }: {
   token: string;
   feature: TokenUsageFeature;
   label: string;
   tokens: number;
+  inputTokens?: number | null;
+  outputTokens?: number | null;
+  costUsdMicros?: number | null;
+  provider?: string | null;
+  model?: string | null;
+  estimated?: boolean;
 }): Promise<TokenUsageSummary> {
   const cleanTokens = Math.max(1, Math.ceil(tokens));
+  const ownerUserId = await resolveWorkspaceOwnerUserId(token);
+  const ownerLimit = ownerUserId ? await accountPlanLimit(ownerUserId) : null;
+  const ownerTokens = ownerUserId ? await accountWorkspaceTokens(ownerUserId) : [];
   return mutateDb((db) => {
     const workspace = db.workspaces.find((item) => item.token === token);
     if (!workspace) throw new AppError("Workspace not found.", 404);
@@ -404,13 +502,22 @@ export async function recordWorkspaceTokenUsage({
     );
     db.tokenUsageEvents.push({
       id: randomUUID(),
+      userId: ownerUserId,
       workspaceId: workspace.id,
       feature,
       label: label.slice(0, 80),
       tokens: cleanTokens,
+      inputTokens,
+      outputTokens,
+      costUsdMicros,
+      provider,
+      model,
+      estimated,
       createdAt: now.toISOString()
     });
-    return workspaceUsageSummary(db, workspace.id, now);
+    return ownerUserId && ownerLimit
+      ? accountUsageSummary(db, ownerUserId, ownerLimit, ownerTokens, now)
+      : workspaceUsageSummary(db, workspace.id, now);
   });
 }
 
@@ -454,7 +561,10 @@ export async function createWorkspace(publicationUrl: string): Promise<Workspace
   });
 }
 
-export async function deleteWorkspacesByTokens(tokens: string[]): Promise<void> {
+export async function deleteWorkspacesByTokens(
+  tokens: string[],
+  options: { deleteUsageEvents?: boolean; retainUsageForUserId?: string } = {}
+): Promise<void> {
   const wanted = new Set(tokens.filter(Boolean));
   if (wanted.size === 0) return;
 
@@ -472,7 +582,16 @@ export async function deleteWorkspacesByTokens(tokens: string[]): Promise<void> 
     db.repurposeDrafts = db.repurposeDrafts.filter((draft) => !workspaceIds.has(draft.workspaceId));
     db.grammarIssues = db.grammarIssues.filter((issue) => !workspaceIds.has(issue.workspaceId));
     db.savedIdeas = db.savedIdeas.filter((idea) => !workspaceIds.has(idea.workspaceId));
-    db.tokenUsageEvents = (db.tokenUsageEvents ?? []).filter((event) => !workspaceIds.has(event.workspaceId));
+    if (options.retainUsageForUserId) {
+      db.tokenUsageEvents = (db.tokenUsageEvents ?? []).map((event) =>
+        workspaceIds.has(event.workspaceId)
+          ? { ...event, userId: event.userId ?? options.retainUsageForUserId }
+          : event
+      );
+    }
+    if (options.deleteUsageEvents) {
+      db.tokenUsageEvents = (db.tokenUsageEvents ?? []).filter((event) => !workspaceIds.has(event.workspaceId));
+    }
   });
 }
 

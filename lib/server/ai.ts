@@ -191,6 +191,12 @@ interface GenerateOptions {
 interface GeneratedText {
   text: string;
   tokens: number | null;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  costUsdMicros: number | null;
+  provider: "anthropic";
+  model: string;
+  estimated: boolean;
 }
 
 function estimateTokens(value: string): number {
@@ -200,6 +206,7 @@ function estimateTokens(value: string): number {
 async function generateWithAnthropic(system: string, user: string, options: GenerateOptions = {}): Promise<GeneratedText | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
+  const model = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-5";
 
   let response: Response;
   try {
@@ -211,7 +218,7 @@ async function generateWithAnthropic(system: string, user: string, options: Gene
         "x-api-key": apiKey
       },
       body: JSON.stringify({
-        model: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-5",
+        model,
         max_tokens: options.maxTokens ?? 1800,
         temperature: options.temperature ?? 0.4,
         system,
@@ -238,58 +245,25 @@ async function generateWithAnthropic(system: string, user: string, options: Gene
     .join("\n")
     .trim() ?? null;
   if (!text) return null;
-  const tokens =
-    typeof data.usage?.input_tokens === "number" || typeof data.usage?.output_tokens === "number"
-      ? (data.usage?.input_tokens ?? 0) + (data.usage?.output_tokens ?? 0)
-      : null;
-  return { text, tokens };
+  const inputTokens = typeof data.usage?.input_tokens === "number" ? data.usage.input_tokens : null;
+  const outputTokens = typeof data.usage?.output_tokens === "number" ? data.usage.output_tokens : null;
+  const tokens = inputTokens !== null || outputTokens !== null ? (inputTokens ?? 0) + (outputTokens ?? 0) : null;
+  return {
+    text,
+    tokens,
+    inputTokens,
+    outputTokens,
+    costUsdMicros: inputTokens !== null || outputTokens !== null
+      ? anthropicSonnetCostUsdMicros(inputTokens ?? 0, outputTokens ?? 0)
+      : null,
+    provider: "anthropic",
+    model,
+    estimated: tokens === null,
+  };
 }
 
-async function generateWithOpenAI(system: string, user: string, options: GenerateOptions = {}): Promise<GeneratedText | null> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return null;
-
-  let response: Response;
-  try {
-    response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${apiKey}`,
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        model: process.env.OPENAI_MODEL ?? "gpt-4.1-mini",
-        max_tokens: options.maxTokens ?? 1800,
-        temperature: options.temperature ?? 0.4,
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: user }
-        ]
-      })
-    });
-  } catch (error) {
-    console.error("OpenAI request failed", error);
-    return null;
-  }
-
-  if (!response.ok) {
-    console.error("OpenAI request failed", await response.text());
-    return null;
-  }
-
-  const data = (await response.json()) as {
-    choices?: { message?: { content?: string } }[];
-    usage?: { total_tokens?: number; prompt_tokens?: number; completion_tokens?: number };
-  };
-  const text = data.choices?.[0]?.message?.content?.trim() ?? null;
-  if (!text) return null;
-  const tokens =
-    typeof data.usage?.total_tokens === "number"
-      ? data.usage.total_tokens
-      : typeof data.usage?.prompt_tokens === "number" || typeof data.usage?.completion_tokens === "number"
-        ? (data.usage?.prompt_tokens ?? 0) + (data.usage?.completion_tokens ?? 0)
-        : null;
-  return { text, tokens };
+function anthropicSonnetCostUsdMicros(inputTokens: number, outputTokens: number): number {
+  return Math.ceil(inputTokens * 3 + outputTokens * 15);
 }
 
 async function generateText(system: string, user: string, options: GenerateOptions = {}): Promise<string | null> {
@@ -299,14 +273,7 @@ async function generateText(system: string, user: string, options: GenerateOptio
     await assertWorkspaceTokenBudget(options.usage.workspaceToken, expectedTokens, options.usage.feature);
   }
 
-  let generated: GeneratedText | null = null;
-  if (process.env.ANTHROPIC_API_KEY) {
-    generated = await generateWithAnthropic(system, user, options);
-    if (!generated && !process.env.OPENAI_API_KEY) return null;
-  }
-  if (!generated) {
-    generated = await generateWithOpenAI(system, user, options);
-  }
+  const generated = await generateWithAnthropic(system, user, options);
   if (!generated) return null;
 
   if (options.usage) {
@@ -314,7 +281,13 @@ async function generateText(system: string, user: string, options: GenerateOptio
       token: options.usage.workspaceToken,
       feature: options.usage.feature,
       label: options.usage.label,
-      tokens: generated.tokens ?? estimateTokens(system) + estimateTokens(user) + estimateTokens(generated.text)
+      tokens: generated.tokens ?? estimateTokens(system) + estimateTokens(user) + estimateTokens(generated.text),
+      inputTokens: generated.inputTokens,
+      outputTokens: generated.outputTokens,
+      costUsdMicros: generated.costUsdMicros,
+      provider: generated.provider,
+      model: generated.model,
+      estimated: generated.estimated
     });
   }
 
