@@ -3,7 +3,7 @@ import { AccountPanel } from "@/components/AccountPanel";
 import { getCurrentUserId } from "@/lib/server/auth/current";
 
 export const metadata = {
-  title: "Account · Scaffold",
+  title: "Desk - Scaffold",
 };
 
 type AccountPageProps = {
@@ -24,8 +24,6 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
 
   return (
     <section className="relative overflow-hidden">
-      {/* Continuity wash. Same warm bronze the marketing hero and auth pages
-          use, so the user never feels they've stepped into a sterile dashboard. */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 -z-10"
@@ -38,13 +36,13 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-6 py-16">
         <header className="max-w-4xl">
           <span className="animate-rise animate-delay-1 font-mono text-[11px] uppercase tracking-[0.16em] text-accent-700">
-            § / Account
+            &sect; / Desk
           </span>
           <h1 className="animate-rise animate-delay-2 mt-3 font-serif text-[34px] leading-[1.08] tracking-tightish text-ink-900 md:text-[40px]">
-            Your <em className="font-serif italic text-ink-700">desk.</em>
+            Desk
           </h1>
           <p className="animate-rise animate-delay-3 mt-4 font-serif text-[16.5px] leading-relaxed text-ink-600">
-            One account for your publications. Each workspace becomes an editorial memory of the writing.
+            Manage your publications, usage, and workspace access.
           </p>
         </header>
 

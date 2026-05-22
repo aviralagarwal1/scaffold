@@ -2,16 +2,14 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { signOut } from "next-auth/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { UserProfile } from "@/types/auth";
-import type { AccountWorkspaceSummary, TokenUsageSummary, WorkspaceStatus } from "@/types/workspace";
+import type { AccountWorkspaceSummary, WorkspaceStatus } from "@/types/workspace";
 import { api, ApiClientError } from "@/lib/client/api";
 import { cn } from "@/lib/client/cn";
 import { sanitizeAsTyped, validateCuratorName } from "@/lib/client/curator-name";
 import { sanitizeCreatorAsTyped, validateCreatorName } from "@/lib/client/creator-name";
 import { formatRelative, hostnameOf, pluralize, statusLabel } from "@/lib/client/format";
-import { ConfirmButton } from "./ConfirmButton";
 import { LoadingState } from "./states";
 import { TokenUsageBadge } from "./TokenUsageBadge";
 
@@ -135,6 +133,8 @@ export function AccountPanel() {
         />
       </div>
 
+      {profile?.plan && <AccountUsageCard profile={profile} />}
+
       {/* Bottom row morphs based on state:
           1. Gate closed → soft prompt to finish the gate.
           2. Gate open + no workspaces → big "Add your publication →" CTA.
@@ -142,9 +142,9 @@ export function AccountPanel() {
       <PublicationsRegion
         gateOpen={gateOpen}
         workspaces={workspaces}
+        profile={profile}
         onGateContinue={promptMissingNames}
       />
-      {workspaces.length > 0 && <AccountDeletionPanel />}
     </div>
   );
 }
@@ -170,6 +170,7 @@ function CreatorCard({
   const initial = isUnset ? "" : profile?.creatorName ?? "";
   const [name, setName] = useState(initial);
   const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [alerting, setAlerting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -215,10 +216,13 @@ function CreatorCard({
       return;
     }
     setBusy(true);
+    setSaved(false);
     setError(null);
     try {
       const next = await api.updateProfile({ creatorName: name.trim() });
       onProfileChange(next);
+      setSaved(true);
+      window.setTimeout(() => setSaved(false), 1800);
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Could not update profile.");
     } finally {
@@ -233,13 +237,12 @@ function CreatorCard({
         className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-accent-200/0 via-accent-300 to-accent-200/0"
       />
       <header>
-        <span className="type-eyebrow text-accent-700">Creator</span>
-        <h2 className="mt-2 font-serif text-[22px] leading-snug tracking-tightish text-ink-900">You.</h2>
+        <h2 className="font-serif text-[22px] leading-snug tracking-tightish text-ink-900">Creator</h2>
       </header>
 
       <form onSubmit={save} className="flex flex-col gap-5" noValidate>
         <label className="flex flex-col gap-2">
-          <span className="type-eyebrow text-ink-400">Your name</span>
+          <span className="type-eyebrow text-ink-400">Name</span>
           <input
             ref={inputRef}
             value={name}
@@ -254,11 +257,12 @@ function CreatorCard({
             autoCorrect="off"
           />
           <span className="text-[11.5px] leading-snug text-ink-400">
-            Your name follows your writing across every library.
+            Used across your writing libraries.
           </span>
         </label>
-        {error && <p className="font-serif italic text-[12.5px] text-ink-500">{error}</p>}
+        {error && <p className="text-[12.5px] text-ink-500">{error}</p>}
         <div className="mt-1 flex items-center justify-end gap-3">
+          {saved && <SavedCheck />}
           <button type="submit" className="btn-primary" disabled={busy}>
             {busy ? "Saving..." : "Save"}
           </button>
@@ -291,6 +295,7 @@ function CuratorCard({
   const initial = isUnset ? "" : profile?.editorName ?? "";
   const [editorName, setEditorName] = useState(initial);
   const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [alerting, setAlerting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -344,10 +349,13 @@ function CuratorCard({
       return;
     }
     setBusy(true);
+    setSaved(false);
     setError(null);
     try {
       const next = await api.updateProfile({ editorName });
       onProfileChange(next);
+      setSaved(true);
+      window.setTimeout(() => setSaved(false), 1800);
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Could not update profile.");
     } finally {
@@ -368,10 +376,7 @@ function CuratorCard({
         className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-accent-200/0 via-accent-300 to-accent-200/0"
       />
       <header>
-        <span className="type-eyebrow text-accent-700">Curator</span>
-        <h2 className="mt-2 font-serif text-[22px] leading-snug tracking-tightish text-ink-900">
-          Your <em className="font-serif italic text-ink-700">curator.</em>
-        </h2>
+        <h2 className="font-serif text-[22px] leading-snug tracking-tightish text-ink-900">Curator</h2>
       </header>
 
       <form
@@ -385,7 +390,7 @@ function CuratorCard({
         noValidate
       >
         <label className="flex flex-col gap-2">
-          <span className="type-eyebrow text-ink-400">Your curator's name</span>
+          <span className="type-eyebrow text-ink-400">Name</span>
           <input
             ref={inputRef}
             value={editorName}
@@ -404,11 +409,12 @@ function CuratorCard({
             autoCorrect="off"
           />
           <span className="text-[11.5px] leading-snug text-ink-400">
-            Your curator's name follows each review and thread.
+            Used in conversation and writing feedback.
           </span>
         </label>
-        {error && <p className="font-serif italic text-[12.5px] text-ink-500">{error}</p>}
+        {error && <p className="text-[12.5px] text-ink-500">{error}</p>}
         <div className="mt-1 flex items-center justify-end gap-3">
+          {saved && <SavedCheck />}
           <button type="submit" className="btn-primary" disabled={busy} aria-disabled={locked || undefined}>
             {busy ? "Saving..." : "Save"}
           </button>
@@ -419,13 +425,39 @@ function CuratorCard({
 }
 
 // === Bottom row — gate-aware publications region ===================
+function SavedCheck() {
+  return (
+    <span
+      className="animate-fade relative inline-flex h-5 w-5 items-center justify-center text-positive-700"
+      role="status"
+      aria-label="Saved"
+    >
+      <span className="absolute inline-flex h-4 w-4 animate-editorial-bloom rounded-full bg-positive-500/35" />
+      <svg
+        viewBox="0 0 12 12"
+        className="relative h-3.5 w-3.5 animate-fade"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M2.5 6.4 L5 8.8 L9.6 3.6" />
+      </svg>
+    </span>
+  );
+}
+
 function PublicationsRegion({
   gateOpen,
   workspaces,
+  profile,
   onGateContinue,
 }: {
   gateOpen: boolean;
   workspaces: AccountWorkspaceSummary[];
+  profile: UserProfile | null;
   onGateContinue: () => void;
 }) {
   // 1 — gate still closed.
@@ -456,9 +488,8 @@ function PublicationsRegion({
     return (
       <section className="flex flex-col items-start gap-4 rounded-md border border-dashed border-ink-200 bg-white/70 px-6 py-8">
         <div>
-          <span className="type-eyebrow text-accent-700">Next</span>
-          <h2 className="mt-1.5 font-serif text-[22px] leading-snug tracking-tightish text-ink-900">
-            Add your <em className="font-serif italic text-ink-700">first publication.</em>
+          <h2 className="font-serif text-[22px] leading-snug tracking-tightish text-ink-900">
+            Add your first publication.
           </h2>
           <p className="mt-1.5 max-w-prose text-[14px] leading-relaxed text-ink-600">
             One workspace per publication, with its own library, themes, and drafts.
@@ -480,29 +511,97 @@ function PublicationsRegion({
   }
 
   // 3 — gate open, workspaces exist → list with + Add button.
-  return <WorkspacesCard workspaces={workspaces} />;
+  return <WorkspacesCard workspaces={workspaces} profile={profile} />;
 }
 
-function WorkspacesCard({ workspaces }: { workspaces: AccountWorkspaceSummary[] }) {
-  const totalUsage = combineTokenUsage(workspaces);
+function AccountUsageCard({ profile }: { profile: UserProfile }) {
+  const plan = profile.plan;
+  const resetLabel = new Date(plan.tokenUsage.resetsAt).toLocaleString(undefined, {
+    timeZone: plan.tokenUsage.resetTimeZone,
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+  return (
+    <section className="panel flex flex-col gap-4 p-6">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <span className="type-eyebrow text-accent-700">{plan.label} plan</span>
+          <h2 className="mt-2 font-serif text-[20px] leading-snug tracking-tightish text-ink-900">
+            Account Usage
+          </h2>
+          <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-600">
+            {plan.tokenUsage.used.toLocaleString()} of {plan.tokenUsage.limit.toLocaleString()} monthly tokens used. Resets {resetLabel}. Deleted publication usage remains counted until reset.
+          </p>
+        </div>
+        <div className="flex flex-col items-start gap-1.5 sm:items-end">
+          <span className="rounded-full border border-ink-200 bg-ink-50 px-2.5 py-1 font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-500">
+            {plan.activePublicationCount.toLocaleString()} / {plan.activePublicationLimit.toLocaleString()} active publication{plan.activePublicationLimit === 1 ? "" : "s"}
+          </span>
+          {plan.priceCents > 0 && (
+            <span className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-400">
+              ${(plan.priceCents / 100).toFixed(0)}/month
+            </span>
+          )}
+        </div>
+      </header>
+      <div className="h-2 overflow-hidden rounded-full bg-ink-100" aria-hidden="true">
+        <div
+          className={cn(
+            "h-full rounded-full transition-all duration-300 ease-editorial",
+            plan.tokenUsage.status === "exhausted"
+              ? "bg-critical-500"
+              : plan.tokenUsage.status === "high"
+                ? "bg-warn-500"
+                : "bg-accent-500",
+          )}
+          style={{ width: `${plan.tokenUsage.percent}%` }}
+        />
+      </div>
+      {plan.id === "free" && (
+        <div className="flex flex-col gap-2 border-t border-ink-200/60 pt-4 text-[13.5px] leading-relaxed text-ink-600 sm:flex-row sm:items-center sm:justify-between">
+          <p>Need more room? Premium adds more monthly tokens and active publications.</p>
+          <Link href="/account/plan" className="btn-link shrink-0">
+            Upgrade here
+          </Link>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function WorkspacesCard({ workspaces, profile }: { workspaces: AccountWorkspaceSummary[]; profile: UserProfile | null }) {
+  const plan = profile?.plan;
+  const publicationLimitReached = Boolean(plan && plan.activePublicationCount >= plan.activePublicationLimit);
 
   return (
     <section className="panel flex flex-col gap-5 p-6">
       <header className="flex items-start justify-between gap-4">
         <div>
           <span className="type-eyebrow text-accent-700">Workspaces</span>
-          {totalUsage && (
+          {plan && (
             <div className="mt-2">
-              <TokenUsageBadge usage={totalUsage} label="Token Usage Today: " />
+              <TokenUsageBadge usage={plan.tokenUsage} label="Monthly token usage: " />
             </div>
           )}
         </div>
-        <Link href="/publications/new" className="btn-secondary group shrink-0" aria-label="Add workspace">
-          <span aria-hidden="true" className="mr-1.5 text-[15px] leading-none text-accent-500 group-hover:text-accent-700">
-            +
+        {publicationLimitReached ? (
+          <span
+            className="inline-flex h-9 shrink-0 items-center rounded-md border border-ink-200 bg-ink-50 px-4 text-[13px] font-medium text-ink-400"
+            title={`${plan?.label ?? "This"} plan allows ${plan?.activePublicationLimit ?? 0} active publication${plan?.activePublicationLimit === 1 ? "" : "s"}.`}
+          >
+            Publication limit reached
           </span>
-          Add publication
-        </Link>
+        ) : (
+          <Link href="/publications/new" className="btn-secondary group shrink-0" aria-label="Add workspace">
+            <span aria-hidden="true" className="mr-1.5 text-[15px] leading-none text-accent-500 group-hover:text-accent-700">
+              +
+            </span>
+            Add publication
+          </Link>
+        )}
       </header>
 
       <ul className="flex flex-col gap-3">
@@ -512,29 +611,6 @@ function WorkspacesCard({ workspaces }: { workspaces: AccountWorkspaceSummary[] 
       </ul>
     </section>
   );
-}
-
-function combineTokenUsage(workspaces: AccountWorkspaceSummary[]): TokenUsageSummary | null {
-  const summaries = workspaces.map((workspace) => workspace.tokenUsage).filter((usage): usage is TokenUsageSummary => Boolean(usage));
-  if (summaries.length === 0) return null;
-  const used = summaries.reduce((total, usage) => total + usage.used, 0);
-  const limit = summaries.reduce((total, usage) => total + usage.limit, 0);
-  const remaining = Math.max(0, limit - used);
-  const percent = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 100;
-  const resetsAt = summaries
-    .map((usage) => usage.resetsAt)
-    .sort((a, b) => Date.parse(a) - Date.parse(b))[0];
-
-  return {
-    used,
-    limit,
-    remaining,
-    percent,
-    windowHours: 24,
-    resetsAt,
-    resetTimeZone: summaries[0].resetTimeZone,
-    status: used >= limit ? "exhausted" : percent >= 80 ? "high" : "normal"
-  };
 }
 
 function WorkspaceRow({ workspace }: { workspace: AccountWorkspaceSummary }) {
@@ -570,7 +646,7 @@ function WorkspaceRow({ workspace }: { workspace: AccountWorkspaceSummary }) {
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-3">
-          <TokenUsageBadge usage={workspace.tokenUsage} compact showBar compactSuffix="workspace usage" />
+          <TokenUsageBadge usage={workspace.tokenUsage} compact showBar compactSuffix="account usage" />
           <StatusBadge status={workspace.status} />
           {workspace.lastIngestedAt && (
             <span className="hidden font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-400 sm:inline">
@@ -616,47 +692,5 @@ function StatusBadge({ status }: { status: WorkspaceStatus }) {
       )}
       {config.label}
     </span>
-  );
-}
-
-function AccountDeletionPanel() {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const deleteAccount = async () => {
-    if (busy) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await api.deleteAccount();
-      await signOut({ callbackUrl: "/register?deleted=1" });
-    } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Could not delete account.");
-      setBusy(false);
-    }
-  };
-
-  return (
-    <section className="panel-quiet flex flex-col gap-4 border-critical-100/70 bg-critical-100/20 p-6">
-      <div>
-        <span className="type-eyebrow text-critical-700">Danger Zone</span>
-        <h2 className="mt-2 font-serif text-[22px] leading-snug tracking-tightish text-ink-900">
-          Delete account.
-        </h2>
-        <p className="mt-2 max-w-2xl text-[13.5px] leading-relaxed text-ink-600">
-          Permanently deletes your account, profile, and owned workspaces. This action cannot be undone.
-        </p>
-      </div>
-      {error && <p className="font-serif italic text-[12.5px] text-critical-700">{error}</p>}
-      <ConfirmButton
-        label="Delete account"
-        confirmLabel="Delete permanently"
-        busyLabel="Deleting..."
-        busy={busy}
-        onConfirm={deleteAccount}
-        className="inline-flex h-9 items-center justify-center self-start rounded-md border border-critical-100 bg-white px-3.5 text-[13px] font-medium text-critical-700 shadow-soft transition-colors duration-150 ease-editorial hover:border-critical-200 hover:bg-critical-100/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-critical-500/40 disabled:cursor-not-allowed disabled:opacity-50"
-        armedClassName="border-critical-200 bg-critical-100 text-critical-700 ring-2 ring-critical-500/35"
-      />
-    </section>
   );
 }
