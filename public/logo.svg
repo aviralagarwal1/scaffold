@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Scaffold">
+  <rect width="512" height="512" rx="112" fill="#7d3d1a"/>
+  <text
+    x="256"
+    y="362"
+    text-anchor="middle"
+    font-family="'Iowan Old Style', Charter, 'Source Serif Pro', Georgia, Cambria, serif"
+    font-size="352"
+    font-weight="400"
+    fill="#fbf3ec"
+  >&#167;</text>
+</svg>
