@@ -3,7 +3,7 @@
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiClientError } from "@/lib/client/api";
 import { cn } from "@/lib/client/cn";
 import type { UserProfile } from "@/types/auth";
@@ -109,6 +109,15 @@ export function UserMenu() {
     "you";
   const initial = (displayName[0] ?? "Y").toUpperCase();
   const initialClassName = initialGradientClass(initial);
+  const activePage = pathname === "/account/profile"
+    ? "account"
+    : pathname === "/account"
+      ? "desk"
+      : pathname === "/account/plan"
+        ? "plan"
+        : pathname === "/support" || pathname === "/questions"
+          ? "support"
+          : null;
 
   return (
     <div ref={wrapperRef} className="relative">
@@ -144,7 +153,7 @@ export function UserMenu() {
           aria-label="Account"
           className="animate-fade absolute right-0 top-[calc(100%+6px)] z-40 w-64 origin-top-right overflow-hidden rounded-md border border-ink-200/80 bg-white shadow-lift"
         >
-          {/* Header band — creator identity in roman/italic, email in quiet
+          {/* Header band — creator identity in roman text, email in quiet
               monospace beneath. The curator name doesn't surface here; this
               chip is about the human, not their companion. */}
           <div className="border-b border-ink-200/60 px-3.5 py-3">
@@ -171,33 +180,76 @@ export function UserMenu() {
 
           <ul className="flex flex-col py-1.5">
             <li>
-              <Link
-                href="/account"
-                role="menuitem"
-                className="flex items-center gap-2 px-3.5 py-1.5 text-[13px] text-ink-700 transition-colors hover:bg-ink-50 hover:text-ink-900"
+              <MenuLink
+                href="/account/profile"
+                active={activePage === "account"}
               >
-                <span aria-hidden="true" className="site-wordmark-mark font-serif text-[13px] leading-none text-accent-500">
-                  §
-                </span>
                 Account
-              </Link>
+              </MenuLink>
+            </li>
+            <li>
+              <MenuLink
+                href="/account"
+                active={activePage === "desk"}
+              >
+                Desk
+              </MenuLink>
+            </li>
+            <li>
+              <MenuLink
+                href="/account/plan"
+                active={activePage === "plan"}
+              >
+                Premium Plan
+              </MenuLink>
+            </li>
+            <li>
+              <MenuLink
+                href="/support"
+                active={activePage === "support"}
+              >
+                Support
+              </MenuLink>
             </li>
             <li>
               <button
                 type="button"
                 role="menuitem"
                 onClick={() => void signOut({ callbackUrl: "/" })}
-                className="flex w-full items-center gap-2 px-3.5 py-1.5 text-left text-[13px] text-ink-700 transition-colors hover:bg-critical-100/40 hover:text-critical-700"
+                className="block w-full px-3.5 py-1.5 text-left text-[13px] text-ink-700 transition-colors hover:bg-critical-100/40 hover:text-critical-700"
               >
-                <span aria-hidden="true" className="text-ink-400">
-                  ⏻
-                </span>
-                Sign out
+                Sign Out
               </button>
             </li>
           </ul>
         </div>
       )}
     </div>
+  );
+}
+
+function MenuLink({
+  href,
+  active,
+  children,
+}: {
+  href: string;
+  active: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      role="menuitem"
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "relative block px-3.5 py-1.5 text-[13px] transition-colors",
+        active
+          ? "bg-accent-50/70 font-medium text-accent-700 before:absolute before:bottom-1.5 before:left-0 before:top-1.5 before:w-0.5 before:rounded-r-full before:bg-accent-500 hover:bg-accent-50 hover:text-accent-700"
+          : "text-ink-700 hover:bg-ink-50 hover:text-ink-900",
+      )}
+    >
+      {children}
+    </Link>
   );
 }
