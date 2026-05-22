@@ -8,6 +8,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
+    "prod:env:check": "node scripts/check-cloud-run-env.mjs",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"

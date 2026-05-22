@@ -65,7 +65,12 @@ jobs:
             --min-instances=0 \
             --max-instances=1 \
             --timeout=300 \
-            --update-env-vars=PYTHON=python3
+            --remove-env-vars=OPENAI_MODEL,WORKSPACE_DAILY_TOKEN_LIMIT \
+            --update-env-vars=APP_BASE_URL=https://scaffold.aviralagarwal.com,NEXTAUTH_URL=https://scaffold.aviralagarwal.com,EMAIL_FROM=scaffold@aviralagarwal.com,ANTHROPIC_MODEL=claude-sonnet-4-5,FREE_MONTHLY_TOKEN_LIMIT=500000,FREE_ACTIVE_PUBLICATION_LIMIT=1,FREE_PRICE_CENTS=0,PRO_MONTHLY_TOKEN_LIMIT=2000000,PRO_ACTIVE_PUBLICATION_LIMIT=3,PRO_PRICE_CENTS=800,TOKEN_USAGE_TIME_ZONE=America/New_York,PYTHON=python3 \
+            --update-secrets=DATABASE_URL=substack-ai-database-url:latest,NEXTAUTH_SECRET=substack-ai-nextauth-secret:latest,RESEND_API_KEY=substack-ai-resend-api-key:latest,ANTHROPIC_API_KEY=substack-ai-anthropic-api-key:latest
+
+      - name: Check Cloud Run env contract
+        run: npm run prod:env:check -- --skip-secret-values
 
       - name: Verify deployment
         run: |
