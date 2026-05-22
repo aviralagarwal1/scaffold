@@ -15,6 +15,20 @@
       "when": 1778474406615,
       "tag": "0001_lyrical_redwing",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779383758158,
+      "tag": "0002_boring_princess_powerful",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1779385672247,
+      "tag": "0003_ambiguous_siren",
+      "breakpoints": true
     }
   ]
 }

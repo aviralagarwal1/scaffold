@@ -34,6 +34,7 @@ export const users = pgTable("users", {
   emailVerified: timestamp("email_verified", { withTimezone: true }),
   image: text("image"),
   passwordHash: text("password_hash"),
+  plan: varchar("plan", { length: 24 }).default("free").notNull(),
 });
 
 export const accounts = pgTable(
@@ -92,11 +93,15 @@ export const profiles = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    fullName: text("full_name"),
+    phoneNumber: varchar("phone_number", { length: 32 }),
+    handle: varchar("handle", { length: 32 }),
     editorName: varchar("editor_name", { length: 80 }).notNull(),
     ...timestamps,
   },
   (table) => ({
     userIdIdx: uniqueIndex("profiles_user_id_idx").on(table.userId),
+    handleIdx: uniqueIndex("profiles_handle_idx").on(table.handle),
   }),
 );
 
