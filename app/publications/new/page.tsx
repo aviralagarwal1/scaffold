@@ -25,7 +25,7 @@ export default async function NewPublicationPage({
           § / New publication
         </span>
         <h1 className="animate-rise animate-delay-2 mt-3 font-serif text-[36px] leading-[1.08] tracking-tightish text-ink-900 md:text-[44px]">
-          Add a <em className="font-serif italic text-ink-700">publication</em> to your desk.
+          Add a publication to your desk.
         </h1>
         <p className="animate-rise animate-delay-3 mt-5 max-w-prose font-serif text-[17px] leading-relaxed text-ink-600">
           Paste your publication link. We'll read the public posts and open your workspace when it's ready. Larger libraries can take a few minutes.
