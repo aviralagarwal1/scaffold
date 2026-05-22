@@ -2,6 +2,9 @@
 .next
 .venv
 .claude
+CLAUDE.md
+CLAUDE.MD
+docs
 .data
 node_modules
 npm-debug.log*
