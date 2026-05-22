@@ -52,7 +52,7 @@ export function PlanUpgradePanel({
             features={[
               { label: "Tokens", value: `${formatTokens(basicPlan.monthlyTokenLimit)}/month` },
               { label: "Libraries", value: pluralize(basicPlan.activePublicationLimit, "publication") },
-              { label: "Scope", value: "One public library with conversation, search, and draft feedback." },
+              { label: "Scope", value: "One library with conversation, search, and draft feedback." },
             ]}
           />
           <PlanCard

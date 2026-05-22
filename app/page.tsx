@@ -211,7 +211,7 @@ export default function HomePage() {
               features={[
                 { label: "Tokens", value: `${formatTokens(freePlan.monthlyTokenLimit)}/month` },
                 { label: "Libraries", value: `${freePlan.activePublicationLimit} publication` },
-                { label: "Scope", value: "One public library with conversation, search, and draft feedback." },
+                { label: "Scope", value: "One library with conversation, search, and draft feedback." },
               ]}
             />
             <LandingPlanCard
