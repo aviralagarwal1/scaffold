@@ -56,7 +56,7 @@ function buildQuestions(
     {
       question: "What is Scaffold?",
       answer:
-        "Scaffold is a workspace for writers with a public publication. It reads your library, organizes recurring themes, and gives you a private place to ask questions, evaluate drafts, search old lines, and generate new directions.",
+        "Scaffold is a workspace for writers to revisit and develop their ideas. It reads your publications, organizes recurring themes, and gives you a private place to ask questions, evaluate drafts, search old lines, and explore new angles.",
     },
     {
       question: "How does Scaffold work?",
