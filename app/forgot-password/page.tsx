@@ -10,11 +10,7 @@ export default function ForgotPasswordPage() {
   return (
     <AuthSurface
       eyebrow="Reset"
-      headline={
-        <>
-          Reset your <em className="font-serif italic text-ink-700">password.</em>
-        </>
-      }
+      headline={<>Reset your password.</>}
       subhead="Enter your account email and we will send a link to choose a new password."
     >
       <Suspense fallback={null}>

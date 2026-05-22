@@ -6,8 +6,8 @@ import type { ReactNode } from "react";
  * Mirrors the marketing hero's atmosphere — same bronze radial washes, same
  * rise-in delays — so the visitor crossing from / to an auth screen never
  * feels dropped onto a flat utility page. The eyebrow uses the editorial §
- * section marker rhythm; the headline supports a small italic phrase to keep
- * the brand voice (roman + italic) visible inside the form surface.
+ * section marker rhythm; the headline stays direct so auth screens feel
+ * operational rather than promotional.
  */
 export function AuthSurface({
   eyebrow,

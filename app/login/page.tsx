@@ -22,17 +22,11 @@ export default async function LoginPage({
       eyebrow={emailJustVerified ? "§ / Verified" : emailVerificationFailed ? "§ / Verify" : "§ / Return"}
       headline={
         emailJustVerified ? (
-          <>
-            Open <em className="font-serif italic text-ink-700">your desk.</em>
-          </>
+          <>Open your desk.</>
         ) : emailVerificationFailed ? (
-          <>
-            Verify your <em className="font-serif italic text-ink-700">email.</em>
-          </>
+          <>Verify your email.</>
         ) : (
-          <>
-            Return to <em className="font-serif italic text-ink-700">your desk.</em>
-          </>
+          <>Return to your desk.</>
         )
       }
       subhead={
