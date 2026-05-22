@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { BillingPortalButton, ButtonLoadingDot } from "@/components/BillingPortalButton";
 import type { AccountPlanSummary } from "@/types/workspace";
 import type { PlanConfig } from "@/lib/server/plans";
 import { api, ApiClientError } from "@/lib/client/api";
@@ -36,6 +37,25 @@ export function PlanUpgradePanel({
   const highlightedPlan = selectedPlan;
   const premiumHighlighted = highlightedPlan === "pro";
   const ctaIsUpgrade = premiumHighlighted && !currentIsPremium;
+
+  if (currentIsPremium) {
+    return (
+      <div className="flex flex-col gap-6">
+        <section className="flex flex-col gap-5">
+          <div className="grid gap-4">
+            <PremiumCurrentCard plan={premiumPlan} />
+          </div>
+
+          <div className="grid gap-4 border-t border-ink-200/70 pt-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+            <p className="min-w-0 text-[13px] leading-relaxed text-ink-500">
+              Your subscription is active. Billing, cancellation, and payment methods are handled securely through Stripe.
+            </p>
+            <BillingPortalButton />
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -72,12 +92,15 @@ export function PlanUpgradePanel({
 
         <div className="flex flex-col items-start gap-3 border-t border-ink-200/70 pt-5 sm:flex-row sm:items-center sm:justify-between">
           <p className="max-w-xl text-[13px] leading-relaxed text-ink-500">
-            Checkout opens through Stripe. Your plan changes after the subscription webhook is connected.
+            Checkout and subscription changes are handled securely through Stripe.
           </p>
           {ctaIsUpgrade ? (
-            <button type="button" onClick={upgrade} disabled={busy} className="btn-primary">
+            <button type="button" onClick={upgrade} disabled={busy} className="btn-primary gap-1.5">
+              {busy && <ButtonLoadingDot />}
               {busy ? "Opening Checkout" : "Upgrade to Premium"}
             </button>
+          ) : currentIsPremium ? (
+            <BillingPortalButton />
           ) : (
             <Link href="/account" className="btn-primary">
               Return to Desk
@@ -177,5 +200,35 @@ function PlanCard({
         {title === "Premium" ? "Ready to Upgrade" : "Current Basic Plan"}
       </div>
     </button>
+  );
+}
+
+function PremiumCurrentCard({ plan }: { plan: PlanConfig }) {
+  return (
+    <article className="rounded-md border border-ink-200/80 bg-white p-6 text-left shadow-soft transition-all duration-200 ease-editorial hover:-translate-y-px hover:border-accent-300 hover:bg-accent-50/20 hover:shadow-lift">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="font-serif text-[24px] leading-tight tracking-tightish text-ink-900">{plan.label}</h3>
+          <div className="mt-1 font-serif text-[15px] leading-snug tracking-tightish text-ink-500">
+            {formatPrice(plan)}
+          </div>
+        </div>
+        <span className="rounded-full border border-positive-100 bg-positive-100/40 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-positive-700">
+          Current
+        </span>
+      </div>
+      <ul className="mt-7 flex flex-col gap-3">
+        {[
+          { label: "Tokens", value: `${formatTokens(plan.monthlyTokenLimit)}/month` },
+          { label: "Libraries", value: pluralize(plan.activePublicationLimit, "publication") },
+          { label: "Scope", value: "Multiple libraries with stronger memory and deeper analysis." },
+        ].map((feature) => (
+          <li key={feature.label} className="grid gap-1 border-t border-ink-200/60 pt-3 first:border-t-0 first:pt-0">
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-400">{feature.label}</span>
+            <span className="text-[14px] leading-relaxed text-ink-600">{feature.value}</span>
+          </li>
+        ))}
+      </ul>
+    </article>
   );
 }

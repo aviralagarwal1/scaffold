@@ -2,21 +2,32 @@ import { redirect } from "next/navigation";
 import { PlanUpgradePanel } from "@/components/PlanUpgradePanel";
 import { getAccountPlanSummary } from "@/lib/server/account-workspaces";
 import { getCurrentUserId } from "@/lib/server/auth/current";
+import { syncCheckoutSessionForUser } from "@/lib/server/billing";
 import { planConfig } from "@/lib/server/plans";
 
 export const metadata = {
   title: "Premium Plan - Scaffold",
 };
 
-export default async function AccountPlanPage() {
+type AccountPlanPageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function AccountPlanPage({ searchParams }: AccountPlanPageProps) {
   const userId = await getCurrentUserId();
   if (!userId) {
     redirect(`/login?callbackUrl=${encodeURIComponent("/account/plan")}`);
+  }
+  const params = await searchParams;
+  const checkoutSessionId = typeof params?.session_id === "string" ? params.session_id : null;
+  if (checkoutSessionId) {
+    await syncCheckoutSessionForUser(checkoutSessionId, userId);
   }
 
   const plan = await getAccountPlanSummary(userId);
   const basicPlan = planConfig("free");
   const premiumPlan = planConfig("pro");
+  const isPremium = plan.id === "pro";
 
   return (
     <section className="relative overflow-hidden">
@@ -38,7 +49,9 @@ export default async function AccountPlanPage() {
             Premium Plan
           </h1>
           <p className="animate-rise animate-delay-3 mt-4 font-serif text-[16.5px] leading-relaxed text-ink-600">
-            Compare our plans. Upgrade when one publication is no longer enough or your monthly account usage needs more room.
+            {isPremium
+              ? "Enjoy more room for libraries, drafts, search, and monthly usage."
+              : "Upgrade when one publication is no longer enough and your usage keeps growing."}
           </p>
         </header>
 

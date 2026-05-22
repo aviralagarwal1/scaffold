@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { api } from "@/lib/client/api";
+import type { UserProfile } from "@/types/auth";
 import { UserMenu } from "./UserMenu";
 
 export function SiteHeader() {
@@ -11,6 +13,28 @@ export function SiteHeader() {
   const isLanding = pathname === "/";
   const { status } = useSession();
   const isAuthenticated = status === "authenticated";
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    if (!isAuthenticated) {
+      setProfile(null);
+      return;
+    }
+    api
+      .me()
+      .then((nextProfile) => {
+        if (active) setProfile(nextProfile);
+      })
+      .catch(() => {
+        if (active) setProfile(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [isAuthenticated]);
+
+  const isPremium = profile?.plan?.id === "pro";
 
   return (
     <header className="sticky top-0 z-30 border-b border-ink-200/60 bg-ink-50/85 backdrop-blur-md">
@@ -20,7 +44,7 @@ export function SiteHeader() {
           className="group flex items-center transition-opacity duration-200 ease-editorial hover:opacity-80"
           aria-label="Scaffold · home"
         >
-          <Wordmark size={isLanding ? "lg" : "sm"} />
+          <Wordmark size={isLanding ? "lg" : "sm"} premium={isPremium} />
         </Link>
         <nav className="flex shrink-0 items-center gap-2 sm:gap-3">{renderNavItems(pathname, isAuthenticated)}</nav>
       </div>
@@ -96,7 +120,7 @@ function renderNavItems(pathname: string | null, isAuthenticated: boolean): Reac
  * Typography: the product name is a single roman serif wordmark. The section
  * symbol carries the editorial accent.
  */
-function Wordmark({ size = "sm" }: { size?: "sm" | "lg" }) {
+function Wordmark({ size = "sm", premium = false }: { size?: "sm" | "lg"; premium?: boolean }) {
   const isLg = size === "lg";
   return (
     <span className={`flex items-baseline ${isLg ? "gap-2" : "gap-1.5"} leading-none`}>
@@ -114,6 +138,15 @@ function Wordmark({ size = "sm" }: { size?: "sm" | "lg" }) {
       >
         Scaffold
       </span>
+      {premium && (
+        <span
+          className={`font-serif italic tracking-tightish text-accent-700 ${
+            isLg ? "text-[23px] sm:text-[26px]" : "text-[17px]"
+          }`}
+        >
+          Premium
+        </span>
+      )}
     </span>
   );
 }

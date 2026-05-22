@@ -547,11 +547,6 @@ function AccountUsageCard({ profile }: { profile: UserProfile }) {
           <span className="whitespace-nowrap rounded-full border border-ink-200 bg-ink-50 px-2.5 py-1 font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-500">
             {plan.activePublicationCount.toLocaleString()} / {plan.activePublicationLimit.toLocaleString()} active publication{plan.activePublicationLimit === 1 ? "" : "s"}
           </span>
-          {plan.priceCents > 0 && (
-            <span className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-400">
-              ${(plan.priceCents / 100).toFixed(0)}/month
-            </span>
-          )}
         </div>
       </header>
       <p className="-mt-2 text-[13.5px] leading-relaxed text-ink-600">
