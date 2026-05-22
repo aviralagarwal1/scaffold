@@ -16,9 +16,20 @@ export interface TokenUsageSummary {
   remaining: number;
   percent: number;
   windowHours: number;
+  period?: "day" | "month";
   resetsAt: string;
   resetTimeZone: string;
   status: "normal" | "high" | "exhausted";
+}
+
+export interface AccountPlanSummary {
+  id: "free" | "pro";
+  label: string;
+  monthlyTokenLimit: number;
+  activePublicationLimit: number;
+  priceCents: number;
+  tokenUsage: TokenUsageSummary;
+  activePublicationCount: number;
 }
 
 export interface ArchiveTheme {

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { updateAccountWorkspacePublicationName } from "@/lib/server/account-workspaces";
+import { deleteOwnedAccountWorkspace, updateAccountWorkspacePublicationName } from "@/lib/server/account-workspaces";
 import { apiError, AppError } from "@/lib/server/errors";
 import { readJson } from "@/lib/server/http";
-import { getWorkspaceOverview, updateWorkspacePublicationName } from "@/lib/server/store";
+import { deleteWorkspacesByTokens, getWorkspaceOverview, updateWorkspacePublicationName } from "@/lib/server/store";
 import { requireWorkspaceAccess } from "@/lib/server/workspace-access";
 
 type RouteContext = { params: Promise<{ token: string }> };
@@ -32,6 +32,20 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json(overview);
   } catch (error) {
     return apiError(error, "Could not update publication.");
+  }
+}
+
+export async function DELETE(_request: Request, context: RouteContext) {
+  try {
+    const { token } = await context.params;
+    const userId = await requireWorkspaceAccess(token, "edit");
+    if (process.env.DATABASE_URL) {
+      await deleteOwnedAccountWorkspace(userId, token);
+    }
+    await deleteWorkspacesByTokens([token], { retainUsageForUserId: userId });
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    return apiError(error, "Could not delete publication.");
   }
 }
 

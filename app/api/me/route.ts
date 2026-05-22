@@ -1,6 +1,7 @@
 import { eq, like, or } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { requireCurrentUserId } from "@/lib/server/auth/current";
+import { getAccountPlanSummary } from "@/lib/server/account-workspaces";
 import { getDb } from "@/lib/server/db";
 import { profiles, users, verificationTokens, workspaces } from "@/lib/server/db/schema";
 import { apiError, AppError } from "@/lib/server/errors";
@@ -10,6 +11,9 @@ import { deleteWorkspacesByTokens } from "@/lib/server/store";
 type UpdateProfileRequest = {
   creatorName?: unknown;
   editorName?: unknown;
+  fullName?: unknown;
+  phoneNumber?: unknown;
+  handle?: unknown;
 };
 
 export async function GET() {
@@ -31,11 +35,23 @@ export async function PATCH(request: Request) {
     const patch: {
       creatorName?: string;
       editorName?: string;
+      fullName?: string | null;
+      phoneNumber?: string | null;
+      handle?: string | null;
     } = {};
 
     if ("creatorName" in body) patch.creatorName = requireCreatorName(body.creatorName);
     if ("editorName" in body) patch.editorName = requireCuratorName(body.editorName);
-    if (patch.creatorName === undefined && patch.editorName === undefined) {
+    if ("fullName" in body) patch.fullName = normalizeFullName(body.fullName);
+    if ("phoneNumber" in body) patch.phoneNumber = normalizePhoneNumber(body.phoneNumber);
+    if ("handle" in body) patch.handle = await normalizeHandle(body.handle, userId);
+    if (
+      patch.creatorName === undefined &&
+      patch.editorName === undefined &&
+      patch.fullName === undefined &&
+      patch.phoneNumber === undefined &&
+      patch.handle === undefined
+    ) {
       throw new AppError("Choose what to update.", 400);
     }
 
@@ -46,6 +62,26 @@ export async function PATCH(request: Request) {
       await db
         .update(profiles)
         .set({ editorName: patch.editorName, updatedAt: new Date() })
+        .where(eq(profiles.userId, userId));
+    }
+    const profilePatch: {
+      fullName?: string | null;
+      phoneNumber?: string | null;
+      handle?: string | null;
+      updatedAt: Date;
+    } = { updatedAt: new Date() };
+    if (patch.fullName !== undefined) profilePatch.fullName = patch.fullName;
+    if (patch.phoneNumber !== undefined) profilePatch.phoneNumber = patch.phoneNumber;
+    if (patch.handle !== undefined) profilePatch.handle = patch.handle;
+
+    if (
+      profilePatch.fullName !== undefined ||
+      profilePatch.phoneNumber !== undefined ||
+      profilePatch.handle !== undefined
+    ) {
+      await db
+        .update(profiles)
+        .set(profilePatch)
         .where(eq(profiles.userId, userId));
     }
 
@@ -71,7 +107,8 @@ export async function DELETE() {
       .from(workspaces)
       .where(eq(workspaces.ownerUserId, userId));
     await deleteWorkspacesByTokens(
-      ownedWorkspaces.map((workspace) => workspace.token).filter((token): token is string => Boolean(token))
+      ownedWorkspaces.map((workspace) => workspace.token).filter((token): token is string => Boolean(token)),
+      { deleteUsageEvents: true },
     );
 
     await db.transaction(async (tx) => {
@@ -108,6 +145,9 @@ async function loadProfile(userId: string) {
       email: users.email,
       emailVerified: users.emailVerified,
       creatorName: users.name,
+      fullName: profiles.fullName,
+      phoneNumber: profiles.phoneNumber,
+      handle: profiles.handle,
       editorName: profiles.editorName,
     })
     .from(users)
@@ -120,6 +160,10 @@ async function loadProfile(userId: string) {
     id: row.id,
     email: row.email,
     emailVerified: row.emailVerified?.toISOString() ?? null,
+    fullName: row.fullName ?? null,
+    phoneNumber: row.phoneNumber ?? null,
+    handle: row.handle ?? null,
+    plan: await getAccountPlanSummary(userId),
     creatorName: row.creatorName ?? "",
     editorName: row.editorName ?? "Curator",
   };
@@ -147,4 +191,45 @@ function requireCuratorName(value: unknown): string {
   if (!/^\p{Lu}/u.test(editorName)) throw new AppError("Start with a capital letter.", 400);
   if (!/\p{Ll}$/u.test(editorName)) throw new AppError("End with a lowercase letter.", 400);
   return editorName;
+}
+
+function normalizeFullName(value: unknown): string | null {
+  if (value === undefined || value === null || value === "") return null;
+  if (typeof value !== "string") throw new AppError("Enter a name.", 400);
+  const fullName = value.replace(/\s+/g, " ").trim();
+  if (!fullName) return null;
+  if (fullName.length > 100) throw new AppError("Keep your name under 100 characters.", 400);
+  if (/[\p{C}]/u.test(fullName)) throw new AppError("Enter a valid name.", 400);
+  return fullName;
+}
+
+function normalizePhoneNumber(value: unknown): string | null {
+  if (value === undefined || value === null || value === "") return null;
+  if (typeof value !== "string") throw new AppError("Enter a phone number.", 400);
+  const digits = value.replace(/\D/g, "");
+  const national = digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
+  if (!national) return null;
+  if (national.length !== 10) throw new AppError("Use a 10-digit US number.", 400);
+  return `+1 (${national.slice(0, 3)}) ${national.slice(3, 6)}-${national.slice(6)}`;
+}
+
+async function normalizeHandle(value: unknown, userId: string): Promise<string | null> {
+  if (value === undefined || value === null || value === "") return null;
+  if (typeof value !== "string") throw new AppError("Enter a handle.", 400);
+  const handle = value.replace(/^@+/, "").trim().toLowerCase();
+  if (!handle) return null;
+  if (!/^[a-z0-9_]{3,24}$/.test(handle)) {
+    throw new AppError("Use 3-24 letters, numbers, or underscores.", 400);
+  }
+
+  const db = getDb();
+  const [existing] = await db
+    .select({ userId: profiles.userId })
+    .from(profiles)
+    .where(eq(profiles.handle, handle))
+    .limit(1);
+  if (existing && existing.userId !== userId) {
+    throw new AppError("That handle is already taken.", 409);
+  }
+  return handle;
 }

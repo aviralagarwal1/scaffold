@@ -1,8 +1,10 @@
 import { and, desc, eq } from "drizzle-orm";
-import type { AccountWorkspaceSummary, WorkspaceStatus } from "@/types/workspace";
+import type { AccountPlanSummary, AccountWorkspaceSummary, WorkspaceStatus } from "@/types/workspace";
 import { getDb } from "@/lib/server/db";
-import { workspaceMemberships, workspaces } from "@/lib/server/db/schema";
-import { getWorkspaceTokenUsageMap } from "@/lib/server/store";
+import { users, workspaceMemberships, workspaces } from "@/lib/server/db/schema";
+import { planConfig } from "@/lib/server/plans";
+import { AppError } from "@/lib/server/errors";
+import { getAccountTokenUsage, getWorkspaceTokenUsageMap } from "@/lib/server/store";
 
 type OwnedWorkspaceInput = {
   token: string;
@@ -44,6 +46,53 @@ export async function listAccountWorkspaces(userId: string): Promise<AccountWork
     workspaceUrl: row.token ? `/workspace/${row.token}` : `/workspaces/${row.id}`,
     tokenUsage: row.token ? usageByToken.get(row.token) ?? null : null,
   }));
+}
+
+export async function getAccountPlanSummary(userId: string): Promise<AccountPlanSummary> {
+  const db = getDb();
+  const [user] = await db
+    .select({ plan: users.plan })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  const plan = planConfig(user?.plan);
+  const activePublicationCount = await countOwnedWorkspaces(userId);
+  return {
+    id: plan.id,
+    label: plan.label,
+    monthlyTokenLimit: plan.monthlyTokenLimit,
+    activePublicationLimit: plan.activePublicationLimit,
+    priceCents: plan.priceCents,
+    tokenUsage: await getAccountTokenUsage(userId),
+    activePublicationCount,
+  };
+}
+
+export async function assertCanCreateAccountWorkspace(userId: string, publicationUrl: string): Promise<void> {
+  const db = getDb();
+  const planSummary = await getAccountPlanSummary(userId);
+  const [existing] = await db
+    .select({ id: workspaces.id })
+    .from(workspaces)
+    .where(and(eq(workspaces.ownerUserId, userId), eq(workspaces.publicationUrl, publicationUrl)))
+    .limit(1);
+  if (existing) return;
+
+  if (planSummary.activePublicationCount >= planSummary.activePublicationLimit) {
+    throw new AppError(
+      `${planSummary.label} accounts can have ${planSummary.activePublicationLimit} active publication${planSummary.activePublicationLimit === 1 ? "" : "s"}.`,
+      402,
+    );
+  }
+}
+
+async function countOwnedWorkspaces(userId: string): Promise<number> {
+  const db = getDb();
+  const rows = await db
+    .select({ id: workspaces.id })
+    .from(workspaces)
+    .where(eq(workspaces.ownerUserId, userId));
+  return rows.length;
 }
 
 export async function recordOwnedWorkspace(userId: string, input: OwnedWorkspaceInput): Promise<AccountWorkspaceSummary> {
@@ -159,4 +208,15 @@ export async function updateAccountWorkspacePublicationName(token: string, publi
     .update(workspaces)
     .set({ publicationName, updatedAt: new Date() })
     .where(eq(workspaces.token, token));
+}
+
+export async function deleteOwnedAccountWorkspace(userId: string, token: string): Promise<void> {
+  const db = getDb();
+  const [deleted] = await db
+    .delete(workspaces)
+    .where(and(eq(workspaces.ownerUserId, userId), eq(workspaces.token, token)))
+    .returning({ id: workspaces.id });
+  if (!deleted) {
+    throw new AppError("You can only delete publications you own.", 404);
+  }
 }

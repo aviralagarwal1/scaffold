@@ -106,6 +106,11 @@ export const api = {
       method: "DELETE",
     });
   },
+  createCheckoutSession() {
+    return request<{ url: string }>("/api/billing/checkout", {
+      method: "POST",
+    });
+  },
   createWorkspace(body: CreateWorkspaceRequest) {
     return request<CreateWorkspaceResponse>("/api/workspaces", {
       method: "POST",
@@ -122,6 +127,11 @@ export const api = {
     return request<WorkspaceOverview>(`/api/workspaces/${encodeURIComponent(token)}`, {
       method: "PATCH",
       body: JSON.stringify(body),
+    });
+  },
+  deleteWorkspace(token: string) {
+    return request<{ ok: true }>(`/api/workspaces/${encodeURIComponent(token)}`, {
+      method: "DELETE",
     });
   },
   ingest(token: string) {

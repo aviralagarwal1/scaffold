@@ -1,7 +1,7 @@
 import type { CreateWorkspaceRequest } from "@/types/workspace";
 import { NextResponse } from "next/server";
 import { requireCurrentUserId } from "@/lib/server/auth/current";
-import { listAccountWorkspaces, recordOwnedWorkspace } from "@/lib/server/account-workspaces";
+import { assertCanCreateAccountWorkspace, listAccountWorkspaces, recordOwnedWorkspace } from "@/lib/server/account-workspaces";
 import { apiError, AppError } from "@/lib/server/errors";
 import { readJson, requireString } from "@/lib/server/http";
 import { ingestWorkspaceWithFeed } from "@/lib/server/ingestion";
@@ -23,8 +23,21 @@ export async function POST(request: Request) {
     const userId = await requireCurrentUserId();
     const body = await readJson<CreateWorkspaceRequest>(request);
     const publicationUrl = normalizePublicationUrl(requireString(body.publicationUrl, "Enter a publication URL."));
+    if (process.env.DATABASE_URL) {
+      await assertCanCreateAccountWorkspace(userId, publicationUrl);
+    }
     const feed = await readInitialPublicationFeed(publicationUrl);
     const workspace = await createWorkspace(publicationUrl);
+    if (process.env.DATABASE_URL) {
+      await recordOwnedWorkspace(userId, {
+        token: workspace.token,
+        publicationUrl,
+        publicationName: null,
+        status: workspace.status,
+        lastIngestedAt: workspace.lastIngestedAt,
+        ingestionError: workspace.ingestionError,
+      });
+    }
     await ingestWorkspaceWithFeed(workspace.token, {
       publicationName: feed.publicationName,
       posts: materializeFeedPosts(feed, workspace.id),
