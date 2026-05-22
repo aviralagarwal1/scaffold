@@ -303,7 +303,7 @@ function DraftHistory({
 
   return (
     <section className="panel flex flex-col gap-3 p-4">
-      <span className="type-eyebrow text-ink-400">Saved reads</span>
+      <span className="type-eyebrow text-ink-400">Prior drafts</span>
       <div className="flex gap-2 overflow-x-auto pb-1">
         {reviews.map((review) => {
           const active = review.id === activeReviewId;
@@ -311,7 +311,7 @@ function DraftHistory({
           return (
             <div
               key={review.id}
-              className={`flex min-w-[210px] max-w-[260px] items-center gap-2 rounded-md border px-3 py-2 ${
+              className={`grid min-w-[220px] max-w-[300px] grid-cols-[minmax(0,1fr)_24px] items-center gap-2.5 rounded-md border px-3 py-2.5 ${
                 active ? "border-accent-300 bg-accent-50/40" : "border-ink-200 bg-white"
               }`}
             >
@@ -329,7 +329,7 @@ function DraftHistory({
               </button>
               <button
                 type="button"
-                aria-label="Delete saved read"
+                aria-label="Delete prior draft"
                 disabled={disabled || deletingId === review.id}
                 onClick={async () => {
                   setDeletingId(review.id);
@@ -339,9 +339,9 @@ function DraftHistory({
                     setDeletingId(null);
                   }
                 }}
-                className="shrink-0 text-[12px] text-ink-300 transition-colors hover:text-critical-700 disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[17px] leading-none text-ink-300 transition-colors duration-150 ease-editorial hover:bg-critical-100/45 hover:text-critical-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-critical-500/35 disabled:cursor-not-allowed disabled:opacity-40"
               >
-                Delete
+                <span aria-hidden="true">&times;</span>
               </button>
             </div>
           );
