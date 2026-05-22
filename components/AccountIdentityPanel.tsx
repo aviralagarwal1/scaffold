@@ -181,7 +181,7 @@ export function AccountIdentityPanel() {
           <div className="sm:col-span-2 flex items-center justify-end gap-3 pt-1">
             {saved && <SavedCheck />}
             <button type="submit" className="btn-primary" disabled={saveBusy}>
-              {saveBusy ? "Saving..." : "Save account"}
+              {saveBusy ? "Saving..." : "Save profile"}
             </button>
           </div>
         </form>
