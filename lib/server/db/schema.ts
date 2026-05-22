@@ -35,6 +35,10 @@ export const users = pgTable("users", {
   image: text("image"),
   passwordHash: text("password_hash"),
   plan: varchar("plan", { length: 24 }).default("free").notNull(),
+  stripeCustomerId: text("stripe_customer_id").unique(),
+  stripeSubscriptionId: text("stripe_subscription_id").unique(),
+  stripeSubscriptionStatus: varchar("stripe_subscription_status", { length: 40 }),
+  stripeCurrentPeriodEnd: timestamp("stripe_current_period_end", { withTimezone: true }),
 });
 
 export const accounts = pgTable(
@@ -261,6 +265,42 @@ export const savedIdeas = pgTable(
   },
   (table) => ({
     workspaceIdIdx: index("saved_ideas_workspace_id_idx").on(table.workspaceId),
+  }),
+);
+
+export const chatSessions = pgTable(
+  "chat_sessions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    ...timestamps,
+  },
+  (table) => ({
+    workspaceIdIdx: index("chat_sessions_workspace_id_idx").on(table.workspaceId),
+    userIdIdx: index("chat_sessions_user_id_idx").on(table.userId),
+  }),
+);
+
+export const chatMessages = pgTable(
+  "chat_messages",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    sessionId: uuid("session_id")
+      .notNull()
+      .references(() => chatSessions.id, { onDelete: "cascade" }),
+    role: varchar("role", { length: 20 }).notNull(),
+    content: text("content").notNull(),
+    sources: jsonb("sources").$type<unknown[]>().default(sql`'[]'::jsonb`).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    sessionIdIdx: index("chat_messages_session_id_idx").on(table.sessionId),
   }),
 );
 
