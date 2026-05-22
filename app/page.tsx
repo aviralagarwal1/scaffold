@@ -220,7 +220,7 @@ export default function HomePage() {
               features={[
                 { label: "Tokens", value: `${formatTokens(premiumPlan.monthlyTokenLimit)}/month` },
                 { label: "Libraries", value: `${premiumPlan.activePublicationLimit} publications` },
-                { label: "Scope", value: "Larger libraries, multiple publications, and deeper analysis." },
+                { label: "Scope", value: "Multiple libraries with stronger memory and deeper analysis." },
               ]}
             />
           </div>

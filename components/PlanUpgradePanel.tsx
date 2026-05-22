@@ -65,7 +65,7 @@ export function PlanUpgradePanel({
             features={[
               { label: "Tokens", value: `${formatTokens(premiumPlan.monthlyTokenLimit)}/month` },
               { label: "Libraries", value: pluralize(premiumPlan.activePublicationLimit, "publication") },
-              { label: "Scope", value: "Larger libraries, multiple publications, and deeper analysis." },
+              { label: "Scope", value: "Multiple libraries with stronger memory and deeper analysis." },
             ]}
           />
         </div>
