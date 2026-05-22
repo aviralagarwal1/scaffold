@@ -42,8 +42,7 @@ export default function OverviewPage() {
         <section className="animate-rise animate-delay-3 flex flex-col gap-6 md:col-span-7">
           {ready && (
             <>
-              <div className="flex items-baseline justify-between">
-                <h3 className="font-serif text-[20px] tracking-tightish text-ink-900">Where to start</h3>
+              <div className="flex justify-end">
                 <Link href={`/workspace/${token}/library`} className="btn-link">
                   Browse library <span aria-hidden="true">→</span>
                 </Link>
