@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { AskResponse, SourceCitation } from "@/types/ai";
+import type { AskResponse, ChatSession, SourceCitation } from "@/types/ai";
 import { api, ApiClientError } from "@/lib/client/api";
 import { Markdown } from "./Markdown";
 import { SourceCitationList } from "./SourceCitation";
@@ -57,6 +57,9 @@ export function ChatPanel({
   curatorName?: string;
 }) {
   const [turns, setTurns] = useState<Turn[]>([]);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [savedSessions, setSavedSessions] = useState<ChatSession[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,6 +71,36 @@ export function ChatPanel({
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const canSurfaceMore = !exhausted;
+
+  const loadHistory = async () => {
+    try {
+      const sessions = await api.listChatSessions(token);
+      setSavedSessions(sessions);
+    } catch {
+      setSavedSessions([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let active = true;
+    setHistoryLoading(true);
+    api
+      .listChatSessions(token)
+      .then((sessions) => {
+        if (active) setSavedSessions(sessions);
+      })
+      .catch(() => {
+        if (active) setSavedSessions([]);
+      })
+      .finally(() => {
+        if (active) setHistoryLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [token]);
 
   const surfaceMore = async () => {
     if (surfacing || exhausted) return;
@@ -111,6 +144,7 @@ export function ChatPanel({
   };
 
   const resetThread = () => {
+    setSessionId(null);
     setTurns([]);
     setDraft("");
     setError(null);
@@ -131,11 +165,13 @@ export function ChatPanel({
     setDraft("");
     setBusy(true);
     try {
-      const res: AskResponse = await api.ask(token, { message });
+      const res: AskResponse = await api.ask(token, { message, sessionId });
+      if (res.sessionId) setSessionId(res.sessionId);
       setTurns((t) => [
         ...t,
         { id: `a-${Date.now()}`, role: "assistant", content: res.answer, sources: res.sources ?? [] },
       ]);
+      void loadHistory();
     } catch (err) {
       const msg = err instanceof ApiClientError ? err.message : "We couldn't reach your curator. Try again.";
       setError(msg);
@@ -151,6 +187,29 @@ export function ChatPanel({
 
   return (
     <div className={`flex flex-col gap-4 ${empty ? "" : "h-full min-h-[60vh]"}`}>
+      <ConversationHistory
+        sessions={savedSessions}
+        loading={historyLoading}
+        activeSessionId={sessionId}
+        disabled={busy}
+        onOpen={(session) => {
+          setSessionId(session.id);
+          setTurns(
+            session.turns.map((turn) =>
+              turn.role === "assistant"
+                ? { id: turn.id, role: "assistant", content: turn.content, sources: turn.sources }
+                : { id: turn.id, role: "user", content: turn.content },
+            ),
+          );
+          setDraft("");
+          setError(null);
+        }}
+        onDelete={async (id) => {
+          await api.deleteChatSession(token, id);
+          setSavedSessions((sessions) => sessions.filter((session) => session.id !== id));
+          if (sessionId === id) resetThread();
+        }}
+      />
       {empty ? (
         <div className="panel p-7 sm:p-8">
           <div className="flex flex-col gap-6">
@@ -249,7 +308,7 @@ export function ChatPanel({
               disabled={busy}
               className="text-[12.5px] text-ink-400 transition-colors hover:text-ink-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Reset
+              New
             </button>
           </header>
           <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 pb-8 pt-6">
@@ -301,6 +360,70 @@ export function ChatPanel({
         </div>
       )}
     </div>
+  );
+}
+
+function ConversationHistory({
+  sessions,
+  loading,
+  activeSessionId,
+  disabled,
+  onOpen,
+  onDelete,
+}: {
+  sessions: ChatSession[];
+  loading: boolean;
+  activeSessionId: string | null;
+  disabled?: boolean;
+  onOpen: (session: ChatSession) => void;
+  onDelete: (id: string) => Promise<void>;
+}) {
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  if (loading || sessions.length === 0) return null;
+
+  return (
+    <section className="panel flex flex-col gap-3 p-4">
+      <span className="type-eyebrow text-ink-400">Past conversations</span>
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {sessions.map((session) => {
+          const active = session.id === activeSessionId;
+          return (
+            <div
+              key={session.id}
+              className={`grid min-w-[220px] max-w-[300px] grid-cols-[minmax(0,1fr)_24px] items-center gap-2.5 rounded-md border px-3 py-2.5 ${
+                active ? "border-accent-300 bg-accent-50/40" : "border-ink-200 bg-white"
+              }`}
+            >
+              <button
+                type="button"
+                onClick={() => onOpen(session)}
+                disabled={disabled}
+                className="min-w-0 flex-1 text-left text-[13px] leading-snug text-ink-700 transition-colors hover:text-ink-950 disabled:cursor-not-allowed disabled:opacity-60"
+                title={session.title}
+              >
+                <span className="block truncate">{session.title}</span>
+              </button>
+              <button
+                type="button"
+                aria-label="Delete conversation"
+                disabled={disabled || deletingId === session.id}
+                onClick={async () => {
+                  setDeletingId(session.id);
+                  try {
+                    await onDelete(session.id);
+                  } finally {
+                    setDeletingId(null);
+                  }
+                }}
+                className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[17px] leading-none text-ink-300 transition-colors duration-150 ease-editorial hover:bg-critical-100/45 hover:text-critical-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-critical-500/35 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 

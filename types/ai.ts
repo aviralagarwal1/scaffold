@@ -7,11 +7,30 @@ export interface SourceCitation {
 
 export interface AskRequest {
   message: string;
+  sessionId?: string | null;
 }
 
 export interface AskResponse {
   answer: string;
   sources: SourceCitation[];
+  sessionId?: string;
+}
+
+export interface ChatTurn {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  sources: SourceCitation[];
+  createdAt: string;
+}
+
+export interface ChatSession {
+  id: string;
+  workspaceId: string;
+  title: string;
+  turns: ChatTurn[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface DraftFeedbackRequest {
@@ -20,8 +39,21 @@ export interface DraftFeedbackRequest {
 }
 
 export interface DraftFeedbackResponse {
+  id?: string;
   feedback: string;
   sources: SourceCitation[];
+  createdAt?: string;
+}
+
+export interface SavedDraftFeedback {
+  id: string;
+  workspaceId: string;
+  title: string | null;
+  draft: string;
+  feedback: string;
+  sources: SourceCitation[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Idea {

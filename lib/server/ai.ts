@@ -852,7 +852,11 @@ function ensureSentence(value: string): string {
   return /[.!?]$/.test(value) ? value : `${value}.`;
 }
 
-export async function answerArchiveQuestion(token: string, message: string): Promise<AskResponse> {
+export async function answerArchiveQuestion(
+  token: string,
+  message: string,
+  options: { history?: { role: "user" | "assistant"; content: string }[] } = {},
+): Promise<AskResponse> {
   if (!message.trim()) throw new AppError("Ask a question about the library.", 400);
 
   const { workspace, posts, chunks } = await workspaceCorpus(token);
@@ -865,10 +869,20 @@ export async function answerArchiveQuestion(token: string, message: string): Pro
   const context = retrieved
     .map(({ post, chunk }, index) => `[${index + 1}] ${post.title}\n${post.url}\n${excerpt(chunk.content, 1200)}`)
     .join("\n\n");
+  const history = (options.history ?? [])
+    .slice(-8)
+    .map((turn) => `${turn.role === "assistant" ? "Curator" : "Writer"}: ${excerpt(turn.content, 700)}`)
+    .join("\n\n");
 
   const generated = await generateText(
     editorialSystemPrompt,
-    `Publication: ${workspace.publicationName ?? workspace.publicationUrl}\nQuestion: ${message}\n\nLibrary context:\n${context}\n\nAnswer with: Direct answer, What I am seeing in the library, Specific examples, Recommendation, Suggested next step.`,
+    [
+      `Publication: ${workspace.publicationName ?? workspace.publicationUrl}`,
+      history ? `Recent conversation:\n${history}` : null,
+      `Question: ${message}`,
+      `Library context:\n${context}`,
+      "Answer with: Direct answer, What I am seeing in the library, Specific examples, Recommendation, Suggested next step."
+    ].filter(Boolean).join("\n\n"),
     {
       usage: {
         workspaceToken: token,

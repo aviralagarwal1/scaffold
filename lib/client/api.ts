@@ -18,6 +18,7 @@ import type { PostSummary } from "@/types/post";
 import type {
   AskRequest,
   AskResponse,
+  ChatSession,
   DistributionPlatform,
   DistributionRequest,
   DraftFeedbackRequest,
@@ -30,6 +31,7 @@ import type {
   PromptSuggestionsResponse,
   RepurposeDraft,
   RepurposeDraftStatus,
+  SavedDraftFeedback,
   SavedIdea,
   SearchRequest,
   SearchResponse,
@@ -111,6 +113,11 @@ export const api = {
       method: "POST",
     });
   },
+  createBillingPortalSession() {
+    return request<{ url: string }>("/api/billing/portal", {
+      method: "POST",
+    });
+  },
   createWorkspace(body: CreateWorkspaceRequest) {
     return request<CreateWorkspaceResponse>("/api/workspaces", {
       method: "POST",
@@ -148,11 +155,29 @@ export const api = {
       body: JSON.stringify(body),
     });
   },
+  listChatSessions(token: string) {
+    return request<ChatSession[]>(`/api/workspaces/${encodeURIComponent(token)}/chat-sessions`);
+  },
+  deleteChatSession(token: string, sessionId: string) {
+    return request<{ ok: true }>(
+      `/api/workspaces/${encodeURIComponent(token)}/chat-sessions/${encodeURIComponent(sessionId)}`,
+      { method: "DELETE" },
+    );
+  },
   draftFeedback(token: string, body: DraftFeedbackRequest) {
     return request<DraftFeedbackResponse>(`/api/workspaces/${encodeURIComponent(token)}/draft-feedback`, {
       method: "POST",
       body: JSON.stringify(body),
     });
+  },
+  listDraftFeedback(token: string) {
+    return request<SavedDraftFeedback[]>(`/api/workspaces/${encodeURIComponent(token)}/draft-feedback`);
+  },
+  deleteDraftFeedback(token: string, reviewId: string) {
+    return request<{ ok: true }>(
+      `/api/workspaces/${encodeURIComponent(token)}/draft-feedback/${encodeURIComponent(reviewId)}`,
+      { method: "DELETE" },
+    );
   },
   ideas(token: string, body?: { focus?: string }) {
     return request<IdeasResponse>(`/api/workspaces/${encodeURIComponent(token)}/ideas`, {

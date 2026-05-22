@@ -2,6 +2,7 @@ import type { AskRequest } from "@/types/ai";
 import { NextResponse } from "next/server";
 import { answerArchiveQuestion } from "@/lib/server/ai";
 import { apiError } from "@/lib/server/errors";
+import { appendChatExchange, getChatSessionTurns } from "@/lib/server/history";
 import { readJson, requireString } from "@/lib/server/http";
 import { requireWorkspaceAccess } from "@/lib/server/workspace-access";
 
@@ -10,9 +11,21 @@ type RouteContext = { params: Promise<{ token: string }> };
 export async function POST(request: Request, context: RouteContext) {
   try {
     const { token } = await context.params;
-    await requireWorkspaceAccess(token, "edit");
+    const userId = await requireWorkspaceAccess(token, "edit");
     const body = await readJson<AskRequest>(request);
-    return NextResponse.json(await answerArchiveQuestion(token, requireString(body.message, "Ask a question.")));
+    const message = requireString(body.message, "Ask a question.");
+    const requestedSessionId = typeof body.sessionId === "string" ? body.sessionId : null;
+    const history = await getChatSessionTurns(token, userId, requestedSessionId);
+    const response = await answerArchiveQuestion(token, message, { history });
+    const sessionId = await appendChatExchange({
+      token,
+      userId,
+      sessionId: requestedSessionId,
+      message,
+      answer: response.answer,
+      sources: response.sources ?? [],
+    });
+    return NextResponse.json({ ...response, sessionId });
   } catch (error) {
     return apiError(error, "Could not answer from your library.");
   }

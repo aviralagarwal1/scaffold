@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { WorkspaceOverview } from "@/types/workspace";
+import type { UserProfile } from "@/types/auth";
 import { api, ApiClientError } from "@/lib/client/api";
 
 interface WorkspaceContextValue {
@@ -12,6 +13,9 @@ interface WorkspaceContextValue {
   reingest: () => Promise<void>;
   refetch: () => Promise<void>;
   reingesting: boolean;
+  profile: UserProfile | null;
+  curatorName: string;
+  creatorName: string;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
@@ -23,6 +27,7 @@ export function WorkspaceProvider({ token, children }: { token: string; children
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reingesting, setReingesting] = useState(false);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchOnce = async () => {
@@ -42,6 +47,15 @@ export function WorkspaceProvider({ token, children }: { token: string; children
 
   useEffect(() => {
     let cancelled = false;
+    api
+      .me()
+      .then((nextProfile) => {
+        if (!cancelled) setProfile(nextProfile);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        if (err instanceof ApiClientError && err.status === 401) return;
+      });
     const tick = async () => {
       const o = await fetchOnce();
       if (cancelled) return;
@@ -82,9 +96,20 @@ export function WorkspaceProvider({ token, children }: { token: string; children
   };
 
   const value = useMemo<WorkspaceContextValue>(
-    () => ({ token, overview, loading, error, reingest, refetch: async () => void (await fetchOnce()), reingesting }),
+    () => ({
+      token,
+      overview,
+      loading,
+      error,
+      reingest,
+      refetch: async () => void (await fetchOnce()),
+      reingesting,
+      profile,
+      curatorName: profile?.editorName?.trim() || "Curator",
+      creatorName: profile?.creatorName?.trim() || "",
+    }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [token, overview, loading, error, reingesting],
+    [token, overview, loading, error, reingesting, profile],
   );
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;

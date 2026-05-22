@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { DraftFeedbackResponse } from "@/types/ai";
+import type { DraftFeedbackResponse, SavedDraftFeedback } from "@/types/ai";
 import { api, ApiClientError } from "@/lib/client/api";
 import { cn } from "@/lib/client/cn";
 import { Markdown } from "./Markdown";
@@ -42,6 +42,8 @@ export function DraftFeedbackPanel({ token, disabled }: { token: string; disable
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<DraftFeedbackResponse | null>(null);
+  const [savedReviews, setSavedReviews] = useState<SavedDraftFeedback[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [focus, setFocus] = useState<string[]>([]);
   const [focusAlerting, setFocusAlerting] = useState(false);
@@ -54,6 +56,36 @@ export function DraftFeedbackPanel({ token, disabled }: { token: string; disable
   useEffect(() => {
     ref.current?.focus({ preventScroll: true });
   }, []);
+
+  const loadHistory = async () => {
+    try {
+      const reviews = await api.listDraftFeedback(token);
+      setSavedReviews(reviews);
+    } catch {
+      setSavedReviews([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let active = true;
+    setHistoryLoading(true);
+    api
+      .listDraftFeedback(token)
+      .then((reviews) => {
+        if (active) setSavedReviews(reviews);
+      })
+      .catch(() => {
+        if (active) setSavedReviews([]);
+      })
+      .finally(() => {
+        if (active) setHistoryLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [token]);
 
   const wordCount = draft.trim() ? draft.trim().split(/\s+/).length : 0;
   const canReview = !disabled && !busy && draft.trim().length > 0;
@@ -100,6 +132,7 @@ export function DraftFeedbackPanel({ token, disabled }: { token: string; disable
     try {
       const res = await api.draftFeedback(token, { draft, focus });
       setResult(res);
+      void loadHistory();
     } catch (err) {
       const msg = err instanceof ApiClientError ? err.message : "We couldn't read this draft. Try again.";
       setError(msg);
@@ -183,6 +216,27 @@ export function DraftFeedbackPanel({ token, disabled }: { token: string; disable
       </form>
 
       <div className="flex flex-col gap-4">
+        <DraftHistory
+          reviews={savedReviews}
+          loading={historyLoading}
+          disabled={busy}
+          activeReviewId={result?.id ?? null}
+          onOpen={(review) => {
+            setDraft(review.draft);
+            setResult({
+              id: review.id,
+              feedback: review.feedback,
+              sources: review.sources,
+              createdAt: review.createdAt,
+            });
+            setError(null);
+          }}
+          onDelete={async (reviewId) => {
+            await api.deleteDraftFeedback(token, reviewId);
+            setSavedReviews((reviews) => reviews.filter((review) => review.id !== reviewId));
+            if (result?.id === reviewId) setResult(null);
+          }}
+        />
         {!result && !busy && (
           <FocusPanel
             focus={focus}
@@ -226,6 +280,74 @@ export function DraftFeedbackPanel({ token, disabled }: { token: string; disable
         )}
       </div>
     </div>
+  );
+}
+
+function DraftHistory({
+  reviews,
+  loading,
+  disabled,
+  activeReviewId,
+  onOpen,
+  onDelete,
+}: {
+  reviews: SavedDraftFeedback[];
+  loading: boolean;
+  disabled?: boolean;
+  activeReviewId: string | null;
+  onOpen: (review: SavedDraftFeedback) => void;
+  onDelete: (reviewId: string) => Promise<void>;
+}) {
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  if (loading || reviews.length === 0) return null;
+
+  return (
+    <section className="panel flex flex-col gap-3 p-4">
+      <span className="type-eyebrow text-ink-400">Saved reads</span>
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {reviews.map((review) => {
+          const active = review.id === activeReviewId;
+          const date = new Date(review.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+          return (
+            <div
+              key={review.id}
+              className={`flex min-w-[210px] max-w-[260px] items-center gap-2 rounded-md border px-3 py-2 ${
+                active ? "border-accent-300 bg-accent-50/40" : "border-ink-200 bg-white"
+              }`}
+            >
+              <button
+                type="button"
+                onClick={() => onOpen(review)}
+                disabled={disabled}
+                className="min-w-0 flex-1 text-left text-[13px] leading-snug text-ink-700 transition-colors hover:text-ink-950 disabled:cursor-not-allowed disabled:opacity-60"
+                title={review.title ?? "Saved read"}
+              >
+                <span className="block truncate">{review.title ?? "Saved read"}</span>
+                <span className="mt-0.5 block font-mono text-[10.5px] uppercase tracking-[0.12em] text-ink-400">
+                  {date}
+                </span>
+              </button>
+              <button
+                type="button"
+                aria-label="Delete saved read"
+                disabled={disabled || deletingId === review.id}
+                onClick={async () => {
+                  setDeletingId(review.id);
+                  try {
+                    await onDelete(review.id);
+                  } finally {
+                    setDeletingId(null);
+                  }
+                }}
+                className="shrink-0 text-[12px] text-ink-300 transition-colors hover:text-critical-700 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Delete
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
