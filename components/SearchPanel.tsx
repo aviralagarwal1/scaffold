@@ -69,8 +69,8 @@ export function SearchPanel({ token, disabled }: { token: string; disabled?: boo
   return (
     <div className="flex flex-col">
       {/* === Compose zone ===
-          Single utility input + black submit. Per CLAUDE.md pattern 5, the
-          button stays clickable; an empty submit nudges the input. */}
+          Single utility input + black submit. The button stays clickable;
+          an empty submit nudges the input. */}
       <form
         onSubmit={(e) => {
           e.preventDefault();

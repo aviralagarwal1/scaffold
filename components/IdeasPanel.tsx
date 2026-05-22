@@ -29,8 +29,8 @@ export function IdeasPanel({ token, disabled }: { token: string; disabled?: bool
   const [customDraft, setCustomDraft] = useState("");
   const [notes, setNotes] = useState("");
 
-  // Validation alerts (CLAUDE.md pattern 5: button stays clickable; missing
-  // pieces shake when the user submits incomplete).
+  // Validation alerts: the button stays clickable, and missing pieces shake
+  // when the user submits incomplete input.
   const [lensAlerting, setLensAlerting] = useState(false);
   const [notesAlerting, setNotesAlerting] = useState(false);
 
