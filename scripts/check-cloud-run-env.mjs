@@ -30,6 +30,9 @@ const expectedSecrets = {
   NEXTAUTH_SECRET: "substack-ai-nextauth-secret",
   RESEND_API_KEY: "substack-ai-resend-api-key",
   ANTHROPIC_API_KEY: "substack-ai-anthropic-api-key",
+  STRIPE_SECRET_KEY: "substack-ai-stripe-secret-key",
+  STRIPE_PRO_PRICE_ID: "substack-ai-stripe-pro-price-id",
+  STRIPE_WEBHOOK_SECRET: "substack-ai-stripe-webhook-secret",
 };
 
 const args = parseArgs(process.argv.slice(2));
