@@ -288,7 +288,7 @@ export function IdeasPanel({ token, disabled }: { token: string; disabled?: bool
           onBlur={commitCustomDraft}
           maxLength={CUSTOM_THEME_MAX}
           placeholder={placeholder}
-          className="w-44 bg-transparent text-[13px] text-ink-900 placeholder:font-serif placeholder:italic placeholder:text-ink-400 focus:outline-none"
+          className="w-44 bg-transparent text-[13px] text-ink-900 placeholder:font-serif placeholder:text-ink-400 focus:outline-none"
         />
       </span>
     );
@@ -404,9 +404,9 @@ export function IdeasPanel({ token, disabled }: { token: string; disabled?: bool
             )}
           </div>
           {!hasAnyLens && !isAdding && (
-            <p className="text-[13px] italic leading-relaxed text-ink-500">
+            <p className="text-[13px] leading-relaxed text-ink-500">
               Once we&apos;ve read your library, themes will appear here. You can add your own with{" "}
-              <span className="font-mono not-italic">+</span>.
+              <span className="font-mono">+</span>.
             </p>
           )}
         </div>
@@ -426,7 +426,7 @@ export function IdeasPanel({ token, disabled }: { token: string; disabled?: bool
             rows={1}
             disabled={disabled || busy}
             className={cn(
-              "input block max-h-[240px] min-h-[100px] resize-none overflow-y-auto font-serif text-[15.5px] leading-relaxed text-ink-900 placeholder:font-serif placeholder:italic placeholder:text-ink-400 transition-colors duration-200 ease-editorial hover:border-ink-300",
+              "input block max-h-[240px] min-h-[100px] resize-none overflow-y-auto font-serif text-[15.5px] leading-relaxed text-ink-900 placeholder:font-serif placeholder:text-ink-400 transition-colors duration-200 ease-editorial hover:border-ink-300",
               notesAlerting && "!border-ink-400",
             )}
           />

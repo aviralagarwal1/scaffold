@@ -129,7 +129,7 @@ export function PaperConstellation({
           })}
           {hiddenInList > 0 && (
             <li
-              className="animate-fade pl-6 pt-1 text-[12.5px] italic text-ink-500"
+              className="animate-fade pl-6 pt-1 text-[12.5px] text-ink-500"
               style={{ animationDelay: `${TITLE_LIST_BASE_DELAY_MS + visibleMatches.length * REVEAL_STAGGER_MS}ms` }}
             >
               + {hiddenInList} more — see snippets below.

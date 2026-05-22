@@ -94,8 +94,7 @@ function renderNavItems(pathname: string | null, isAuthenticated: boolean): Reac
  * core promise — without resorting to AI-cliché iconography.
  *
  * Typography: the product name is a single roman serif wordmark. The section
- * symbol carries the editorial accent that the old two-word mark split across
- * roman and italic text.
+ * symbol carries the editorial accent.
  */
 function Wordmark({ size = "sm" }: { size?: "sm" | "lg" }) {
   const isLg = size === "lg";

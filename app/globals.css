@@ -116,12 +116,12 @@ body {
     @apply inline-flex h-9 items-center justify-center rounded-md px-3 text-[13px] font-medium text-critical-700 transition-colors hover:bg-critical-100/60;
   }
   /* === Composer / "Ask anything" button ===
-     Editorial submit affordance for writing surfaces. Italic serif, soft
+     Editorial submit affordance for writing surfaces. Serif, soft
      border, generous padding. Reads more like a bookplate than a form button.
      The arrow uses group-hover to translate; pair with `group` on this button.
   */
   .btn-ask {
-    @apply inline-flex items-center gap-2.5 rounded-md border border-ink-200 bg-white px-6 py-3 font-serif italic text-[15px] tracking-tightish text-ink-700 shadow-soft transition-all duration-200 ease-editorial hover:border-ink-300 hover:bg-ink-50/70 hover:text-ink-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-50 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center gap-2.5 rounded-md border border-ink-200 bg-white px-6 py-3 font-serif text-[15px] tracking-tightish text-ink-700 shadow-soft transition-all duration-200 ease-editorial hover:border-ink-300 hover:bg-ink-50/70 hover:text-ink-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-50 disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-ask-arrow {
     @apply inline-block transition-transform duration-200 ease-editorial group-hover:translate-x-0.5;

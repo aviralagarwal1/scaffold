@@ -89,7 +89,7 @@ export function IngestionProgress({
         {postCount > 0 && <span>{postCount.toLocaleString()} posts indexed so far</span>}
         {status === "partial" && <span>Some posts could not be parsed.</span>}
         {isWorking && (
-          <span className="font-serif italic text-ink-500">
+          <span className="font-serif text-ink-500">
             {postCount === 0 ? SUBPHRASES[subphraseIndex] : "Still reading for themes and patterns."}
           </span>
         )}

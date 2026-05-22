@@ -90,7 +90,7 @@ export function SearchPanel({ token, disabled }: { token: string; disabled?: boo
             autoComplete="off"
             autoCorrect="off"
             className={cn(
-              "input font-serif text-[15.5px] text-ink-900 placeholder:font-serif placeholder:italic placeholder:text-ink-400",
+              "input font-serif text-[15.5px] text-ink-900 placeholder:font-serif placeholder:text-ink-400",
               alerting && "!border-ink-400",
             )}
           />
@@ -159,7 +159,7 @@ export function SearchPanel({ token, disabled }: { token: string; disabled?: boo
             <span className="type-eyebrow text-ink-400">No matches</span>
             <p className="text-[14px] leading-relaxed text-ink-600">
               Nothing in your library matches{" "}
-              <span className="font-semibold italic text-ink-700">&ldquo;{committedQuery}&rdquo;</span>. Try a shorter phrase or
+              <span className="font-semibold text-ink-700">&ldquo;{committedQuery}&rdquo;</span>. Try a shorter phrase or
               different spelling.
             </p>
           </div>
@@ -193,7 +193,7 @@ function SearchResultCard({ result }: { result: SearchResult }) {
         ))}
       </ul>
       {moreCount > 0 && (
-        <div className="text-[12.5px] italic text-ink-500">
+        <div className="text-[12.5px] text-ink-500">
           + {pluralize(moreCount, "more match", "more matches")} in this post.
         </div>
       )}

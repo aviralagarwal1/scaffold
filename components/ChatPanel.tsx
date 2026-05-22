@@ -213,7 +213,7 @@ export function ChatPanel({
                     )}
                   </button>
                 ) : (
-                  <span className="text-[12.5px] italic text-ink-400">No more directions to surface.</span>
+                  <span className="text-[12.5px] text-ink-400">No more directions to surface.</span>
                 )}
                 {surfaced.length > 0 && (
                   <button
@@ -360,7 +360,7 @@ function Composer({
           }
         }}
         aria-label={ghostText}
-        className="block max-h-[160px] w-full flex-1 resize-none overflow-y-auto border-0 bg-transparent px-1 py-1.5 font-serif text-[15px] leading-relaxed italic text-ink-900 placeholder:font-serif placeholder:italic placeholder:text-ink-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+        className="block max-h-[160px] w-full flex-1 resize-none overflow-y-auto border-0 bg-transparent px-1 py-1.5 font-serif text-[15px] leading-relaxed text-ink-900 placeholder:font-serif placeholder:text-ink-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
       />
       <button
         type="submit"
@@ -418,7 +418,7 @@ function BubbleComposer({
           rows={1}
           placeholder="Continue your conversation"
           aria-label="Continue your conversation"
-          className="block w-full resize-none overflow-hidden border-0 bg-transparent px-4 py-2.5 pr-11 text-[14px] leading-relaxed text-ink-50 caret-ink-50 placeholder:font-serif placeholder:italic placeholder:text-ink-50/55 focus:outline-none"
+          className="block w-full resize-none overflow-hidden border-0 bg-transparent px-4 py-2.5 pr-11 text-[14px] leading-relaxed text-ink-50 caret-ink-50 placeholder:font-serif placeholder:text-ink-50/55 focus:outline-none"
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
