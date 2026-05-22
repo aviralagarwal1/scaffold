@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useWorkspace } from "@/components/WorkspaceProvider";
 import { PrivateLinkBanner } from "@/components/PrivateLinkBanner";
@@ -18,7 +17,7 @@ export default function OverviewPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      {/* Top utility row: link + reingest */}
+      {/* Top utility row */}
       <div className="animate-rise animate-delay-1">
         <PrivateLinkBanner token={token} />
       </div>
@@ -41,44 +40,36 @@ export default function OverviewPage() {
         {/* Left: where to start */}
         <section className="animate-rise animate-delay-3 flex flex-col gap-6 md:col-span-7">
           {ready && (
-            <>
-              <div className="flex justify-end">
-                <Link href={`/workspace/${token}/library`} className="btn-link">
-                  Browse library <span aria-hidden="true">→</span>
-                </Link>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <InsightCard
-                  eyebrow="Conversation"
-                  title="Ask your memory"
-                  description="Ask your memory anything. Themes, patterns, and what to write next."
-                  href={`/workspace/${token}/ask`}
-                  cta="Start chat"
-                />
-                <InsightCard
-                  eyebrow="Feedback"
-                  title="Evaluate your draft"
-                  description="Paste what you're working on. Get notes aligned with your voice and structure."
-                  href={`/workspace/${token}/draft`}
-                  cta="Get advice"
-                />
-                <InsightCard
-                  eyebrow="Proofreading"
-                  title="Proofread your posts"
-                  description="It's never too late to catch a typo. Run an audit to find any grammar issues."
-                  href={`/workspace/${token}/grammar`}
-                  cta="Run audit"
-
-                />
-                <InsightCard
-                  eyebrow="Distribution"
-                  title="Repurpose your writing"
-                  description="Generate posts for Facebook, Twitter, and more. You review and save."
-                  href={`/workspace/${token}/distribution`}
-                  cta="Open distribution"
-                />
-              </div>
-            </>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <InsightCard
+                eyebrow="Conversation"
+                title="Ask your memory"
+                description="Ask your memory anything. Themes, patterns, and what to write next."
+                href={`/workspace/${token}/ask`}
+                cta="Start chat"
+              />
+              <InsightCard
+                eyebrow="Feedback"
+                title="Evaluate your draft"
+                description="Paste what you're working on. Get notes aligned with your voice and structure."
+                href={`/workspace/${token}/draft`}
+                cta="Get advice"
+              />
+              <InsightCard
+                eyebrow="Proofreading"
+                title="Proofread your posts"
+                description="It's never too late to catch a typo. Run an audit to find any grammar issues."
+                href={`/workspace/${token}/grammar`}
+                cta="Run audit"
+              />
+              <InsightCard
+                eyebrow="Distribution"
+                title="Repurpose your writing"
+                description="Generate posts for Facebook, Twitter, and more. You review and save."
+                href={`/workspace/${token}/distribution`}
+                cta="Open distribution"
+              />
+            </div>
           )}
         </section>
 

@@ -8,7 +8,6 @@ import { useWorkspace } from "@/components/WorkspaceProvider";
 import { api, ApiClientError } from "@/lib/client/api";
 import { cn } from "@/lib/client/cn";
 import { formatDate, hostnameOf, pluralize, statusLabel } from "@/lib/client/format";
-import type { TokenUsageSummary } from "@/types/workspace";
 
 const SPARKLES = [
   { top: "8%", right: "16%", fontSize: "10px", delay: "0s" },
@@ -78,10 +77,8 @@ export default function SettingsPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="View your workspace."
-        meta="Manage this publication's name, sync, usage, and library settings."
+        meta="Manage this publication's name, sync, and library settings."
       />
-
-      <TokenUsagePanel usage={overview.tokenUsage} />
 
       <section id="sync" className="scroll-mt-28 panel flex flex-col gap-4 p-5">
         <header>
@@ -272,86 +269,6 @@ function SyncWorkspaceButton({
       )}
     </button>
   );
-}
-
-function TokenUsagePanel({ usage }: { usage: TokenUsageSummary }) {
-  const today = new Date();
-  const resetDate = new Date(usage.resetsAt);
-  const resetParts = new Intl.DateTimeFormat(undefined, {
-    timeZone: usage.resetTimeZone,
-    month: "long",
-    day: "numeric",
-  }).formatToParts(resetDate);
-  const resetMonth = resetParts.find((part) => part.type === "month")?.value ?? "";
-  const resetDay = Number(resetParts.find((part) => part.type === "day")?.value ?? "0");
-  const dayPrefix = isTomorrow(today, resetDate, usage.resetTimeZone) ? "tomorrow, " : "";
-  const resetLabel = new Date(usage.resetsAt).toLocaleString(undefined, {
-    timeZone: usage.resetTimeZone,
-    hour: "numeric",
-    minute: "2-digit",
-    timeZoneName: "short",
-  });
-
-  return (
-    <section id="usage" className="scroll-mt-28 panel flex flex-col gap-4 p-5">
-      <header>
-        <div>
-          <h3 className="font-serif text-[18px] leading-snug tracking-tightish text-ink-900">
-            Usage
-          </h3>
-          <p className="mt-1 text-[12.5px] leading-relaxed text-ink-500">
-            You&apos;ve used {usage.used.toLocaleString()} of {usage.limit.toLocaleString()} available tokens this month.
-            Limits reset {dayPrefix}{resetMonth} {ordinal(resetDay)} at {resetLabel}. Deleted publications remain counted until reset.
-          </p>
-        </div>
-      </header>
-
-      <div className="h-2 overflow-hidden rounded-full bg-ink-100" aria-hidden="true">
-        <div
-          className={cn(
-            "h-full rounded-full transition-all duration-300 ease-editorial",
-            usage.status === "exhausted"
-              ? "bg-critical-500"
-              : usage.status === "high"
-                ? "bg-warn-500"
-                : "bg-accent-500",
-          )}
-          style={{ width: `${usage.percent}%` }}
-        />
-      </div>
-    </section>
-  );
-}
-
-function ordinal(value: number): string {
-  const suffix = value % 100 >= 11 && value % 100 <= 13
-    ? "th"
-    : value % 10 === 1
-      ? "st"
-      : value % 10 === 2
-        ? "nd"
-        : value % 10 === 3
-          ? "rd"
-          : "th";
-  return `${value}${suffix}`;
-}
-
-function isTomorrow(now: Date, target: Date, timeZone: string): boolean {
-  const partsFor = (date: Date) => {
-    const parts = new Intl.DateTimeFormat("en-US", {
-      timeZone,
-      year: "numeric",
-      month: "numeric",
-      day: "numeric",
-    }).formatToParts(date);
-    const get = (type: string) => Number(parts.find((part) => part.type === type)?.value);
-    return { year: get("year"), month: get("month"), day: get("day") };
-  };
-  const current = partsFor(now);
-  const next = new Date(Date.UTC(current.year, current.month - 1, current.day + 1));
-  const tomorrow = partsFor(next);
-  const targetParts = partsFor(target);
-  return tomorrow.year === targetParts.year && tomorrow.month === targetParts.month && tomorrow.day === targetParts.day;
 }
 
 function PublicationNameField({

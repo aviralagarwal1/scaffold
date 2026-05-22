@@ -516,13 +516,23 @@ function PublicationsRegion({
 
 function AccountUsageCard({ profile }: { profile: UserProfile }) {
   const plan = profile.plan;
-  const resetLabel = new Date(plan.tokenUsage.resetsAt).toLocaleString(undefined, {
+  const resetDate = new Date(plan.tokenUsage.resetsAt);
+  const resetDateParts = new Intl.DateTimeFormat("en-US", {
     timeZone: plan.tokenUsage.resetTimeZone,
-    month: "short",
+    month: "long",
     day: "numeric",
+  }).formatToParts(resetDate);
+  const resetMonth = resetDateParts.find((part) => part.type === "month")?.value ?? "";
+  const resetDay = Number(resetDateParts.find((part) => part.type === "day")?.value ?? "0");
+  const resetTimeParts = new Intl.DateTimeFormat("en-US", {
+    timeZone: plan.tokenUsage.resetTimeZone,
     hour: "numeric",
     minute: "2-digit",
-  });
+  }).formatToParts(resetDate);
+  const resetHour = resetTimeParts.find((part) => part.type === "hour")?.value ?? "";
+  const resetMinute = resetTimeParts.find((part) => part.type === "minute")?.value ?? "00";
+  const resetPeriod = resetTimeParts.find((part) => part.type === "dayPeriod")?.value ?? "";
+  const resetLabel = `${resetMonth} ${ordinal(resetDay)} at ${resetHour}:${resetMinute}${resetPeriod}`;
 
   return (
     <section className="panel flex flex-col gap-4 p-6">
@@ -532,12 +542,9 @@ function AccountUsageCard({ profile }: { profile: UserProfile }) {
           <h2 className="mt-2 font-serif text-[20px] leading-snug tracking-tightish text-ink-900">
             Account Usage
           </h2>
-          <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-600">
-            {plan.tokenUsage.used.toLocaleString()} of {plan.tokenUsage.limit.toLocaleString()} monthly tokens used. Resets {resetLabel}. Deleted publication usage remains counted until reset.
-          </p>
         </div>
-        <div className="flex flex-col items-start gap-1.5 sm:items-end">
-          <span className="rounded-full border border-ink-200 bg-ink-50 px-2.5 py-1 font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-500">
+        <div className="flex shrink-0 flex-col items-start gap-1.5 sm:items-end">
+          <span className="whitespace-nowrap rounded-full border border-ink-200 bg-ink-50 px-2.5 py-1 font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-500">
             {plan.activePublicationCount.toLocaleString()} / {plan.activePublicationLimit.toLocaleString()} active publication{plan.activePublicationLimit === 1 ? "" : "s"}
           </span>
           {plan.priceCents > 0 && (
@@ -547,6 +554,9 @@ function AccountUsageCard({ profile }: { profile: UserProfile }) {
           )}
         </div>
       </header>
+      <p className="-mt-2 text-[13.5px] leading-relaxed text-ink-600">
+        {plan.tokenUsage.used.toLocaleString()} of {plan.tokenUsage.limit.toLocaleString()} monthly tokens used. Deleted publication usage remains counted until reset. Limits reset {resetLabel}.
+      </p>
       <div className="h-2 overflow-hidden rounded-full bg-ink-100" aria-hidden="true">
         <div
           className={cn(
@@ -570,6 +580,20 @@ function AccountUsageCard({ profile }: { profile: UserProfile }) {
       )}
     </section>
   );
+}
+
+function ordinal(value: number): string {
+  const suffix =
+    value % 100 >= 11 && value % 100 <= 13
+      ? "th"
+      : value % 10 === 1
+        ? "st"
+        : value % 10 === 2
+          ? "nd"
+          : value % 10 === 3
+            ? "rd"
+            : "th";
+  return `${value}${suffix}`;
 }
 
 function WorkspacesCard({ workspaces, profile }: { workspaces: AccountWorkspaceSummary[]; profile: UserProfile | null }) {
