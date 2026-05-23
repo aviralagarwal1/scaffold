@@ -256,6 +256,11 @@ export const api = {
   grammarIssues(token: string) {
     return request<GrammarIssue[]>(`/api/workspaces/${encodeURIComponent(token)}/grammar-issues`);
   },
+  clearGrammarIssues(token: string) {
+    return request<{ ok: true }>(`/api/workspaces/${encodeURIComponent(token)}/grammar-issues`, {
+      method: "DELETE",
+    });
+  },
   search(token: string, body: SearchRequest) {
     return request<SearchResponse>(`/api/workspaces/${encodeURIComponent(token)}/search`, {
       method: "POST",

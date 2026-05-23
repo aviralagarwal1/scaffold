@@ -18,7 +18,7 @@ export function GrammarAuditPanel({
 }) {
   const [issues, setIssues] = useState<GrammarIssue[] | null>(null);
   const [summary, setSummary] = useState<string | null>(null);
-  const [busy, setBusy] = useState<"audit" | "load" | null>(null);
+  const [busy, setBusy] = useState<"audit" | "load" | "clear" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filterPostId, setFilterPostId] = useState<string>("all");
   const [filterSeverity, setFilterSeverity] = useState<"all" | GrammarIssue["severity"]>("all");
@@ -57,6 +57,22 @@ export function GrammarAuditPanel({
       });
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Audit failed.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const clearAudit = async () => {
+    setBusy("clear");
+    setError(null);
+    try {
+      await api.clearGrammarIssues(token);
+      setIssues([]);
+      setSummary(null);
+      setFilterPostId("all");
+      setFilterSeverity("all");
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : "Could not clear audit.");
     } finally {
       setBusy(null);
     }
@@ -120,13 +136,13 @@ export function GrammarAuditPanel({
               </span>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2 type-meta">
-                <span>Filter</span>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <select
-                  className="input max-w-[200px] transition-colors duration-150 ease-editorial hover:border-ink-300"
+                  className="input sm:!w-[200px] transition-colors duration-150 ease-editorial hover:border-ink-300"
                   value={filterPostId}
                   onChange={(e) => setFilterPostId(e.target.value)}
+                  disabled={busy !== null}
                 >
                   <option value="all">All posts</option>
                   {posts.map((p) => (
@@ -136,9 +152,10 @@ export function GrammarAuditPanel({
                   ))}
                 </select>
                 <select
-                  className="input max-w-[160px] transition-colors duration-150 ease-editorial hover:border-ink-300"
+                  className="input sm:!w-[160px] transition-colors duration-150 ease-editorial hover:border-ink-300"
                   value={filterSeverity}
                   onChange={(e) => setFilterSeverity(e.target.value as typeof filterSeverity)}
+                  disabled={busy !== null}
                 >
                   <option value="all">All severities</option>
                   <option value="high">High</option>
@@ -146,6 +163,14 @@ export function GrammarAuditPanel({
                   <option value="low">Low</option>
                 </select>
               </div>
+              <button
+                type="button"
+                onClick={clearAudit}
+                disabled={disabled || busy !== null}
+                className="btn-secondary self-start hover:border-critical-200 hover:bg-critical-100/35 hover:text-critical-700 sm:self-auto"
+              >
+                {busy === "clear" ? "Clearing..." : "Clear audit"}
+              </button>
             </div>
           </section>
         )}

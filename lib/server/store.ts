@@ -972,6 +972,14 @@ export async function replaceGrammarIssues(token: string, issues: Omit<GrammarIs
   });
 }
 
+export async function deleteGrammarIssues(token: string): Promise<void> {
+  await mutateDb((db) => {
+    const workspace = db.workspaces.find((item) => item.token === token);
+    if (!workspace) throw new AppError("Workspace not found.", 404);
+    db.grammarIssues = db.grammarIssues.filter((issue) => issue.workspaceId !== workspace.id);
+  });
+}
+
 // Literal substring search across a workspace's post bodies. Case-insensitive,
 // returns up to MAX_SNIPPETS_PER_POST snippets per post with SNIPPET_PADDING
 // chars of surrounding context. The match string preserves the original
