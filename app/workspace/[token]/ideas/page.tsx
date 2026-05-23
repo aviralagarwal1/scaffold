@@ -14,7 +14,7 @@ export default function IdeasPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Find your next idea."
+        title="Explore your ideas."
         meta={ready ? "Ideas rise from gaps and recurring patterns in your library. Expect sequels, contrarian angles, and themes worth revisiting." : undefined}
       />
       {!ready ? <NotReadyNotice status={overview.status} token={token} feature="Ideas" /> : <IdeasPanel token={token} />}

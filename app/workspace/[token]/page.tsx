@@ -46,14 +46,14 @@ export default function OverviewPage() {
                 title="Ask your memory"
                 description="Ask your memory anything. Themes, patterns, and what to write next."
                 href={`/workspace/${token}/ask`}
-                cta="Start chat"
+                cta="Start conversation"
               />
               <InsightCard
                 eyebrow="Feedback"
                 title="Evaluate your draft"
                 description="Paste what you're working on. Get notes aligned with your voice and structure."
                 href={`/workspace/${token}/draft`}
-                cta="Get advice"
+                cta="Get feedback"
               />
               <InsightCard
                 eyebrow="Proofreading"
@@ -65,9 +65,23 @@ export default function OverviewPage() {
               <InsightCard
                 eyebrow="Distribution"
                 title="Repurpose your writing"
-                description="Generate posts for Facebook, Twitter, and more. You review and save."
+                description="Generate posts for Facebook, Twitter, and more. Review and save your favorites."
                 href={`/workspace/${token}/distribution`}
-                cta="Open distribution"
+                cta="Create posts"
+              />
+              <InsightCard
+                eyebrow="Exploration"
+                title="Explore your ideas"
+                description="Turn recurring patterns into new themes. Discover which ideas resonate."
+                href={`/workspace/${token}/ideas`}
+                cta="Explore themes"
+              />
+              <InsightCard
+                eyebrow="Search"
+                title="Search your library"
+                description="No more endless tabs. Find any word or phrase across your entire work."
+                href={`/workspace/${token}/search`}
+                cta="Search library"
               />
             </div>
           )}
