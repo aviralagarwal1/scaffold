@@ -311,7 +311,7 @@ function DraftHistory({
           return (
             <div
               key={review.id}
-              className={`grid min-w-[220px] max-w-[300px] grid-cols-[minmax(0,1fr)_24px] items-center gap-2.5 rounded-md border px-3 py-2.5 ${
+              className={`inline-flex max-w-[360px] shrink-0 items-center gap-2.5 rounded-md border px-3 py-2.5 ${
                 active ? "border-accent-300 bg-accent-50/40" : "border-ink-200 bg-white"
               }`}
             >
@@ -319,7 +319,7 @@ function DraftHistory({
                 type="button"
                 onClick={() => onOpen(review)}
                 disabled={disabled}
-                className="min-w-0 flex-1 text-left text-[13px] leading-snug text-ink-700 transition-colors hover:text-ink-950 disabled:cursor-not-allowed disabled:opacity-60"
+                className="min-w-0 text-left text-[13px] leading-snug text-ink-700 transition-colors hover:text-ink-950 disabled:cursor-not-allowed disabled:opacity-60"
                 title={review.title ?? "Saved read"}
               >
                 <span className="block truncate">{review.title ?? "Saved read"}</span>
