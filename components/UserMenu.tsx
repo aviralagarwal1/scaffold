@@ -6,7 +6,9 @@ import { usePathname } from "next/navigation";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiClientError } from "@/lib/client/api";
 import { cn } from "@/lib/client/cn";
+import { hostnameOf, statusLabel } from "@/lib/client/format";
 import type { UserProfile } from "@/types/auth";
+import type { AccountWorkspaceSummary } from "@/types/workspace";
 
 const INITIAL_GRADIENTS = [
   "border-red-200/70 bg-gradient-to-br from-red-50 to-red-100 text-red-700",
@@ -42,6 +44,7 @@ export function UserMenu() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [workspaces, setWorkspaces] = useState<AccountWorkspaceSummary[]>([]);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   // Fetch the creator's identity once we know we're authenticated. If the
@@ -50,10 +53,10 @@ export function UserMenu() {
   const loadProfile = useCallback(() => {
     if (status !== "authenticated") return;
     let active = true;
-    api
-      .me()
-      .then((p) => {
+    Promise.all([api.me(), api.listWorkspaces()])
+      .then(([p, nextWorkspaces]) => {
         if (active) setProfile(p);
+        if (active) setWorkspaces(nextWorkspaces);
       })
       .catch((err) => {
         if (!active) return;
@@ -151,7 +154,7 @@ export function UserMenu() {
         <div
           role="menu"
           aria-label="Account"
-          className="animate-fade absolute right-0 top-[calc(100%+6px)] z-40 w-64 origin-top-right overflow-hidden rounded-md border border-ink-200/80 bg-white shadow-lift"
+          className="animate-fade absolute right-0 top-[calc(100%+6px)] z-40 w-80 origin-top-right overflow-hidden rounded-md border border-ink-200/80 bg-white shadow-lift"
         >
           {/* Header band — creator identity in roman text, email in quiet
               monospace beneath. The curator name doesn't surface here; this
@@ -177,6 +180,8 @@ export function UserMenu() {
               </div>
             </div>
           </div>
+
+          <WorkspaceMenuSection workspaces={workspaces} pathname={pathname ?? ""} />
 
           <ul className="flex flex-col py-1.5">
             <li>
@@ -252,4 +257,161 @@ function MenuLink({
       {children}
     </Link>
   );
+}
+
+function WorkspaceMenuSection({
+  workspaces,
+  pathname,
+}: {
+  workspaces: AccountWorkspaceSummary[];
+  pathname: string;
+}) {
+  const [switchOpen, setSwitchOpen] = useState(false);
+  const [recentWorkspaceToken, setRecentWorkspaceToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    const activeToken = workspaceTokenFromPath(pathname);
+    if (activeToken) {
+      window.localStorage.setItem("scaffold:lastWorkspaceToken", activeToken);
+      setRecentWorkspaceToken(activeToken);
+      return;
+    }
+    setRecentWorkspaceToken(window.localStorage.getItem("scaffold:lastWorkspaceToken"));
+  }, [pathname]);
+
+  if (workspaces.length === 0) {
+    return null;
+  }
+
+  const activeToken = workspaceTokenFromPath(pathname);
+  const activeWorkspace = activeToken
+    ? workspaces.find((workspace) => workspace.token === activeToken)
+    : null;
+  const recentWorkspace = recentWorkspaceToken
+    ? workspaces.find((workspace) => workspace.token === recentWorkspaceToken)
+    : null;
+  const primaryWorkspace = activeWorkspace ?? recentWorkspace ?? workspaces[0];
+  const canSwitch = workspaces.length > 1;
+
+  return (
+    <div className="border-b border-ink-200/60 px-3.5 py-2">
+      <div className="flex items-center gap-2">
+        <WorkspaceLink workspace={primaryWorkspace} active={Boolean(activeWorkspace)} prominent />
+        {canSwitch && (
+          <button
+            type="button"
+            aria-label="Switch workspace"
+            aria-expanded={switchOpen}
+            onClick={() => setSwitchOpen((value) => !value)}
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-ink-200 bg-ink-50 text-[10px] text-ink-500 transition-colors hover:border-ink-300 hover:bg-ink-100 hover:text-ink-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300"
+          >
+            <span
+              aria-hidden="true"
+              className={cn("transition-transform duration-150 ease-editorial", switchOpen && "rotate-180")}
+            >
+              &#9662;
+            </span>
+          </button>
+        )}
+      </div>
+      {switchOpen && (
+        <div className="mt-2 flex flex-col gap-1 border-t border-ink-200/50 pt-2">
+          {workspaces.map((workspace) => (
+            <WorkspaceSwitchLink
+              key={workspace.id}
+              workspace={workspace}
+              selected={workspace.id === primaryWorkspace.id}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WorkspaceLink({
+  workspace,
+  active = false,
+  prominent = false,
+}: {
+  workspace: AccountWorkspaceSummary;
+  active?: boolean;
+  prominent?: boolean;
+}) {
+  const label = workspace.publicationName ?? hostnameOf(workspace.publicationUrl);
+  const host = hostnameOf(workspace.publicationUrl);
+  const status = statusLabel(workspace.status);
+
+  return (
+    <Link
+      href={workspace.workspaceUrl}
+      role="menuitem"
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "group flex min-w-0 flex-1 items-center justify-between gap-3 rounded-md bg-white px-3 py-2.5 transition-colors hover:bg-ink-50",
+      )}
+    >
+      <span className="min-w-0">
+        <span
+          className={cn(
+            "block truncate leading-snug text-ink-900",
+            prominent ? "font-serif text-[14px]" : "text-[13px]",
+          )}
+        >
+          {label}
+        </span>
+        <span className="mt-0.5 block truncate font-mono text-[10px] tracking-tightish text-ink-500">
+          {host}
+        </span>
+      </span>
+      <span
+        className={cn(
+          "shrink-0 rounded-full border px-2 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.12em]",
+          workspace.status === "ready"
+            ? "border-positive-100 bg-positive-100/40 text-positive-700"
+            : workspace.status === "failed"
+              ? "border-critical-100 bg-critical-100/40 text-critical-700"
+              : "border-accent-200 bg-accent-50 text-accent-700",
+        )}
+      >
+        {status}
+      </span>
+    </Link>
+  );
+}
+
+function WorkspaceSwitchLink({
+  workspace,
+  selected,
+}: {
+  workspace: AccountWorkspaceSummary;
+  selected: boolean;
+}) {
+  const label = workspace.publicationName ?? hostnameOf(workspace.publicationUrl);
+  const host = hostnameOf(workspace.publicationUrl);
+
+  return (
+    <Link
+      href={workspace.workspaceUrl}
+      role="menuitemradio"
+      aria-checked={selected}
+      className={cn(
+        "flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-[13px] transition-colors",
+        selected ? "bg-accent-50/70 text-accent-700" : "text-ink-700 hover:bg-ink-50 hover:text-ink-900",
+      )}
+    >
+      <span className="grid h-4 w-4 shrink-0 place-items-center font-mono text-[10px]">
+        {selected ? "\u2713" : ""}
+      </span>
+      <span className="min-w-0">
+        <span className="block truncate">{label}</span>
+        <span className="block truncate font-mono text-[10px] tracking-tightish text-ink-500">{host}</span>
+      </span>
+    </Link>
+  );
+}
+
+function workspaceTokenFromPath(pathname: string): string | null {
+  const match = pathname.match(/^\/workspace\/([^/]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
 }

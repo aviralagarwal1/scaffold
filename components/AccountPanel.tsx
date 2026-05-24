@@ -219,14 +219,14 @@ function WorkspacesCard({ workspaces, profile }: { workspaces: AccountWorkspaceS
 
       <ul className="flex flex-col gap-3">
         {workspaces.map((workspace) => (
-          <WorkspaceRow key={workspace.id} workspace={workspace} />
+          <WorkspaceRow key={workspace.id} workspace={workspace} showUsage={workspaces.length === 1} />
         ))}
       </ul>
     </section>
   );
 }
 
-function WorkspaceRow({ workspace }: { workspace: AccountWorkspaceSummary }) {
+function WorkspaceRow({ workspace, showUsage }: { workspace: AccountWorkspaceSummary; showUsage: boolean }) {
   const displayName = workspace.publicationName ?? hostnameOf(workspace.publicationUrl);
   const host = hostnameOf(workspace.publicationUrl);
 
@@ -259,7 +259,7 @@ function WorkspaceRow({ workspace }: { workspace: AccountWorkspaceSummary }) {
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-3">
-          <TokenUsageBadge usage={workspace.tokenUsage} compact showBar compactSuffix="account usage" />
+          {showUsage && <TokenUsageBadge usage={workspace.tokenUsage} compact showBar compactSuffix="account usage" />}
           <StatusBadge status={workspace.status} />
           {workspace.lastIngestedAt && (
             <span className="hidden font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-400 sm:inline">
