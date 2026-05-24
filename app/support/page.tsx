@@ -64,11 +64,6 @@ function buildQuestions(
         "Add a publication URL. Scaffold reads public posts, stores them as a workspace, and answers or drafts from retrieved passages in your library.",
     },
     {
-      question: "What are Creator and Curator?",
-      answer:
-        "Creator is the writer name used across your library. Curator is the assistant name used in conversation and writing feedback.",
-    },
-    {
       question: "Is Scaffold free?",
       answer: (
         <>
