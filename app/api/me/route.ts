@@ -196,32 +196,39 @@ function requireCuratorName(value: unknown): string {
 }
 
 function normalizeFullName(value: unknown): string | null {
-  if (value === undefined || value === null || value === "") return null;
-  if (typeof value !== "string") throw new AppError("Enter a name.", 400);
+  if (value === undefined || value === null || value === "") throw new AppError("Please save your full name.", 400);
+  if (typeof value !== "string") throw new AppError("Please save your full name.", 400);
   const fullName = value.replace(/\s+/g, " ").trim();
-  if (!fullName) return null;
-  if (fullName.length > 100) throw new AppError("Keep your name under 100 characters.", 400);
-  if (/[\p{C}]/u.test(fullName)) throw new AppError("Enter a valid name.", 400);
+  if (!fullName) throw new AppError("Please save your full name.", 400);
+  const letterCount = fullName.match(/\p{L}/gu)?.length ?? 0;
+  if (letterCount < 2) throw new AppError("Use at least two letters for your full name.", 400);
+  if (fullName.length > 100) throw new AppError("Keep your full name under 100 characters.", 400);
+  if (!/\p{L}/u.test(fullName)) throw new AppError("Use letters in your full name.", 400);
+  if (/[^\p{L}\s'.-]/u.test(fullName)) {
+    throw new AppError("Use letters, spaces, hyphens, apostrophes, or periods.", 400);
+  }
   return fullName;
 }
 
 function normalizePhoneNumber(value: unknown): string | null {
-  if (value === undefined || value === null || value === "") return null;
-  if (typeof value !== "string") throw new AppError("Enter a phone number.", 400);
+  if (value === undefined || value === null || value === "") throw new AppError("Please save your phone number.", 400);
+  if (typeof value !== "string") throw new AppError("Please save your phone number.", 400);
   const digits = value.replace(/\D/g, "");
   const national = digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
-  if (!national) return null;
   if (national.length !== 10) throw new AppError("Use a 10-digit US number.", 400);
   return `+1 (${national.slice(0, 3)}) ${national.slice(3, 6)}-${national.slice(6)}`;
 }
 
 async function normalizeHandle(value: unknown, userId: string): Promise<string | null> {
-  if (value === undefined || value === null || value === "") return null;
-  if (typeof value !== "string") throw new AppError("Enter a handle.", 400);
+  if (value === undefined || value === null || value === "") throw new AppError("Please save your handle.", 400);
+  if (typeof value !== "string") throw new AppError("Please save your handle.", 400);
   const handle = value.replace(/^@+/, "").trim().toLowerCase();
-  if (!handle) return null;
-  if (!/^[a-z0-9_]{3,24}$/.test(handle)) {
-    throw new AppError("Use 3-24 letters, numbers, or underscores.", 400);
+  if (!handle) throw new AppError("Please save your handle.", 400);
+  if (handle.length < 3) throw new AppError("Use at least 3 characters for your handle.", 400);
+  if (handle.length > 24) throw new AppError("Keep your handle to 24 characters.", 400);
+  if (!/^[a-z]/.test(handle)) throw new AppError("Start your handle with a letter.", 400);
+  if (!/^[a-z0-9_]+$/.test(handle)) {
+    throw new AppError("Use lowercase letters, numbers, or underscores.", 400);
   }
 
   const db = getDb();

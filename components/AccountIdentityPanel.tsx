@@ -5,24 +5,41 @@ import { useEffect, useRef, useState } from "react";
 import type { UserProfile } from "@/types/auth";
 import { api, ApiClientError } from "@/lib/client/api";
 import { cn } from "@/lib/client/cn";
+import { sanitizeAsTyped, validateCuratorName } from "@/lib/client/curator-name";
+import { sanitizeCreatorAsTyped, validateCreatorName } from "@/lib/client/creator-name";
 import { DangerConfirmDialog } from "./DangerConfirmDialog";
 import { LoadingState } from "./states";
+
+const HANDLE_MAX = 24;
+const HANDLE_MIN = 3;
+const FULL_NAME_MAX = 100;
 
 export function AccountIdentityPanel() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [fullName, setFullName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [handle, setHandle] = useState("");
+  const [creatorName, setCreatorName] = useState("");
+  const [curatorName, setCuratorName] = useState("");
   const [loadBusy, setLoadBusy] = useState(true);
   const [saveBusy, setSaveBusy] = useState(false);
+  const [identityBusy, setIdentityBusy] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [identitySaved, setIdentitySaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileAlerting, setProfileAlerting] = useState<"fullName" | "handle" | "phone" | null>(null);
+  const [identityError, setIdentityError] = useState<string | null>(null);
+  const [identityAlerting, setIdentityAlerting] = useState<"creator" | "curator" | null>(null);
   const [phoneError, setPhoneError] = useState<string | null>(null);
-  const [phoneAlerting, setPhoneAlerting] = useState(false);
+  const fullNameRef = useRef<HTMLInputElement>(null);
+  const handleRef = useRef<HTMLInputElement>(null);
   const phoneRef = useRef<HTMLInputElement>(null);
+  const creatorRef = useRef<HTMLInputElement>(null);
+  const curatorRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     let active = true;
@@ -34,6 +51,8 @@ export function AccountIdentityPanel() {
         setFullName(nextProfile.fullName ?? "");
         setPhoneNumber(formatUsPhone(nextProfile.phoneNumber ?? ""));
         setHandle(nextProfile.handle ?? "");
+        setCreatorName(nextProfile.creatorName ?? "");
+        setCuratorName(nextProfile.editorName ?? "");
       })
       .catch((err) => {
         if (!active) return;
@@ -49,27 +68,47 @@ export function AccountIdentityPanel() {
 
   const saveIdentity = async (event: React.FormEvent) => {
     event.preventDefault();
+    setPhoneError(null);
+    setProfileError(null);
+
+    const normalizedFullName = normalizeFullName(fullName);
+    if (!normalizedFullName) {
+      triggerProfileAlert("fullName", "Please save your full name.");
+      return;
+    }
+    const fullNameMessage = validateFullName(normalizedFullName);
+    if (fullNameMessage) {
+      triggerProfileAlert("fullName", fullNameMessage);
+      return;
+    }
+
+    const normalizedHandle = handle.replace(/^@+/, "").trim().toLowerCase();
+    const handleMessage = validateHandle(normalizedHandle);
+    if (handleMessage) {
+      triggerProfileAlert("handle", handleMessage);
+      return;
+    }
+
     const normalizedPhone = normalizeUsPhone(phoneNumber);
-    if (phoneNumber.trim() && !normalizedPhone) {
-      setPhoneError("Use a 10-digit US number.");
-      setPhoneAlerting(false);
-      requestAnimationFrame(() => {
-        setPhoneAlerting(true);
-        window.setTimeout(() => setPhoneAlerting(false), 450);
-      });
-      phoneRef.current?.focus();
+    if (!phoneNumber.trim()) {
+      triggerProfileAlert("phone", "Please save your phone number.");
+      return;
+    }
+    if (!normalizedPhone) {
+      triggerProfileAlert("phone", "Use a 10-digit US number.");
       return;
     }
 
     setSaveBusy(true);
     setSaved(false);
     setError(null);
+    setProfileError(null);
     setPhoneError(null);
     try {
       const nextProfile = await api.updateProfile({
-        fullName: fullName.trim() || null,
+        fullName: normalizedFullName,
         phoneNumber: normalizedPhone,
-        handle: handle.replace(/^@+/, "").trim() || null,
+        handle: normalizedHandle,
       });
       setProfile(nextProfile);
       setFullName(nextProfile.fullName ?? "");
@@ -81,6 +120,63 @@ export function AccountIdentityPanel() {
       setError(err instanceof ApiClientError ? err.message : "Could not update account.");
     } finally {
       setSaveBusy(false);
+    }
+  };
+
+  const triggerProfileAlert = (field: "fullName" | "handle" | "phone", message: string) => {
+    setProfileError(message);
+    if (field === "phone") setPhoneError(message);
+    setProfileAlerting(null);
+    requestAnimationFrame(() => {
+      setProfileAlerting(field);
+      window.setTimeout(() => setProfileAlerting(null), 450);
+    });
+    if (field === "fullName") fullNameRef.current?.focus();
+    if (field === "handle") handleRef.current?.focus();
+    if (field === "phone") phoneRef.current?.focus();
+  };
+
+  const triggerIdentityAlert = (field: "creator" | "curator", message: string) => {
+    setIdentityError(message);
+    setIdentityAlerting(null);
+    requestAnimationFrame(() => {
+      setIdentityAlerting(field);
+      window.setTimeout(() => setIdentityAlerting(null), 450);
+    });
+    if (field === "creator") creatorRef.current?.focus();
+    if (field === "curator") curatorRef.current?.focus();
+  };
+
+  const saveLibraryIdentity = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const creatorValidation = validateCreatorName(creatorName);
+    if (!creatorValidation.ok) {
+      triggerIdentityAlert("creator", creatorValidation.message ?? "Try a different creator name.");
+      return;
+    }
+    const curatorValidation = validateCuratorName(curatorName);
+    if (!curatorValidation.ok) {
+      triggerIdentityAlert("curator", curatorValidation.message ?? "Try a different curator name.");
+      return;
+    }
+
+    setIdentityBusy(true);
+    setIdentitySaved(false);
+    setIdentityError(null);
+    try {
+      const nextProfile = await api.updateProfile({
+        creatorName: creatorName.trim(),
+        editorName: curatorName.trim(),
+      });
+      setProfile(nextProfile);
+      setCreatorName(nextProfile.creatorName ?? "");
+      setCuratorName(nextProfile.editorName ?? "");
+      setIdentitySaved(true);
+      window.setTimeout(() => setIdentitySaved(false), 1800);
+    } catch (err) {
+      setIdentityError(err instanceof ApiClientError ? err.message : "Could not update identity.");
+    } finally {
+      setIdentityBusy(false);
     }
   };
 
@@ -112,18 +208,27 @@ export function AccountIdentityPanel() {
           <h2 className="font-serif text-[22px] leading-snug tracking-tightish text-ink-900">
             Profile
           </h2>
+          <p className="mt-2 max-w-2xl text-[13.5px] leading-relaxed text-ink-600">
+            Complete your account profile.
+          </p>
         </header>
 
         <form onSubmit={saveIdentity} className="grid gap-4 sm:grid-cols-2" noValidate>
           <label className="flex flex-col gap-2">
             <span className="type-eyebrow text-ink-400">Full name</span>
             <input
+              ref={fullNameRef}
               value={fullName}
-              onChange={(event) => setFullName(event.target.value)}
-              className="input"
+              onChange={(event) => {
+                setFullName(event.target.value.slice(0, FULL_NAME_MAX));
+                if (profileAlerting === "fullName") setProfileAlerting(null);
+                setProfileError(null);
+              }}
+              className={cn("input", profileAlerting === "fullName" && "!border-ink-400 animate-editorial-nudge")}
               placeholder="First and last name"
               disabled={saveBusy}
               autoCapitalize="words"
+              aria-invalid={profileAlerting === "fullName" || undefined}
             />
           </label>
 
@@ -137,14 +242,20 @@ export function AccountIdentityPanel() {
                 @
               </span>
               <input
+                ref={handleRef}
                 value={handle}
-                onChange={(event) => setHandle(event.target.value.replace(/^@+/, "").toLowerCase())}
-                className="input pl-7"
+                onChange={(event) => {
+                  setHandle(event.target.value.replace(/^@+/, "").toLowerCase().slice(0, HANDLE_MAX));
+                  if (profileAlerting === "handle") setProfileAlerting(null);
+                  setProfileError(null);
+                }}
+                className={cn("input pl-7", profileAlerting === "handle" && "!border-ink-400 animate-editorial-nudge")}
                 placeholder="aviral"
                 disabled={saveBusy}
                 spellCheck={false}
                 autoCapitalize="off"
                 autoCorrect="off"
+                aria-invalid={profileAlerting === "handle" || undefined}
               />
             </div>
           </label>
@@ -167,21 +278,85 @@ export function AccountIdentityPanel() {
               onChange={(event) => {
                 const next = formatUsPhone(event.target.value);
                 setPhoneNumber(next);
-                if (!next || normalizeUsPhone(next)) setPhoneError(null);
+                if (profileAlerting === "phone") setProfileAlerting(null);
+                if (!next || normalizeUsPhone(next)) {
+                  setPhoneError(null);
+                  setProfileError(null);
+                }
               }}
-              className={cn("input", phoneAlerting && "!border-ink-400 animate-editorial-nudge")}
+              className={cn("input", profileAlerting === "phone" && "!border-ink-400 animate-editorial-nudge")}
               placeholder="+1 (555) 123-4567"
               disabled={saveBusy}
               inputMode="tel"
-              aria-invalid={phoneAlerting || undefined}
+              aria-invalid={profileAlerting === "phone" || undefined}
             />
             {phoneError && <span className="text-[12.5px] text-ink-500">{phoneError}</span>}
           </label>
+
+          {profileError && !phoneError && (
+            <p className="text-[12.5px] text-ink-500 sm:col-span-2">{profileError}</p>
+          )}
 
           <div className="sm:col-span-2 flex items-center justify-end gap-3 pt-1">
             {saved && <SavedCheck />}
             <button type="submit" className="btn-primary" disabled={saveBusy}>
               {saveBusy ? "Saving..." : "Save profile"}
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section className="panel flex flex-col gap-5 p-6">
+        <header>
+          <h2 className="font-serif text-[22px] leading-snug tracking-tightish text-ink-900">
+            Identity
+          </h2>
+          <p className="mt-2 max-w-2xl text-[13.5px] leading-relaxed text-ink-600">
+            Establish your library's identity.
+          </p>
+        </header>
+
+        <form onSubmit={saveLibraryIdentity} className="grid gap-4 sm:grid-cols-2" noValidate>
+          <label className="flex flex-col gap-2">
+            <span className="type-eyebrow text-ink-400">Creator</span>
+            <input
+              ref={creatorRef}
+              value={creatorName}
+              onChange={(event) => setCreatorName(sanitizeCreatorAsTyped(event.target.value))}
+              className={cn("input", identityAlerting === "creator" && "!border-ink-400 animate-editorial-nudge")}
+              placeholder="Aviral"
+              disabled={identityBusy}
+              spellCheck={false}
+              autoCapitalize="words"
+              autoCorrect="off"
+              aria-invalid={identityAlerting === "creator" || undefined}
+            />
+          </label>
+
+          <label className="flex flex-col gap-2">
+            <span className="type-eyebrow text-ink-400">Curator</span>
+            <input
+              ref={curatorRef}
+              value={curatorName}
+              onChange={(event) => setCuratorName(sanitizeAsTyped(event.target.value))}
+              className={cn("input", identityAlerting === "curator" && "!border-ink-400 animate-editorial-nudge")}
+              placeholder="Curator"
+              disabled={identityBusy}
+              spellCheck={false}
+              autoCapitalize="words"
+              autoCorrect="off"
+              aria-invalid={identityAlerting === "curator" || undefined}
+            />
+          </label>
+
+          {identityError && (
+            <p className="text-[12.5px] text-ink-500 sm:col-span-2">{identityError}</p>
+          )}
+
+          <div className="sm:col-span-2 flex items-center justify-end gap-3 pt-1">
+            {identitySaved && <SavedCheck />}
+            <button type="submit" className="btn-primary" disabled={identityBusy}>
+              {identityBusy ? "Saving..." : "Save identity"}
             </button>
           </div>
         </form>
@@ -194,7 +369,7 @@ export function AccountIdentityPanel() {
             Delete Account
           </h2>
           <p className="mt-2 max-w-2xl text-[13.5px] leading-relaxed text-ink-600">
-            Permanently deletes your account, profile, and owned workspaces. This action cannot be undone.
+            This action cannot be undone.
           </p>
         </header>
         <button
@@ -245,6 +420,32 @@ function phoneDigits(value: string): string {
   return digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits.slice(0, 10);
 }
 
+function normalizeFullName(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function validateFullName(value: string): string | null {
+  const letterCount = value.match(/\p{L}/gu)?.length ?? 0;
+  if (letterCount < 2) return "Use at least two letters for your full name.";
+  if (value.length > FULL_NAME_MAX) return `Keep your full name under ${FULL_NAME_MAX} characters.`;
+  if (!/\p{L}/u.test(value)) return "Use letters in your full name.";
+  if (/[^\p{L}\s'.-]/u.test(value)) {
+    return "Use letters, spaces, hyphens, apostrophes, or periods.";
+  }
+  return null;
+}
+
+function validateHandle(value: string): string | null {
+  if (!value) return "Please save your handle.";
+  if (value.length < HANDLE_MIN) return `Use at least ${HANDLE_MIN} characters for your handle.`;
+  if (value.length > HANDLE_MAX) return `Keep your handle to ${HANDLE_MAX} characters.`;
+  if (!/^[a-z]/.test(value)) return "Start your handle with a letter.";
+  if (!/^[a-z0-9_]+$/.test(value)) {
+    return "Use lowercase letters, numbers, or underscores.";
+  }
+  return null;
+}
+
 function formatUsPhone(value: string): string {
   const digits = phoneDigits(value);
   if (!digits) return "";
@@ -259,7 +460,8 @@ function formatUsPhone(value: string): string {
 }
 
 function normalizeUsPhone(value: string): string | null {
-  const digits = phoneDigits(value);
+  const rawDigits = value.replace(/\D/g, "");
+  const digits = rawDigits.length === 11 && rawDigits.startsWith("1") ? rawDigits.slice(1) : rawDigits;
   return digits.length === 10 ? formatUsPhone(digits) : null;
 }
 

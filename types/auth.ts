@@ -3,9 +3,9 @@ import type { AccountPlanSummary } from "./workspace";
 export interface RegisterRequest {
   email: string;
   password: string;
-  /** Captured on /account after registration so the first account screen starts blank and focused. */
+  /** Optional library identity captured on /account/profile. */
   creatorName?: string;
-  /** The curator name. Optional at registration; /account captures the real value before setup completes. */
+  /** Optional library identity captured on /account/profile. */
   editorName?: string;
   /** Optional raw landing-page handoff to preserve until /publications/new confirmation. */
   publicationUrl?: string;

@@ -106,7 +106,7 @@ export function WorkspaceProvider({ token, children }: { token: string; children
       reingesting,
       profile,
       curatorName: profile?.editorName?.trim() || "Curator",
-      creatorName: profile?.creatorName?.trim() || "",
+      creatorName: profile?.creatorName?.trim() || "Creator",
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [token, overview, loading, error, reingesting, profile],

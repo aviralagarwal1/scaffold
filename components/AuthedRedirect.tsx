@@ -14,7 +14,8 @@ import { useEffect } from "react";
  * immediately because there's no value in showing them a stale auth form.
  *
  * The publicationUrl param from the landing hook sends authenticated users
- * through /account so the Creator/Curator gate runs before sync starts.
+ * through /account so the Desk handoff can move them into the confirmable
+ * publication setup route.
  */
 export function AuthedRedirect({
   to = "/account",

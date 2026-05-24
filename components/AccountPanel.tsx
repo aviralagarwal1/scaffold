@@ -2,26 +2,14 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { UserProfile } from "@/types/auth";
 import type { AccountWorkspaceSummary, WorkspaceStatus } from "@/types/workspace";
 import { api, ApiClientError } from "@/lib/client/api";
 import { cn } from "@/lib/client/cn";
-import { sanitizeAsTyped, validateCuratorName } from "@/lib/client/curator-name";
-import { sanitizeCreatorAsTyped, validateCreatorName } from "@/lib/client/creator-name";
-import { formatRelative, hostnameOf, pluralize, statusLabel } from "@/lib/client/format";
+import { formatRelative, hostnameOf, statusLabel } from "@/lib/client/format";
 import { LoadingState } from "./states";
 import { TokenUsageBadge } from "./TokenUsageBadge";
-
-const CURATOR_PLACEHOLDER = "Curator";
-
-function isUnsetCreator(value: string | undefined): boolean {
-  return !value?.trim();
-}
-function isUnsetCurator(value: string | undefined): boolean {
-  if (!value) return true;
-  return value.trim() === CURATOR_PLACEHOLDER;
-}
 
 export function AccountPanel() {
   const router = useRouter();
@@ -31,14 +19,7 @@ export function AccountPanel() {
   const [workspaces, setWorkspaces] = useState<AccountWorkspaceSummary[]>([]);
   const [loadBusy, setLoadBusy] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-
-  // Landing-hook URLs wait here until Creator and Curator are saved, then
-  // move to the confirmable /publications/new form without starting sync.
   const [pendingPublicationUrl, setPendingPublicationUrl] = useState<string | null>(null);
-  const [creatorAlertSignal, setCreatorAlertSignal] = useState(0);
-  const [curatorAlertSignal, setCuratorAlertSignal] = useState(0);
-  const [creatorFocusSignal, setCreatorFocusSignal] = useState(0);
-  const [curatorFocusSignal, setCuratorFocusSignal] = useState(0);
 
   useEffect(() => {
     const raw = params?.get("publicationUrl");
@@ -66,33 +47,10 @@ export function AccountPanel() {
     };
   }, []);
 
-  const creatorReady = !isUnsetCreator(profile?.creatorName);
-  const curatorReady = !isUnsetCurator(profile?.editorName);
-  const gateOpen = creatorReady && curatorReady;
-
   useEffect(() => {
-    if (!pendingPublicationUrl || !gateOpen) return;
+    if (!pendingPublicationUrl) return;
     router.replace(`/publications/new?publicationUrl=${encodeURIComponent(pendingPublicationUrl)}`);
-  }, [gateOpen, pendingPublicationUrl, router]);
-
-  const promptMissingNames = useCallback(() => {
-    if (creatorReady && curatorReady) return;
-
-    if (!creatorReady) setCreatorAlertSignal((signal) => signal + 1);
-    if (!curatorReady) setCuratorAlertSignal((signal) => signal + 1);
-
-    if (!creatorReady) {
-      setCreatorFocusSignal((signal) => signal + 1);
-      return;
-    }
-    setCuratorFocusSignal((signal) => signal + 1);
-  }, [creatorReady, curatorReady]);
-
-  const promptCreatorFirst = useCallback(() => {
-    if (creatorReady) return;
-    setCreatorAlertSignal((signal) => signal + 1);
-    setCreatorFocusSignal((signal) => signal + 1);
-  }, [creatorReady]);
+  }, [pendingPublicationUrl, router]);
 
   if (loadBusy) {
     return (
@@ -108,376 +66,19 @@ export function AccountPanel() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Two-card identity gate. Side-by-side on lg+, stacked below.
-          Creator on the left because that's where the eye starts; Curator
-          on the right because the curator is the assistant the Creator
-          chooses, in that order. */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <CreatorCard
-          profile={profile}
-          onProfileChange={setProfile}
-          autoFocus={!creatorReady}
-          isUnset={!creatorReady}
-          alertSignal={creatorAlertSignal}
-          focusSignal={creatorFocusSignal}
-        />
-        <CuratorCard
-          profile={profile}
-          onProfileChange={setProfile}
-          autoFocus={creatorReady && !curatorReady}
-          isUnset={!curatorReady}
-          locked={!creatorReady}
-          onLockedInteract={promptCreatorFirst}
-          alertSignal={curatorAlertSignal}
-          focusSignal={curatorFocusSignal}
-        />
-      </div>
-
+      <PublicationsRegion workspaces={workspaces} profile={profile} />
       {profile?.plan && <AccountUsageCard profile={profile} />}
-
-      {/* Bottom row morphs based on state:
-          1. Gate closed → soft prompt to finish the gate.
-          2. Gate open + no workspaces → big "Add your publication →" CTA.
-          3. Gate open + workspaces exist → workspace list with header + button. */}
-      <PublicationsRegion
-        gateOpen={gateOpen}
-        workspaces={workspaces}
-        profile={profile}
-        onGateContinue={promptMissingNames}
-      />
     </div>
   );
 }
 
-// === Creator card (you) ============================================
-function CreatorCard({
-  profile,
-  onProfileChange,
-  autoFocus,
-  isUnset,
-  alertSignal,
-  focusSignal,
-}: {
-  profile: UserProfile | null;
-  onProfileChange: (p: UserProfile) => void;
-  autoFocus: boolean;
-  isUnset: boolean;
-  alertSignal: number;
-  focusSignal: number;
-}) {
-  // Initialize empty when the creator has not named themself yet so the
-  // first account screen feels like a fresh slot waiting for input.
-  const initial = isUnset ? "" : profile?.creatorName ?? "";
-  const [name, setName] = useState(initial);
-  const [busy, setBusy] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [alerting, setAlerting] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const handledAlertSignalRef = useRef(0);
-
-  useEffect(() => {
-    if (!busy) setName(isUnset ? "" : profile?.creatorName ?? "");
-  }, [profile?.creatorName, busy, isUnset]);
-
-  useEffect(() => {
-    if (!autoFocus || busy) return;
-    const id = window.setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 0);
-    return () => window.clearTimeout(id);
-  }, [autoFocus, busy]);
-
-  const triggerAlert = useCallback((message: string) => {
-    setError(message);
-    setAlerting(false);
-    requestAnimationFrame(() => {
-      setAlerting(true);
-      window.setTimeout(() => setAlerting(false), 450);
-    });
-  }, []);
-
-  useEffect(() => {
-    if (alertSignal === 0 || !isUnset) return;
-    if (handledAlertSignalRef.current === alertSignal) return;
-    handledAlertSignalRef.current = alertSignal;
-    const v = validateCreatorName(name);
-    triggerAlert(name.trim() && v.ok ? "Save your name to continue." : v.message ?? "Try a different name.");
-  }, [alertSignal, isUnset, name, triggerAlert]);
-
-  useEffect(() => {
-    if (focusSignal === 0 || !isUnset || busy) return;
-    inputRef.current?.focus({ preventScroll: true });
-  }, [busy, focusSignal, isUnset]);
-
-  const save = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const v = validateCreatorName(name);
-    if (!v.ok) {
-      triggerAlert(v.message ?? "Try a different name.");
-      return;
-    }
-    setBusy(true);
-    setSaved(false);
-    setError(null);
-    try {
-      const next = await api.updateProfile({ creatorName: name.trim() });
-      onProfileChange(next);
-      setSaved(true);
-      window.setTimeout(() => setSaved(false), 1800);
-    } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Could not update profile.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <section className="panel relative flex flex-col gap-5 p-6">
-      <span
-        aria-hidden="true"
-        className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-accent-200/0 via-accent-300 to-accent-200/0"
-      />
-      <header>
-        <h2 className="font-serif text-[22px] leading-snug tracking-tightish text-ink-900">Creator</h2>
-      </header>
-
-      <form onSubmit={save} className="flex flex-col gap-5" noValidate>
-        <label className="flex flex-col gap-2">
-          <span className="type-eyebrow text-ink-400">Name</span>
-          <input
-            ref={inputRef}
-            value={name}
-            onChange={(event) => setName(sanitizeCreatorAsTyped(event.target.value))}
-            className={cn("input", alerting && "animate-editorial-nudge !border-ink-400")}
-            placeholder="What should we call you?"
-            disabled={busy}
-            autoFocus={autoFocus}
-            aria-invalid={alerting || undefined}
-            spellCheck={false}
-            autoCapitalize="words"
-            autoCorrect="off"
-          />
-        </label>
-        {error && <p className="text-[12.5px] text-ink-500">{error}</p>}
-        <div className="mt-1 flex items-center justify-end gap-3">
-          {saved && <SavedCheck />}
-          <button type="submit" className="btn-primary" disabled={busy}>
-            {busy ? "Saving..." : "Save"}
-          </button>
-        </div>
-      </form>
-    </section>
-  );
-}
-
-// === Curator card (your curator) =================================
-function CuratorCard({
-  profile,
-  onProfileChange,
-  autoFocus,
-  isUnset,
-  locked,
-  onLockedInteract,
-  alertSignal,
-  focusSignal,
-}: {
-  profile: UserProfile | null;
-  onProfileChange: (p: UserProfile) => void;
-  autoFocus: boolean;
-  isUnset: boolean;
-  locked: boolean;
-  onLockedInteract: () => void;
-  alertSignal: number;
-  focusSignal: number;
-}) {
-  const initial = isUnset ? "" : profile?.editorName ?? "";
-  const [editorName, setEditorName] = useState(initial);
-  const [busy, setBusy] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [alerting, setAlerting] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const handledAlertSignalRef = useRef(0);
-
-  useEffect(() => {
-    if (!busy) setEditorName(isUnset ? "" : profile?.editorName ?? "");
-  }, [profile?.editorName, busy, isUnset]);
-
-  useEffect(() => {
-    if (!autoFocus || busy) return;
-    const id = window.setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 0);
-    return () => window.clearTimeout(id);
-  }, [autoFocus, busy]);
-
-  const triggerAlert = useCallback((message: string) => {
-    setError(message);
-    setAlerting(false);
-    requestAnimationFrame(() => {
-      setAlerting(true);
-      window.setTimeout(() => setAlerting(false), 450);
-    });
-  }, []);
-
-  useEffect(() => {
-    if (alertSignal === 0 || !isUnset) return;
-    if (handledAlertSignalRef.current === alertSignal) return;
-    handledAlertSignalRef.current = alertSignal;
-    const v = validateCuratorName(editorName);
-    triggerAlert(
-      editorName.trim() && v.ok
-        ? "Save your curator's name to continue."
-        : v.message ?? "Try a different name.",
-    );
-  }, [alertSignal, editorName, isUnset, triggerAlert]);
-
-  useEffect(() => {
-    if (focusSignal === 0 || !isUnset || busy) return;
-    inputRef.current?.focus({ preventScroll: true });
-  }, [busy, focusSignal, isUnset]);
-
-  const save = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (locked) {
-      onLockedInteract();
-      return;
-    }
-    const v = validateCuratorName(editorName);
-    if (!v.ok) {
-      triggerAlert(v.message ?? "Try a different name.");
-      return;
-    }
-    setBusy(true);
-    setSaved(false);
-    setError(null);
-    try {
-      const next = await api.updateProfile({ editorName });
-      onProfileChange(next);
-      setSaved(true);
-      window.setTimeout(() => setSaved(false), 1800);
-    } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Could not update profile.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const blockUntilCreatorIsSaved = (event: React.SyntheticEvent) => {
-    if (!locked) return;
-    event.preventDefault();
-    onLockedInteract();
-  };
-
-  return (
-    <section className="panel relative flex flex-col gap-5 p-6">
-      <span
-        aria-hidden="true"
-        className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-accent-200/0 via-accent-300 to-accent-200/0"
-      />
-      <header>
-        <h2 className="font-serif text-[22px] leading-snug tracking-tightish text-ink-900">Curator</h2>
-      </header>
-
-      <form
-        onSubmit={save}
-        onMouseDownCapture={blockUntilCreatorIsSaved}
-        onFocusCapture={blockUntilCreatorIsSaved}
-        className={cn(
-          "flex flex-col gap-5 transition-opacity duration-200 ease-editorial",
-          locked && "opacity-70",
-        )}
-        noValidate
-      >
-        <label className="flex flex-col gap-2">
-          <span className="type-eyebrow text-ink-400">Name</span>
-          <input
-            ref={inputRef}
-            value={editorName}
-            onChange={(event) => {
-              if (locked) return;
-              setEditorName(sanitizeAsTyped(event.target.value));
-            }}
-            className={cn("input", alerting && "animate-editorial-nudge !border-ink-400")}
-            placeholder="Who's your most trusted reader?"
-            disabled={busy}
-            readOnly={locked}
-            aria-invalid={alerting || undefined}
-            aria-disabled={locked || undefined}
-            spellCheck={false}
-            autoCapitalize="words"
-            autoCorrect="off"
-          />
-        </label>
-        {error && <p className="text-[12.5px] text-ink-500">{error}</p>}
-        <div className="mt-1 flex items-center justify-end gap-3">
-          {saved && <SavedCheck />}
-          <button type="submit" className="btn-primary" disabled={busy} aria-disabled={locked || undefined}>
-            {busy ? "Saving..." : "Save"}
-          </button>
-        </div>
-      </form>
-    </section>
-  );
-}
-
-// === Bottom row — gate-aware publications region ===================
-function SavedCheck() {
-  return (
-    <span
-      className="animate-fade relative inline-flex h-5 w-5 items-center justify-center text-positive-700"
-      role="status"
-      aria-label="Saved"
-    >
-      <span className="absolute inline-flex h-4 w-4 animate-editorial-bloom rounded-full bg-positive-500/35" />
-      <svg
-        viewBox="0 0 12 12"
-        className="relative h-3.5 w-3.5 animate-fade"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.75"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        <path d="M2.5 6.4 L5 8.8 L9.6 3.6" />
-      </svg>
-    </span>
-  );
-}
-
 function PublicationsRegion({
-  gateOpen,
   workspaces,
   profile,
-  onGateContinue,
 }: {
-  gateOpen: boolean;
   workspaces: AccountWorkspaceSummary[];
   profile: UserProfile | null;
-  onGateContinue: () => void;
 }) {
-  // 1 — gate still closed.
-  if (!gateOpen) {
-    return (
-      <section className="flex justify-end">
-        <button
-          type="button"
-          className="btn-primary btn-primary-lg group ml-auto px-6"
-          onClick={onGateContinue}
-        >
-          <span className="relative inline-flex items-center gap-2">
-            <span>Continue</span>
-            <span
-              aria-hidden="true"
-              className="text-ink-300 transition-transform duration-200 ease-editorial group-hover:translate-x-0.5 group-hover:text-ink-50"
-            >
-              →
-            </span>
-          </span>
-        </button>
-      </section>
-    );
-  }
-
-  // 2 — gate open, no workspaces yet → big primary CTA.
   if (workspaces.length === 0) {
     return (
       <section className="flex flex-col items-start gap-4 rounded-md border border-dashed border-ink-200 bg-white/70 px-6 py-8">
@@ -496,7 +97,7 @@ function PublicationsRegion({
               aria-hidden="true"
               className="text-ink-300 transition-transform duration-200 ease-editorial group-hover:translate-x-0.5 group-hover:text-ink-50"
             >
-              →
+              &rarr;
             </span>
           </span>
         </Link>
@@ -504,7 +105,6 @@ function PublicationsRegion({
     );
   }
 
-  // 3 — gate open, workspaces exist → list with + Add button.
   return <WorkspacesCard workspaces={workspaces} profile={profile} />;
 }
 
@@ -641,7 +241,7 @@ function WorkspaceRow({ workspace }: { workspace: AccountWorkspaceSummary }) {
             aria-hidden="true"
             className="site-wordmark-mark grid h-9 w-9 shrink-0 place-items-center rounded-md border border-ink-200/60 bg-ink-50/60 font-serif text-[18px] leading-none text-accent-500 transition-colors duration-200 ease-editorial group-hover:border-accent-200 group-hover:bg-accent-50/40 group-hover:text-accent-700"
           >
-            §
+            &sect;
           </span>
           <div className="min-w-0">
             <div className="truncate font-serif text-[16px] leading-snug text-ink-900 group-hover:text-ink-900">
@@ -651,7 +251,7 @@ function WorkspaceRow({ workspace }: { workspace: AccountWorkspaceSummary }) {
               <span className="truncate">{host}</span>
               {workspace.role !== "owner" && (
                 <>
-                  <span className="text-ink-300" aria-hidden="true">·</span>
+                  <span className="text-ink-300" aria-hidden="true">&middot;</span>
                   <span className="capitalize">{workspace.role}</span>
                 </>
               )}
@@ -670,7 +270,7 @@ function WorkspaceRow({ workspace }: { workspace: AccountWorkspaceSummary }) {
             aria-hidden="true"
             className="text-ink-300 transition-all duration-200 ease-editorial group-hover:translate-x-0.5 group-hover:text-accent-700"
           >
-            →
+            &rarr;
           </span>
         </div>
       </Link>
