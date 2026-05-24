@@ -3,7 +3,7 @@ import { cn } from "@/lib/client/cn";
 
 const STYLES: Record<RepurposeDraftStatus, string> = {
   pending: "border-warn-100 bg-warn-100/60 text-warn-700 shadow-[0_0_0_3px_rgba(234,179,8,0.10)]",
-  saved: "border-positive-100 bg-positive-100/70 text-positive-700 shadow-[0_0_0_3px_rgba(34,197,94,0.10)]",
+  saved: "border-positive-100 bg-positive-100/40 text-positive-700",
   deleted: "border-critical-100 bg-critical-100/60 text-critical-700",
 };
 

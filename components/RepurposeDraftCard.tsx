@@ -11,7 +11,7 @@ import { formatRelative, platformCharLimit, platformLabel } from "@/lib/client/f
 
 const emptyButtonClass = "btn-secondary";
 const dismissButtonClass =
-  "ml-auto inline-flex h-9 items-center justify-center rounded-md border border-critical-100 bg-critical-100/60 px-3 text-[13px] font-medium text-critical-700 transition-colors duration-150 ease-editorial hover:border-critical-200 hover:bg-critical-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-critical-500/40 disabled:cursor-not-allowed disabled:opacity-50";
+  "ml-auto inline-flex h-9 items-center justify-center rounded-md border border-ink-200 bg-white px-3 text-[13px] font-medium text-ink-700 transition-colors duration-150 ease-editorial hover:border-critical-200 hover:bg-critical-100/45 hover:text-critical-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-critical-500/30 disabled:cursor-not-allowed disabled:opacity-50";
 
 export function RepurposeDraftCard({
   token,
@@ -202,12 +202,12 @@ export function RepurposeDraftCard({
                 className={dismissButtonClass}
                 disabled={busy !== null}
               >
-                {busy === "delete" ? "Deleting..." : "Dismiss"}
+                {busy === "delete" ? "Removing..." : "Remove"}
               </button>
             ) : (
               <ConfirmButton
                 onConfirm={onDelete}
-                label={busy === "delete" ? "Deleting..." : "Dismiss"}
+                label={busy === "delete" ? "Removing..." : "Remove"}
                 confirmLabel="Confirm"
                 busy={busy === "delete"}
                 disabled={busy !== null && busy !== "delete"}
