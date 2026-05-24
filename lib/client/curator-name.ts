@@ -1,21 +1,18 @@
-// Curator-name rules. Reused by /onboarding, /account, and the workspace
-// settings page so a name accepted in one place is accepted in all of them.
+// Curator-name rules. Keep these aligned with Creator-name rules so both
+// identity fields behave consistently.
 //
 // Rules:
-//   - letters only
+//   - one word with letters only
 //   - first character must be an uppercase letter
 //   - last character must be a lowercase letter
-//   - 2–24 characters
-//
-// Mid-word capitals are intentionally allowed so names like "McKenna" and
-// "DeAngela" pass. Diacritics pass too: regex uses Unicode property escapes.
+//   - 2-24 characters
 
 export const CURATOR_NAME_MIN = 2;
 export const CURATOR_NAME_MAX = 24;
 
 /** Keep the keyboard permissive. Numbers, spaces, and symbols are allowed
- *  while typing, then caught by validation on save so the form can nudge in
- *  the same way it does for capitalization. */
+ *  while typing, then caught by validation on save so the form can explain
+ *  the one-word rule. */
 export function sanitizeAsTyped(value: string): string {
   return value.slice(0, CURATOR_NAME_MAX);
 }
@@ -37,14 +34,11 @@ export interface CuratorNameValidation {
 export function validateCuratorName(value: string): CuratorNameValidation {
   const trimmed = value;
   if (trimmed.length === 0) return fail("empty", "Give your curator a name.");
-  if (trimmed.length < CURATOR_NAME_MIN) return fail("too-short", "A bit longer — at least two letters.");
+  if (trimmed.length < CURATOR_NAME_MIN) return fail("too-short", "Use at least two letters.");
   if (trimmed.length > CURATOR_NAME_MAX) return fail("too-long", `Keep it to ${CURATOR_NAME_MAX} letters.`);
 
-  // Non-letters are typeable but not allowed in the final name. Caught here
-  // so the user gets a specific message instead of a generic capitalization
-  // error when they typed "1Margot" or "Mar@got".
   if (/[^\p{L}]/u.test(trimmed)) {
-    return fail("has-non-letters", "Letters only — no numbers or symbols.");
+    return fail("has-non-letters", "Use one word with letters only. No spaces, numbers, or symbols.");
   }
 
   const first = trimmed[0];

@@ -256,9 +256,6 @@ function CreatorCard({
             autoCapitalize="words"
             autoCorrect="off"
           />
-          <span className="text-[11.5px] leading-snug text-ink-400">
-            Used across your writing libraries.
-          </span>
         </label>
         {error && <p className="text-[12.5px] text-ink-500">{error}</p>}
         <div className="mt-1 flex items-center justify-end gap-3">
@@ -408,9 +405,6 @@ function CuratorCard({
             autoCapitalize="words"
             autoCorrect="off"
           />
-          <span className="text-[11.5px] leading-snug text-ink-400">
-            Used in conversation and writing feedback.
-          </span>
         </label>
         {error && <p className="text-[12.5px] text-ink-500">{error}</p>}
         <div className="mt-1 flex items-center justify-end gap-3">

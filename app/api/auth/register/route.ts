@@ -76,13 +76,15 @@ function requirePassword(value: unknown): string {
 function normalizeCreatorName(value: unknown): string | null {
   if (value === undefined || value === null || value === "") return null;
   if (typeof value !== "string") throw new AppError("What should we call you?", 400);
-  const creatorName = value.replace(/\s+/g, " ").trim();
+  const creatorName = value.trim();
   if (creatorName.length === 0) return null;
-  if (creatorName.length < 1) throw new AppError("What should we call you?", 400);
-  if (creatorName.length > 60) throw new AppError("Keep your name under 60 characters.", 400);
-  if (/[^\p{L}\s'-]/u.test(creatorName)) {
-    throw new AppError("Use letters, spaces, hyphens, or apostrophes.", 400);
+  if (creatorName.length < 2) throw new AppError("Use at least two letters.", 400);
+  if (creatorName.length > 24) throw new AppError("Keep your name to 24 letters.", 400);
+  if (/[^\p{L}]/u.test(creatorName)) {
+    throw new AppError("Use one word with letters only. No spaces, numbers, or symbols.", 400);
   }
+  if (!/^\p{Lu}/u.test(creatorName)) throw new AppError("Start with a capital letter.", 400);
+  if (!/\p{Ll}$/u.test(creatorName)) throw new AppError("End with a lowercase letter.", 400);
   return creatorName;
 }
 
@@ -90,10 +92,10 @@ function normalizeCuratorName(value: unknown): string {
   if (value === undefined || value === null || value === "") return "Curator";
   if (typeof value !== "string") throw new AppError("Choose a curator name.", 400);
   const editorName = value.trim();
-  if (editorName.length < 2) throw new AppError("Choose a curator name.", 400);
+  if (editorName.length < 2) throw new AppError("Use at least two letters.", 400);
   if (editorName.length > 24) throw new AppError("Keep your curator name to 24 letters.", 400);
   if (/[^\p{L}]/u.test(editorName)) {
-    throw new AppError("Letters only - no numbers or symbols.", 400);
+    throw new AppError("Use one word with letters only. No spaces, numbers, or symbols.", 400);
   }
   if (!/^\p{Lu}/u.test(editorName)) throw new AppError("Start with a capital letter.", 400);
   if (!/\p{Ll}$/u.test(editorName)) throw new AppError("End with a lowercase letter.", 400);
