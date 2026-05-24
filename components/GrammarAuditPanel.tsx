@@ -181,7 +181,13 @@ export function GrammarAuditPanel({
           <EmptyState
             eyebrow="No audits yet"
             title="Even the best drafts have stragglers."
-            description="We'll surface recurring grammar and style patterns across your library. Once results land, you can filter them by post or severity."
+            description={
+              <>
+                We'll surface recurring grammar and style patterns across your library.
+                <br />
+                Once results land, you can filter them by post or severity.
+              </>
+            }
           />
         )}
 

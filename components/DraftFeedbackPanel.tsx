@@ -303,7 +303,7 @@ function DraftHistory({
 
   return (
     <section className="panel flex flex-col gap-3 p-4">
-      <span className="type-eyebrow text-ink-400">Prior drafts</span>
+      <span className="type-eyebrow text-ink-400">Previous drafts</span>
       <div className="flex gap-2 overflow-x-auto pb-1">
         {reviews.map((review) => {
           const active = review.id === activeReviewId;
