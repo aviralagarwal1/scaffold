@@ -2,6 +2,7 @@
 
 import { signOut } from "next-auth/react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { UserProfile } from "@/types/auth";
 import { api, ApiClientError } from "@/lib/client/api";
@@ -15,7 +16,14 @@ const HANDLE_MAX = 24;
 const HANDLE_MIN = 3;
 const FULL_NAME_MAX = 100;
 
-export function AccountIdentityPanel() {
+export function AccountIdentityPanel({
+  setupMode = false,
+  continueHref = "/account",
+}: {
+  setupMode?: boolean;
+  continueHref?: string;
+}) {
+  const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [fullName, setFullName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -30,6 +38,7 @@ export function AccountIdentityPanel() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [identitySaved, setIdentitySaved] = useState(false);
+  const [setupStep, setSetupStep] = useState<"profile" | "identity">("profile");
   const [error, setError] = useState<string | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [profileAlerting, setProfileAlerting] = useState<"fullName" | "handle" | "phone" | null>(null);
@@ -42,18 +51,33 @@ export function AccountIdentityPanel() {
   const creatorRef = useRef<HTMLInputElement>(null);
   const curatorRef = useRef<HTMLInputElement>(null);
 
+  const advanceSetup = (nextProfile: UserProfile, nextCreatorName = creatorName, nextCuratorName = curatorName) => {
+    if (!setupMode) return;
+    if (!profileFieldsComplete(nextProfile)) return;
+    if (!validateCreatorName(nextCreatorName).ok || !validateCuratorName(nextCuratorName).ok) {
+      setSetupStep("identity");
+      return;
+    }
+    router.push(continueHref);
+  };
+
   useEffect(() => {
     let active = true;
     api
       .me()
       .then((nextProfile) => {
         if (!active) return;
+        const nextCreatorName = nextProfile.creatorName ?? "";
+        const nextCuratorName = setupMode && nextProfile.editorName === "Curator" ? "" : nextProfile.editorName ?? "";
         setProfile(nextProfile);
         setFullName(nextProfile.fullName ?? "");
         setPhoneNumber(formatUsPhone(nextProfile.phoneNumber ?? ""));
         setHandle(nextProfile.handle ?? "");
-        setCreatorName(nextProfile.creatorName ?? "");
-        setCuratorName(nextProfile.editorName ?? "");
+        setCreatorName(nextCreatorName);
+        setCuratorName(nextCuratorName);
+        if (setupMode) {
+          advanceSetup(nextProfile, nextCreatorName, nextCuratorName);
+        }
       })
       .catch((err) => {
         if (!active) return;
@@ -65,7 +89,7 @@ export function AccountIdentityPanel() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [setupMode, continueHref]);
 
   const saveIdentity = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -117,6 +141,7 @@ export function AccountIdentityPanel() {
       setHandle(nextProfile.handle ?? "");
       setSaved(true);
       window.setTimeout(() => setSaved(false), 1800);
+      advanceSetup(nextProfile);
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Could not update account.");
     } finally {
@@ -174,6 +199,7 @@ export function AccountIdentityPanel() {
       setCuratorName(nextProfile.editorName ?? "");
       setIdentitySaved(true);
       window.setTimeout(() => setIdentitySaved(false), 1800);
+      advanceSetup(nextProfile, nextProfile.creatorName ?? "", nextProfile.editorName ?? "");
     } catch (err) {
       setIdentityError(err instanceof ApiClientError ? err.message : "Could not update identity.");
     } finally {
@@ -202,15 +228,18 @@ export function AccountIdentityPanel() {
     );
   }
 
+  const showProfile = !setupMode || setupStep === "profile";
+  const showIdentity = !setupMode || setupStep === "identity";
+
   return (
     <div className="flex flex-col gap-6">
-      <section className="panel flex flex-col gap-5 p-6">
+      {showProfile && <section className="panel flex flex-col gap-5 p-6">
         <header>
           <h2 className="font-serif text-[22px] leading-snug tracking-tightish text-ink-900">
             Profile
           </h2>
           <p className="mt-2 max-w-2xl text-[13.5px] leading-relaxed text-ink-600">
-            Complete your account profile.
+            {setupMode ? "Add the required details for your account." : "Complete your account profile."}
           </p>
         </header>
 
@@ -251,7 +280,7 @@ export function AccountIdentityPanel() {
                   setProfileError(null);
                 }}
                 className={cn("input pl-7", profileAlerting === "handle" && "!border-ink-400 animate-editorial-nudge")}
-                placeholder="aviral"
+                placeholder="yourname"
                 disabled={saveBusy}
                 spellCheck={false}
                 autoCapitalize="off"
@@ -301,31 +330,33 @@ export function AccountIdentityPanel() {
           <div className="sm:col-span-2 flex items-center justify-end gap-3 pt-1">
             {saved && <SavedCheck />}
             <button type="submit" className="btn-primary" disabled={saveBusy}>
-              {saveBusy ? "Saving..." : "Save profile"}
+              {saveBusy ? "Saving..." : setupMode ? "Continue" : "Save profile"}
             </button>
           </div>
         </form>
-      </section>
+      </section>}
 
-      <section className="panel flex flex-col gap-5 p-6">
+      {showIdentity && <section className="panel flex flex-col gap-5 p-6">
         <header>
           <h2 className="font-serif text-[22px] leading-snug tracking-tightish text-ink-900">
             Identity
           </h2>
           <p className="mt-2 max-w-2xl text-[13.5px] leading-relaxed text-ink-600">
-            Establish your library's identity.
+            {setupMode
+              ? "Choose the names your library will use for you and your curator."
+              : "Establish your library's identity."}
           </p>
         </header>
 
         <form onSubmit={saveLibraryIdentity} className="grid gap-4 sm:grid-cols-2" noValidate>
           <label className="flex flex-col gap-2">
-            <span className="type-eyebrow text-ink-400">Creator</span>
+            <span className="type-eyebrow text-ink-400">{setupMode ? "Creator" : "Creator"}</span>
             <input
               ref={creatorRef}
               value={creatorName}
               onChange={(event) => setCreatorName(sanitizeCreatorAsTyped(event.target.value))}
               className={cn("input", identityAlerting === "creator" && "!border-ink-400 animate-editorial-nudge")}
-              placeholder="Aviral"
+              placeholder={setupMode ? "Your favorite character's name" : "Creator"}
               disabled={identityBusy}
               spellCheck={false}
               autoCapitalize="words"
@@ -341,7 +372,7 @@ export function AccountIdentityPanel() {
               value={curatorName}
               onChange={(event) => setCuratorName(sanitizeAsTyped(event.target.value))}
               className={cn("input", identityAlerting === "curator" && "!border-ink-400 animate-editorial-nudge")}
-              placeholder="Curator"
+              placeholder={setupMode ? "Your favorite sidekick's name" : "Curator"}
               disabled={identityBusy}
               spellCheck={false}
               autoCapitalize="words"
@@ -357,15 +388,15 @@ export function AccountIdentityPanel() {
           <div className="sm:col-span-2 flex items-center justify-end gap-3 pt-1">
             {identitySaved && <SavedCheck />}
             <button type="submit" className="btn-primary" disabled={identityBusy}>
-              {identityBusy ? "Saving..." : "Save identity"}
+              {identityBusy ? "Saving..." : setupMode ? "Open desk" : "Save identity"}
             </button>
           </div>
         </form>
-      </section>
+      </section>}
 
-      {profile?.plan && <AccountUsageCard profile={profile} />}
+      {profile?.plan && !setupMode && <AccountUsageCard profile={profile} />}
 
-      <section className="panel flex flex-col gap-4 border-critical-100/70 p-6">
+      {!setupMode && <section className="panel flex flex-col gap-4 border-critical-100/70 p-6">
         <header>
           <span className="type-eyebrow text-critical-700">Danger Zone</span>
           <h2 className="mt-2 font-serif text-[20px] leading-snug tracking-tightish text-ink-900">
@@ -386,7 +417,7 @@ export function AccountIdentityPanel() {
         >
           Delete account
         </button>
-      </section>
+      </section>}
 
       <DangerConfirmDialog
         open={deleteDialogOpen}
@@ -447,6 +478,15 @@ function validateHandle(value: string): string | null {
     return "Use lowercase letters, numbers, or underscores.";
   }
   return null;
+}
+
+function profileFieldsComplete(profile: UserProfile): boolean {
+  return Boolean(
+    profile.email?.trim() &&
+      profile.fullName?.trim() &&
+      profile.handle?.trim() &&
+      profile.phoneNumber?.trim(),
+  );
 }
 
 function AccountUsageCard({ profile }: { profile: UserProfile }) {

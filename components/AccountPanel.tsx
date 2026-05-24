@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { UserProfile } from "@/types/auth";
 import type { AccountWorkspaceSummary, WorkspaceStatus } from "@/types/workspace";
@@ -11,7 +11,6 @@ import { formatRelative, hostnameOf, statusLabel } from "@/lib/client/format";
 import { LoadingState } from "./states";
 
 export function AccountPanel() {
-  const router = useRouter();
   const params = useSearchParams();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -46,11 +45,6 @@ export function AccountPanel() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!pendingPublicationUrl) return;
-    router.replace(`/publications/new?publicationUrl=${encodeURIComponent(pendingPublicationUrl)}`);
-  }, [pendingPublicationUrl, router]);
-
   if (loadBusy) {
     return (
       <div className="panel p-6">
@@ -65,7 +59,7 @@ export function AccountPanel() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PublicationsRegion workspaces={workspaces} profile={profile} />
+      <PublicationsRegion workspaces={workspaces} profile={profile} pendingPublicationUrl={pendingPublicationUrl} />
     </div>
   );
 }
@@ -73,11 +67,16 @@ export function AccountPanel() {
 function PublicationsRegion({
   workspaces,
   profile,
+  pendingPublicationUrl,
 }: {
   workspaces: AccountWorkspaceSummary[];
   profile: UserProfile | null;
+  pendingPublicationUrl: string | null;
 }) {
   if (workspaces.length === 0) {
+    const addPublicationHref = pendingPublicationUrl
+      ? `/publications/new?publicationUrl=${encodeURIComponent(pendingPublicationUrl)}`
+      : "/publications/new";
     return (
       <section className="flex flex-col items-start gap-4 rounded-md border border-dashed border-ink-200 bg-white/70 px-6 py-8">
         <div>
@@ -88,7 +87,7 @@ function PublicationsRegion({
             One workspace per publication, with its own library, themes, and drafts.
           </p>
         </div>
-        <Link href="/publications/new" className="btn-primary btn-primary-lg group">
+        <Link href={addPublicationHref} className="btn-primary btn-primary-lg group">
           <span className="relative inline-flex items-center gap-2">
             <span>Add your publication</span>
             <span
@@ -103,12 +102,23 @@ function PublicationsRegion({
     );
   }
 
-  return <WorkspacesCard workspaces={workspaces} profile={profile} />;
+  return <WorkspacesCard workspaces={workspaces} profile={profile} pendingPublicationUrl={pendingPublicationUrl} />;
 }
 
-function WorkspacesCard({ workspaces, profile }: { workspaces: AccountWorkspaceSummary[]; profile: UserProfile | null }) {
+function WorkspacesCard({
+  workspaces,
+  profile,
+  pendingPublicationUrl,
+}: {
+  workspaces: AccountWorkspaceSummary[];
+  profile: UserProfile | null;
+  pendingPublicationUrl: string | null;
+}) {
   const plan = profile?.plan;
   const publicationLimitReached = Boolean(plan && plan.activePublicationCount >= plan.activePublicationLimit);
+  const addPublicationHref = pendingPublicationUrl
+    ? `/publications/new?publicationUrl=${encodeURIComponent(pendingPublicationUrl)}`
+    : "/publications/new";
 
   return (
     <section className="panel flex flex-col gap-5 p-6">
@@ -130,7 +140,7 @@ function WorkspacesCard({ workspaces, profile }: { workspaces: AccountWorkspaceS
               Publication limit reached
             </span>
           ) : (
-            <Link href="/publications/new" className="btn-secondary group shrink-0" aria-label="Add workspace">
+            <Link href={addPublicationHref} className="btn-secondary group shrink-0" aria-label="Add workspace">
               <span aria-hidden="true" className="mr-1.5 text-[15px] leading-none text-accent-500 group-hover:text-accent-700">
                 +
               </span>

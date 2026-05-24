@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { SubstackUrlForm } from "@/components/SubstackUrlForm";
+import { getAccountSetupState } from "@/lib/server/account-setup";
 import { getCurrentUserId } from "@/lib/server/auth/current";
 
 export default async function NewPublicationPage({
@@ -16,6 +17,12 @@ export default async function NewPublicationPage({
         ? `/register?publicationUrl=${encodeURIComponent(initialPublicationUrl)}`
         : "/register",
     );
+  }
+  const setupState = await getAccountSetupState(userId);
+  if (!setupState.complete) {
+    const setupParams = new URLSearchParams({ setup: "1" });
+    if (initialPublicationUrl) setupParams.set("publicationUrl", initialPublicationUrl);
+    redirect(`/account/profile?${setupParams.toString()}`);
   }
 
   return (
