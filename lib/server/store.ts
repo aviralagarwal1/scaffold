@@ -2,11 +2,11 @@ import type { GrammarIssue, Idea, RepurposeDraft, SavedIdea, SearchResponse, Sea
 import type { Post, PostChunk, PostSummary } from "@/types/post";
 import type { ArchiveTheme, TokenUsageFeature, TokenUsageSummary, Workspace, WorkspaceOverview, WorkspaceStatus } from "@/types/workspace";
 import { randomBytes, randomUUID } from "crypto";
-import { eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { mkdir, readFile, rename, writeFile } from "fs/promises";
 import path from "path";
 import { getDb } from "@/lib/server/db";
-import { appState, users, workspaces as workspaceRows } from "@/lib/server/db/schema";
+import { appState, savedIdeas as savedIdeaRows, users, workspaces as workspaceRows } from "@/lib/server/db/schema";
 import { planConfig } from "@/lib/server/plans";
 import { AppError } from "./errors";
 import { chunkText, excerpt } from "./text";
@@ -850,6 +850,21 @@ export async function updateCustomThemes(token: string, labels: unknown[]): Prom
 }
 
 export async function listSavedIdeas(token: string): Promise<SavedIdea[]> {
+  if (process.env.DATABASE_URL) {
+    const workspaceId = await getWorkspaceIdByToken(token);
+    const database = getDb();
+    const rows = await database
+      .select()
+      .from(savedIdeaRows)
+      .where(eq(savedIdeaRows.workspaceId, workspaceId))
+      .orderBy(desc(savedIdeaRows.createdAt));
+    const directIdeas = rows.map(savedIdeaFromRow);
+    const legacyDb = await readDb();
+    const legacyWorkspace = legacyDb.workspaces.find((item) => item.token === token);
+    const legacyIdeas = legacyWorkspace ? listWorkspaceSavedIdeas(legacyDb, legacyWorkspace.id) : [];
+    return mergeSavedIdeas(directIdeas, legacyIdeas);
+  }
+
   const db = await readDb();
   const workspace = db.workspaces.find((item) => item.token === token);
   if (!workspace) throw new AppError("Workspace not found.", 404);
@@ -857,11 +872,40 @@ export async function listSavedIdeas(token: string): Promise<SavedIdea[]> {
 }
 
 export async function addSavedIdea(token: string, idea: unknown): Promise<SavedIdea> {
+  const cleanIdea = sanitizeIdea(idea);
+
+  if (process.env.DATABASE_URL) {
+    const workspaceId = await getWorkspaceIdByToken(token);
+    const database = getDb();
+    const existing = await database
+      .select()
+      .from(savedIdeaRows)
+      .where(eq(savedIdeaRows.workspaceId, workspaceId));
+    const duplicate = existing.find(
+      (item) =>
+        item.title.toLowerCase() === cleanIdea.title.toLowerCase() &&
+        item.thesis.toLowerCase() === cleanIdea.thesis.toLowerCase(),
+    );
+    if (duplicate) return savedIdeaFromRow(duplicate);
+
+    const [saved] = await database
+      .insert(savedIdeaRows)
+      .values({
+        workspaceId,
+        title: cleanIdea.title,
+        thesis: cleanIdea.thesis,
+        lens: cleanIdea.lens,
+        whyItFits: cleanIdea.whyItFits,
+        relatedPosts: cleanIdea.relatedPosts,
+      })
+      .returning();
+    return savedIdeaFromRow(saved);
+  }
+
   return mutateDb((db) => {
     const workspace = db.workspaces.find((item) => item.token === token);
     if (!workspace) throw new AppError("Workspace not found.", 404);
 
-    const cleanIdea = sanitizeIdea(idea);
     const existing = db.savedIdeas.find(
       (item) =>
         item.workspaceId === workspace.id &&
@@ -884,6 +928,25 @@ export async function addSavedIdea(token: string, idea: unknown): Promise<SavedI
 }
 
 export async function deleteSavedIdea(token: string, ideaId: string): Promise<void> {
+  if (process.env.DATABASE_URL) {
+    const workspaceId = await getWorkspaceIdByToken(token);
+    const database = getDb();
+    const deleted = await database
+      .delete(savedIdeaRows)
+      .where(and(eq(savedIdeaRows.workspaceId, workspaceId), eq(savedIdeaRows.id, ideaId)))
+      .returning({ id: savedIdeaRows.id });
+    if (deleted.length === 0) {
+      return mutateDb((db) => {
+        const workspace = db.workspaces.find((item) => item.token === token);
+        if (!workspace) throw new AppError("Workspace not found.", 404);
+        const before = db.savedIdeas.length;
+        db.savedIdeas = db.savedIdeas.filter((idea) => !(idea.workspaceId === workspace.id && idea.id === ideaId));
+        if (db.savedIdeas.length === before) throw new AppError("Idea not found.", 404);
+      });
+    }
+    return;
+  }
+
   return mutateDb((db) => {
     const workspace = db.workspaces.find((item) => item.token === token);
     if (!workspace) throw new AppError("Workspace not found.", 404);
@@ -897,6 +960,47 @@ function listWorkspaceSavedIdeas(db: Database, workspaceId: string): SavedIdea[]
   return db.savedIdeas
     .filter((idea) => idea.workspaceId === workspaceId)
     .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+}
+
+function mergeSavedIdeas(primary: SavedIdea[], secondary: SavedIdea[]): SavedIdea[] {
+  const seen = new Set<string>();
+  const merged: SavedIdea[] = [];
+  for (const idea of [...primary, ...secondary]) {
+    const key = `${idea.title.trim().toLowerCase()}::${idea.thesis.trim().toLowerCase()}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(idea);
+  }
+  return merged.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+}
+
+type SavedIdeaRow = typeof savedIdeaRows.$inferSelect;
+
+async function getWorkspaceIdByToken(token: string): Promise<string> {
+  const database = getDb();
+  const [workspace] = await database
+    .select({ id: workspaceRows.id })
+    .from(workspaceRows)
+    .where(eq(workspaceRows.token, token))
+    .limit(1);
+  if (!workspace) throw new AppError("Workspace not found.", 404);
+  return workspace.id;
+}
+
+function savedIdeaFromRow(row: SavedIdeaRow): SavedIdea {
+  return {
+    id: row.id,
+    workspaceId: row.workspaceId,
+    title: row.title,
+    thesis: row.thesis,
+    lens: row.lens,
+    whyItFits: row.whyItFits,
+    relatedPosts: Array.isArray(row.relatedPosts)
+      ? row.relatedPosts.map(sanitizeSourceCitation).filter((source): source is SourceCitation => Boolean(source)).slice(0, 4)
+      : [],
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
 }
 
 function normalizeCustomThemeLabels(labels: unknown[]): string[] {

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Idea, IdeasResponse, SavedIdea } from "@/types/ai";
 import { api, ApiClientError } from "@/lib/client/api";
@@ -539,14 +540,22 @@ export function IdeasPanel({ token, disabled }: { token: string; disabled?: bool
                   idea={idea}
                   meta={`Saved ${formatRelative(idea.createdAt)}`}
                   action={
-                    <button
-                      type="button"
-                      onClick={() => void removeSavedIdea(idea.id)}
-                      disabled={disabled || removingIdeaId !== null}
-                      className="inline-flex h-7 shrink-0 items-center rounded-md px-2.5 text-[12px] font-medium text-ink-500 transition-colors duration-150 ease-editorial hover:bg-critical-100/50 hover:text-critical-700 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {removingIdeaId === idea.id ? "Removing..." : "Remove"}
-                    </button>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <Link
+                        href={`/workspace/${encodeURIComponent(token)}/ask?message=${encodeURIComponent(ideaConversationPrompt(idea))}`}
+                        className="inline-flex h-7 items-center rounded-md px-2.5 text-[12px] font-medium text-ink-500 transition-colors duration-150 ease-editorial hover:bg-accent-50/50 hover:text-accent-700"
+                      >
+                        Discuss
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => void removeSavedIdea(idea.id)}
+                        disabled={disabled || removingIdeaId !== null}
+                        className="inline-flex h-7 items-center rounded-md px-2.5 text-[12px] font-medium text-ink-500 transition-colors duration-150 ease-editorial hover:bg-critical-100/50 hover:text-critical-700 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {removingIdeaId === idea.id ? "Removing..." : "Remove"}
+                      </button>
+                    </div>
                   }
                 />
               ))}
@@ -564,4 +573,16 @@ export function IdeasPanel({ token, disabled }: { token: string; disabled?: bool
 
 function ideaKey(idea: Pick<Idea, "title" | "thesis">): string {
   return `${idea.title.trim().toLowerCase()}::${idea.thesis.trim().toLowerCase()}`;
+}
+
+function ideaConversationPrompt(idea: Idea): string {
+  return [
+    `Let's develop this saved idea: ${idea.title}`,
+    "",
+    `Thesis: ${idea.thesis}`,
+    `Lens: ${idea.lens}`,
+    idea.whyItFits ? `Why it fits: ${idea.whyItFits}` : null,
+  ]
+    .filter((line): line is string => line !== null)
+    .join("\n");
 }

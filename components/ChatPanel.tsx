@@ -69,8 +69,17 @@ export function ChatPanel({
   const [surfacing, setSurfacing] = useState(false);
   const [exhausted, setExhausted] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const seededMessageRef = useRef<string | null>(null);
 
   const canSurfaceMore = !exhausted;
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const seededMessage = params.get("message")?.trim();
+    if (!seededMessage || seededMessageRef.current === seededMessage) return;
+    seededMessageRef.current = seededMessage;
+    setDraft((current) => (current.trim() ? current : seededMessage));
+  }, [token]);
 
   const loadHistory = async () => {
     try {
@@ -383,7 +392,7 @@ function ConversationHistory({
 
   return (
     <section className="panel flex flex-col gap-3 p-4">
-      <span className="type-eyebrow text-ink-400">Past conversations</span>
+      <span className="type-eyebrow text-ink-400">Previous conversations</span>
       <div className="flex gap-2 overflow-x-auto pb-1">
         {sessions.map((session) => {
           const active = session.id === activeSessionId;
@@ -539,7 +548,7 @@ function BubbleComposer({
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           rows={1}
-          placeholder="Continue your conversation"
+          placeholder="Continue your conversation..."
           aria-label="Continue your conversation"
           className="block w-full resize-none overflow-hidden border-0 bg-transparent px-4 py-2.5 pr-11 text-[14px] leading-relaxed text-ink-50 caret-ink-50 placeholder:font-serif placeholder:text-ink-50/55 focus:outline-none"
           onKeyDown={(e) => {
