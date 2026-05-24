@@ -42,7 +42,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
             Desk
           </h1>
           <p className="animate-rise animate-delay-3 mt-4 font-serif text-[16.5px] leading-relaxed text-ink-600">
-            Review your publications, usage, and workspace access.
+            Review your workspaces and see what changed.
           </p>
         </header>
 
