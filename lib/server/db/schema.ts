@@ -7,6 +7,7 @@ import {
   jsonb,
   pgEnum,
   pgTable,
+  pgView,
   primaryKey,
   text,
   timestamp,
@@ -108,6 +109,35 @@ export const profiles = pgTable(
     handleIdx: uniqueIndex("profiles_handle_idx").on(table.handle),
   }),
 );
+
+export const accountProfiles = pgView("account_profiles", {
+  userId: uuid("user_id"),
+  email: text("email"),
+  emailVerified: timestamp("email_verified", { withTimezone: true }),
+  fullName: text("full_name"),
+  phoneNumber: varchar("phone_number", { length: 32 }),
+  handle: varchar("handle", { length: 32 }),
+  creatorName: text("creator_name"),
+  editorName: varchar("editor_name", { length: 80 }),
+  plan: varchar("plan", { length: 24 }),
+  createdAt: timestamp("created_at", { withTimezone: true }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }),
+}).as(sql`
+  select
+    ${users.id} as "user_id",
+    ${users.email} as "email",
+    ${users.emailVerified} as "email_verified",
+    ${profiles.fullName} as "full_name",
+    ${profiles.phoneNumber} as "phone_number",
+    ${profiles.handle} as "handle",
+    ${users.name} as "creator_name",
+    ${profiles.editorName} as "editor_name",
+    ${users.plan} as "plan",
+    ${profiles.createdAt} as "created_at",
+    ${profiles.updatedAt} as "updated_at"
+  from ${users}
+  left join ${profiles} on ${profiles.userId} = ${users.id}
+`);
 
 export const workspaces = pgTable(
   "workspaces",
