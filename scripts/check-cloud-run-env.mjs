@@ -13,7 +13,7 @@ const defaults = {
 const expectedLiterals = {
   APP_BASE_URL: "https://scaffold.aviralagarwal.com",
   NEXTAUTH_URL: "https://scaffold.aviralagarwal.com",
-  EMAIL_FROM: "scaffold@aviralagarwal.com",
+  EMAIL_FROM: "Scaffold <scaffold@aviralagarwal.com>",
   ANTHROPIC_MODEL: "claude-sonnet-4-5",
   FREE_MONTHLY_TOKEN_LIMIT: "500000",
   FREE_ACTIVE_PUBLICATION_LIMIT: "1",
