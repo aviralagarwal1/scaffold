@@ -12,7 +12,7 @@ export default function RegisterPage() {
     <AuthSurface
       eyebrow="§ 01 / Begin"
       headline={<>Create your account.</>}
-      subhead="An email and a password is all we need to start."
+      subhead="Enter your email and password to start."
     >
       {/* AuthForm uses useSearchParams to pick up the landing-hook handoff;
           a Suspense boundary above it keeps the rest of the page statically

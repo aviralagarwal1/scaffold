@@ -31,7 +31,7 @@ export default async function LoginPage({
       }
       subhead={
         emailJustVerified
-          ? "Your email is verified. Sign in to open your workspace."
+          ? "Sign in to open your desk and add publications."
           : emailVerificationFailed
             ? "That verification link is invalid, expired, or already used. Sign in below, or register again to send a fresh link."
             : "Your workspaces, your saved ideas, and your curator — all where you left them."

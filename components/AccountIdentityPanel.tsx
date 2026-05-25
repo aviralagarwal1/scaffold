@@ -343,7 +343,7 @@ export function AccountIdentityPanel({
           </h2>
           <p className="mt-2 max-w-2xl text-[13.5px] leading-relaxed text-ink-600">
             {setupMode
-              ? "Choose the names your library will use for you and your curator."
+              ? "Choose what your writing desk calls you and your curator."
               : "Establish your library's identity."}
           </p>
         </header>

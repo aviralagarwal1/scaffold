@@ -149,7 +149,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
 
       {!isRegister && emailJustVerified && (
         <div className="-mt-1 rounded-md border border-positive-100 bg-positive-100/40 px-3 py-2 text-[13px] text-positive-700">
-          Email verified. Sign in to open your desk.
+          Your email is verified. Let's get started.
         </div>
       )}
 
