@@ -71,8 +71,8 @@ export function PlanUpgradePanel({
             onSelect={() => setSelectedPlan("free")}
             features={[
               { label: "Tokens", value: `${formatTokens(basicPlan.monthlyTokenLimit)}/month` },
-              { label: "Libraries", value: pluralize(basicPlan.activePublicationLimit, "publication") },
-              { label: "Scope", value: "One library with conversation, search, and draft feedback." },
+              { label: "Workspaces", value: pluralize(basicPlan.activePublicationLimit, "publication") },
+              { label: "Scope", value: "One library with conversation, search, and draft feedback" },
             ]}
           />
           <PlanCard
@@ -84,8 +84,8 @@ export function PlanUpgradePanel({
             onSelect={() => setSelectedPlan("pro")}
             features={[
               { label: "Tokens", value: `${formatTokens(premiumPlan.monthlyTokenLimit)}/month` },
-              { label: "Libraries", value: pluralize(premiumPlan.activePublicationLimit, "publication") },
-              { label: "Scope", value: "Multiple libraries with stronger memory and deeper analysis." },
+              { label: "Workspaces", value: pluralize(premiumPlan.activePublicationLimit, "publication") },
+              { label: "Scope", value: "Multiple libraries with stronger memory and deeper analysis" },
             ]}
           />
         </div>
@@ -190,15 +190,6 @@ function PlanCard({
           </li>
         ))}
       </ul>
-      <div
-        aria-hidden={!highlighted && !selected}
-        className={cn(
-          "mt-6 font-mono text-[10.5px] uppercase tracking-[0.14em] text-accent-700 transition-opacity duration-200 ease-editorial",
-          highlighted ? "opacity-100" : "opacity-0",
-        )}
-      >
-        {title === "Premium" ? "Ready to Upgrade" : "Current Basic Plan"}
-      </div>
     </button>
   );
 }
@@ -220,8 +211,8 @@ function PremiumCurrentCard({ plan }: { plan: PlanConfig }) {
       <ul className="mt-7 flex flex-col gap-3">
         {[
           { label: "Tokens", value: `${formatTokens(plan.monthlyTokenLimit)}/month` },
-          { label: "Libraries", value: pluralize(plan.activePublicationLimit, "publication") },
-          { label: "Scope", value: "Multiple libraries with stronger memory and deeper analysis." },
+          { label: "Workspaces", value: pluralize(plan.activePublicationLimit, "publication") },
+          { label: "Scope", value: "Multiple libraries with stronger memory and deeper analysis" },
         ].map((feature) => (
           <li key={feature.label} className="grid gap-1 border-t border-ink-200/60 pt-3 first:border-t-0 first:pt-0">
             <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-400">{feature.label}</span>

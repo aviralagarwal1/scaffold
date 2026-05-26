@@ -210,8 +210,8 @@ export default function HomePage() {
               price="Free"
               features={[
                 { label: "Tokens", value: `${formatTokens(freePlan.monthlyTokenLimit)}/month` },
-                { label: "Libraries", value: `${freePlan.activePublicationLimit} publication` },
-                { label: "Scope", value: "One library with conversation, search, and draft feedback." },
+                { label: "Workspaces", value: `${freePlan.activePublicationLimit} publication` },
+                { label: "Scope", value: "One library with conversation, search, and draft feedback" },
               ]}
             />
             <LandingPlanCard
@@ -219,8 +219,8 @@ export default function HomePage() {
               price={`$${(premiumPlan.priceCents / 100).toFixed(0)}/month`}
               features={[
                 { label: "Tokens", value: `${formatTokens(premiumPlan.monthlyTokenLimit)}/month` },
-                { label: "Libraries", value: `${premiumPlan.activePublicationLimit} publications` },
-                { label: "Scope", value: "Multiple libraries with stronger memory and deeper analysis." },
+                { label: "Workspaces", value: `${premiumPlan.activePublicationLimit} publications` },
+                { label: "Scope", value: "Multiple libraries with stronger memory and deeper analysis" },
               ]}
             />
           </div>
