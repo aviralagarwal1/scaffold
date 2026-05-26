@@ -2,12 +2,23 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { PostSummary } from "@/types/post";
+import { api, ApiClientError } from "@/lib/client/api";
 import { PostCard } from "./PostCard";
 import { EmptyState } from "./states";
 
-export function ArchiveBrowser({ token, posts }: { token: string; posts: PostSummary[] }) {
+export function ArchiveBrowser({
+  token,
+  posts,
+  onPostSynced,
+}: {
+  token: string;
+  posts: PostSummary[];
+  onPostSynced?: (post: PostSummary) => void;
+}) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<"newest" | "oldest" | "longest">("newest");
+  const [syncingPostId, setSyncingPostId] = useState<string | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -28,6 +39,20 @@ export function ArchiveBrowser({ token, posts }: { token: string; posts: PostSum
     });
     return out;
   }, [posts, query, sort]);
+
+  const syncPost = async (post: PostSummary) => {
+    if (syncingPostId) return;
+    setSyncingPostId(post.id);
+    setSyncError(null);
+    try {
+      const synced = await api.syncPost(token, post.id);
+      onPostSynced?.(synced);
+    } catch (err) {
+      setSyncError(err instanceof ApiClientError ? err.message : "Could not sync post.");
+    } finally {
+      setSyncingPostId(null);
+    }
+  };
 
   if (posts.length === 0) {
     return (
@@ -68,10 +93,15 @@ export function ArchiveBrowser({ token, posts }: { token: string; posts: PostSum
       <div className="type-meta">
         Showing {filtered.length.toLocaleString()} of {posts.length.toLocaleString()} posts
       </div>
+      {syncError && (
+        <div className="rounded-md border border-critical-100 bg-critical-100/40 px-3 py-2 text-[13px] text-critical-700">
+          {syncError}
+        </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2">
         {filtered.map((p) => (
-          <PostCard key={p.id} post={p} />
+          <PostCard key={p.id} post={p} onSync={syncPost} syncing={syncingPostId === p.id} />
         ))}
       </div>
     </div>

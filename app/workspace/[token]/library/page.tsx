@@ -10,7 +10,7 @@ import { api, ApiClientError } from "@/lib/client/api";
 import { PageHeader } from "@/components/PageHeader";
 
 export default function ArchivePage() {
-  const { token, overview } = useWorkspace();
+  const { token, overview, refetch } = useWorkspace();
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const ready = overview?.status === "ready" || overview?.status === "partial";
@@ -50,7 +50,14 @@ export default function ArchivePage() {
       ) : posts === null ? (
         <LoadingState label="Loading your posts..." />
       ) : (
-        <ArchiveBrowser token={token} posts={posts} />
+        <ArchiveBrowser
+          token={token}
+          posts={posts}
+          onPostSynced={(post) => {
+            setPosts((current) => current?.map((item) => (item.id === post.id ? post : item)) ?? current);
+            void refetch();
+          }}
+        />
       )}
     </div>
   );

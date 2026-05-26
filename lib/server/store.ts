@@ -699,17 +699,21 @@ export async function replaceWorkspacePosts(
       db.posts.filter((post) => post.workspaceId === workspace.id),
       (post) => normalizePostTitle(post.title)
     );
-    const mergedPosts = posts.map(
-      (post) => existingByUrl.get(post.url) ?? existingByTitle.get(normalizePostTitle(post.title)) ?? post
-    );
+    const mergedPosts = posts.map((post) => {
+      const existing = existingByUrl.get(post.url) ?? existingByTitle.get(normalizePostTitle(post.title));
+      return existing
+        ? {
+            ...post,
+            id: existing.id,
+            workspaceId: existing.workspaceId,
+            createdAt: existing.createdAt
+          }
+        : post;
+    });
     const postIds = new Set(mergedPosts.map((post) => post.id));
 
-    db.posts = db.posts.filter((post) => post.workspaceId !== workspace.id || postIds.has(post.id));
-    for (const post of mergedPosts) {
-      if (!db.posts.some((existing) => existing.id === post.id)) {
-        db.posts.push(post);
-      }
-    }
+    db.posts = db.posts.filter((post) => post.workspaceId !== workspace.id);
+    db.posts.push(...mergedPosts);
 
     db.chunks = db.chunks.filter((chunk) => chunk.workspaceId !== workspace.id);
     const now = new Date().toISOString();
@@ -739,6 +743,45 @@ export async function replaceWorkspacePosts(
     workspace.updatedAt = now;
 
     return workspace;
+  });
+}
+
+export async function replaceWorkspacePost(token: string, postId: string, nextPost: Post): Promise<PostSummary> {
+  return mutateDb((db) => {
+    const workspace = db.workspaces.find((item) => item.token === token);
+    if (!workspace) throw new AppError("Workspace not found.", 404);
+
+    const existingIndex = db.posts.findIndex((item) => item.workspaceId === workspace.id && item.id === postId);
+    const existing = existingIndex >= 0 ? db.posts[existingIndex] : null;
+    if (!existing) throw new AppError("Post not found.", 404);
+
+    const now = new Date().toISOString();
+    const post: Post = {
+      ...nextPost,
+      id: existing.id,
+      workspaceId: workspace.id,
+      createdAt: existing.createdAt
+    };
+
+    db.posts[existingIndex] = post;
+    db.chunks = db.chunks.filter((chunk) => !(chunk.workspaceId === workspace.id && chunk.postId === post.id));
+    chunkText(`${post.title}\n\n${post.contentText}`).forEach((content, chunkIndex) => {
+      db.chunks.push({
+        id: randomUUID(),
+        workspaceId: workspace.id,
+        postId: post.id,
+        chunkIndex,
+        content,
+        createdAt: now
+      });
+    });
+
+    workspace.status = "ready";
+    workspace.ingestionError = null;
+    workspace.lastIngestedAt = now;
+    workspace.updatedAt = now;
+
+    return summarizePost(post);
   });
 }
 

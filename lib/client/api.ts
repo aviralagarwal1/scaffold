@@ -149,6 +149,12 @@ export const api = {
   listPosts(token: string) {
     return request<PostSummary[]>(`/api/workspaces/${encodeURIComponent(token)}/posts`);
   },
+  syncPost(token: string, postId: string) {
+    return request<PostSummary>(
+      `/api/workspaces/${encodeURIComponent(token)}/posts/${encodeURIComponent(postId)}/sync`,
+      { method: "POST" },
+    );
+  },
   ask(token: string, body: AskRequest) {
     return request<AskResponse>(`/api/workspaces/${encodeURIComponent(token)}/ask`, {
       method: "POST",

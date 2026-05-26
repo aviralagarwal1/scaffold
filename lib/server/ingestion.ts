@@ -1,15 +1,19 @@
 import type { Post } from "@/types/post";
-import { fetchSubstackFeed } from "./rss";
+import type { ParsedFeedPost } from "./rss";
+import { fetchPublicationFeed, fetchSubstackFeed } from "./rss";
 import {
   assertWorkspaceTokenBudget,
+  getPost,
   getReusableArchiveThemes,
   recordWorkspaceTokenUsage,
+  replaceWorkspacePost,
   replaceWorkspacePosts,
   setWorkspaceStatus,
   getWorkspaceByToken
 } from "./store";
 import { analyzeArchiveThemes } from "./ai";
 import { AppError } from "./errors";
+import { wordCount } from "./text";
 
 const INGESTION_FAILURE =
   "We could not automatically read this publication. Try checking the URL or paste post links manually.";
@@ -49,4 +53,62 @@ export async function ingestWorkspaceWithFeed(
     console.error("Workspace sync failed", error);
     return setWorkspaceStatus(token, "failed", INGESTION_FAILURE);
   }
+}
+
+export async function ingestWorkspacePost(token: string, postId: string) {
+  const workspace = await getWorkspaceByToken(token);
+  const currentPost = await getPost(token, postId);
+
+  const feed = await fetchPublicationFeed(workspace.publicationUrl);
+  const feedPost = findMatchingFeedPost(feed.posts, currentPost);
+  if (!feedPost) {
+    throw new AppError("Could not find this post in the publication feed. It may be too old to refresh individually.", 404);
+  }
+
+  const indexingTokens = 400 + Math.ceil(feedPost.contentText.length / 6);
+  await assertWorkspaceTokenBudget(token, indexingTokens, "sync");
+  await recordWorkspaceTokenUsage({
+    token,
+    feature: "sync",
+    label: "single post fetch and chunk indexing",
+    tokens: indexingTokens
+  });
+
+  return replaceWorkspacePost(token, postId, {
+    id: currentPost.id,
+    workspaceId: workspace.id,
+    title: feedPost.title,
+    subtitle: feedPost.subtitle,
+    url: feedPost.url,
+    publishedAt: feedPost.publishedAt,
+    author: feedPost.author,
+    contentText: feedPost.contentText,
+    contentHtml: feedPost.contentHtml,
+    wordCount: wordCount(feedPost.contentText),
+    createdAt: currentPost.createdAt
+  });
+}
+
+function findMatchingFeedPost(posts: ParsedFeedPost[], currentPost: Post): ParsedFeedPost | null {
+  const currentUrl = normalizePostUrl(currentPost.url);
+  const byUrl = posts.find((post) => normalizePostUrl(post.url) === currentUrl);
+  if (byUrl) return byUrl;
+
+  const currentTitle = normalizePostTitle(currentPost.title);
+  return posts.find((post) => normalizePostTitle(post.title) === currentTitle) ?? null;
+}
+
+function normalizePostUrl(value: string): string {
+  try {
+    const url = new URL(value);
+    url.hash = "";
+    url.search = "";
+    return url.toString().replace(/\/$/, "").toLowerCase();
+  } catch {
+    return value.trim().replace(/\/$/, "").toLowerCase();
+  }
+}
+
+function normalizePostTitle(value: string): string {
+  return value.trim().replace(/\s+/g, " ").toLowerCase();
 }

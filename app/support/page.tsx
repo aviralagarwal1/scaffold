@@ -64,6 +64,11 @@ function buildQuestions(
         "Add a publication URL. Scaffold reads public posts, stores them as a workspace, and answers or drafts from retrieved passages in your library.",
     },
     {
+      question: "What does it mean to sync a workspace or post?",
+      answer:
+        "Syncing refreshes a workspace after your publication has already been added. Use workspace sync when you have published new posts or want Scaffold to reread the whole publication. Use post sync when you only changed one existing post, like a title, small edit, or updated section.",
+    },
+    {
       question: "Is Scaffold free?",
       answer: (
         <>
@@ -78,12 +83,17 @@ function buildQuestions(
     },
     {
       question: `What is the difference between ${basicPlan.label} and ${premiumPlan.label}?`,
-      answer: `${basicPlan.label} includes ${formatTokens(basicPlan.monthlyTokenLimit)} monthly account tokens and ${pluralize(basicPlan.activePublicationLimit, "publication")}. ${premiumPlan.label} includes ${formatTokens(premiumPlan.monthlyTokenLimit)} monthly account tokens and ${pluralize(premiumPlan.activePublicationLimit, "publication")}.`,
+      answer: `${basicPlan.label} includes ${formatTokens(basicPlan.monthlyTokenLimit)} monthly account tokens and ${pluralize(basicPlan.activePublicationLimit, "workspace")}. ${premiumPlan.label} includes ${formatTokens(premiumPlan.monthlyTokenLimit)} monthly account tokens and ${pluralize(premiumPlan.activePublicationLimit, "workspace")}.`,
     },
     {
       question: "How does usage work?",
       answer:
         "Scaffold features draw from Anthropic's API. Usage is measured in tokens, and tokens reset on the first day of every month at 12:00 AM.",
+    },
+    {
+      question: "How can I save usage?",
+      answer:
+        "Sync one post when only that post changed. Choose only the draft feedback areas you care about. Ask specific questions when exploring your library.",
     },
     {
       question: `How much does ${premiumPlan.label} cost?`,
