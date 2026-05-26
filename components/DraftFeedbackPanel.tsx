@@ -155,28 +155,9 @@ export function DraftFeedbackPanel({ token, disabled }: { token: string; disable
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
-        <div className="flex items-baseline justify-between">
-          <label htmlFor="draft" className="type-h3">
-            Paste your draft
-          </label>
-          <div className="flex items-center gap-2 type-meta">
-            <span>{wordCount.toLocaleString()} words</span>
-            {draft.trim().length > 0 && !busy && (
-              <>
-                <span aria-hidden="true" className="text-ink-300">
-                  ·
-                </span>
-                <button
-                  type="button"
-                  onClick={clearDraft}
-                  className="transition-colors hover:text-ink-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300"
-                >
-                  Clear draft
-                </button>
-              </>
-            )}
-          </div>
-        </div>
+        <label htmlFor="draft" className="sr-only">
+          Paste your draft
+        </label>
         <textarea
           ref={ref}
           id="draft"
@@ -186,7 +167,24 @@ export function DraftFeedbackPanel({ token, disabled }: { token: string; disable
           disabled={disabled || busy}
           className="input block max-h-[680px] min-h-[320px] resize-none overflow-y-auto font-serif text-[15.5px] leading-relaxed text-ink-900 placeholder:font-serif placeholder:text-ink-400 transition-colors duration-200 ease-editorial hover:border-ink-300"
         />
-        <div className="flex items-center justify-end gap-3 pt-1">
+        <div className="flex items-center justify-end gap-2 type-meta">
+          <span>{wordCount.toLocaleString()} words</span>
+          {draft.trim().length > 0 && !busy && (
+            <>
+              <span aria-hidden="true" className="text-ink-300">
+                &middot;
+              </span>
+              <button
+                type="button"
+                onClick={clearDraft}
+                className="transition-colors hover:text-ink-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300"
+              >
+                Clear draft
+              </button>
+            </>
+          )}
+        </div>
+        <div className="flex items-center justify-end gap-3">
           <button
             type="submit"
             className="btn-primary group gap-1.5"
