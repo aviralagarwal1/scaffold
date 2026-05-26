@@ -60,12 +60,6 @@ export function WorkspaceNav({
                 >
                   {pluralize(overview.postCount, "post")}
                 </Link>
-                {overview.lastIngestedAt && (
-                  <>
-                    <Dot />
-                    <span>last read {formatRelative(overview.lastIngestedAt)}</span>
-                  </>
-                )}
                 {overview.topThemes.length > 0 && (
                   <>
                     <Dot />
@@ -73,8 +67,14 @@ export function WorkspaceNav({
                       href={base}
                       className="rounded-sm transition-colors hover:text-ink-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300"
                     >
-                      {pluralize(overview.topThemes.length, "theme")} detected
+                      {pluralize(overview.topThemes.length, "theme")}
                     </Link>
+                  </>
+                )}
+                {overview.lastIngestedAt && (
+                  <>
+                    <Dot />
+                    <span>last read {formatRelative(overview.lastIngestedAt)}</span>
                   </>
                 )}
               </div>

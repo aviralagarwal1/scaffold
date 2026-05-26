@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { useWorkspace } from "@/components/WorkspaceProvider";
 import { api, ApiClientError } from "@/lib/client/api";
 import { cn } from "@/lib/client/cn";
-import { formatDate, hostnameOf, pluralize, statusLabel } from "@/lib/client/format";
+import { formatDate, hostnameOf, pluralize } from "@/lib/client/format";
 
 const SPARKLES = [
   { top: "8%", right: "16%", fontSize: "10px", delay: "0s" },
@@ -107,12 +107,14 @@ export default function SettingsPage() {
         <dl className="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-6 gap-y-1.5 border-t border-ink-200/60 pt-3 text-[12.5px] text-ink-700">
           <dt className="text-ink-500">URL</dt>
           <dd className="font-mono text-[12px] text-ink-600">{overview.publicationUrl}</dd>
-          <dt className="text-ink-500">Status</dt>
-          <dd>{statusLabel(overview.status)}</dd>
-          <dt className="text-ink-500">Posts</dt>
-          <dd>{pluralize(overview.postCount, "post")}</dd>
-          <dt className="text-ink-500">Last read</dt>
-          <dd>{overview.lastIngestedAt ? formatDate(overview.lastIngestedAt, { withTime: true }) : "Not yet"}</dd>
+          <dt className="text-ink-500">Library</dt>
+          <dd className="font-mono text-[12px] text-ink-600">{pluralize(overview.postCount, "post")}</dd>
+          <dt className="text-ink-500">Themes</dt>
+          <dd className="font-mono text-[12px] text-ink-600">{pluralize(overview.topThemes.length, "theme")}</dd>
+          <dt className="text-ink-500">Synced</dt>
+          <dd className="font-mono text-[12px] text-ink-600">
+            {overview.lastIngestedAt ? formatDate(overview.lastIngestedAt, { withTime: true }) : "Not yet"}
+          </dd>
         </dl>
         {overview.ingestionError && (
           <div className="rounded-md border border-critical-100 bg-critical-100/40 px-3 py-2 text-[12.5px] text-critical-700">
