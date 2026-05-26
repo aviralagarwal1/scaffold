@@ -50,7 +50,7 @@ export default function ArchivePage() {
       ) : posts === null ? (
         <LoadingState label="Loading your posts..." />
       ) : (
-        <ArchiveBrowser posts={posts} />
+        <ArchiveBrowser token={token} posts={posts} />
       )}
     </div>
   );
