@@ -15,7 +15,7 @@ export default function SearchPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Search your library."
-        meta={ready ? "No more digging through 47 tabs for one line." : undefined}
+        meta={ready ? "No more digging through endless tabs for one line." : undefined}
       />
       {!ready ? <NotReadyNotice status={overview.status} token={token} feature="Search" /> : <SearchPanel token={token} />}
     </div>

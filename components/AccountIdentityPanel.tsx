@@ -538,7 +538,7 @@ function AccountUsageCard({ profile }: { profile: UserProfile }) {
 
       {plan.id === "free" && (
         <div className="flex flex-col gap-2 border-t border-ink-200/60 pt-4 text-[13.5px] leading-relaxed text-ink-600 sm:flex-row sm:items-center sm:justify-between">
-          <p>Need more room? Premium adds more monthly tokens and active publications.</p>
+          <p>Need more room? Premium adds more monthly tokens and active workspaces.</p>
           <Link href="/account/plan" className="btn-link shrink-0">
             Upgrade here
           </Link>
