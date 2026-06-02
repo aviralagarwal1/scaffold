@@ -5,6 +5,10 @@ import { AuthedRedirect } from "@/components/AuthedRedirect";
 
 export const metadata = {
   title: "Create your account · Scaffold",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function RegisterPage() {

@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { permanentRedirect } from "next/navigation";
 
 export default function QuestionsRedirectPage() {
-  redirect("/support");
+  permanentRedirect("/support");
 }

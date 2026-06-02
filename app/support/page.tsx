@@ -5,6 +5,9 @@ import { planConfig } from "@/lib/server/plans";
 export const metadata = {
   title: "Support - Scaffold",
   description: "Common questions about Scaffold, plans, and how the product works.",
+  alternates: {
+    canonical: "/support",
+  },
 };
 
 export default function SupportPage() {

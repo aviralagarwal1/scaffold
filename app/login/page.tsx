@@ -5,6 +5,10 @@ import { AuthedRedirect } from "@/components/AuthedRedirect";
 
 export const metadata = {
   title: "Sign in · Scaffold",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default async function LoginPage({

@@ -3,6 +3,12 @@ import { LogoCTA } from "@/components/LogoCTA";
 import { SubstackUrlForm } from "@/components/SubstackUrlForm";
 import { planConfig } from "@/lib/server/plans";
 
+export const metadata = {
+  alternates: {
+    canonical: "/",
+  },
+};
+
 const STEPS = [
   {
     title: "Start your workspace.",

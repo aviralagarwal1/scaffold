@@ -4,6 +4,9 @@ import Image from "next/image";
 export const metadata = {
   title: "About · Scaffold",
   description: "About the writer who built Scaffold.",
+  alternates: {
+    canonical: "/about",
+  },
 };
 
 export default function AboutPage() {

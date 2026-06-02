@@ -1,9 +1,17 @@
+import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { notFound, redirect } from "next/navigation";
 import { WorkspaceProvider } from "@/components/WorkspaceProvider";
 import { WorkspaceShell } from "@/components/WorkspaceShell";
 import { canViewAccountWorkspace } from "@/lib/server/account-workspaces";
 import { getCurrentUserId } from "@/lib/server/auth/current";
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function WorkspaceLayout({
   children,
