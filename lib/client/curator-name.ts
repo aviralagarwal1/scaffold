@@ -33,7 +33,7 @@ export interface CuratorNameValidation {
 
 export function validateCuratorName(value: string): CuratorNameValidation {
   const trimmed = value;
-  if (trimmed.length === 0) return fail("empty", "Give your curator a name.");
+  if (trimmed.length === 0) return fail("empty", "What should we call your curator?");
   if (trimmed.length < CURATOR_NAME_MIN) return fail("too-short", "Use at least two letters.");
   if (trimmed.length > CURATOR_NAME_MAX) return fail("too-long", `Keep it to ${CURATOR_NAME_MAX} letters.`);
 
