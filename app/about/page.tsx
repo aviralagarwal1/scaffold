@@ -74,7 +74,7 @@ export default function AboutPage() {
             >
               aviralwrites.com
             </a>
-            , and spending time inside my own library. Even as frontier models keep advancing, I don&apos;t believe AI can ever replace the voice of a writer. At its best, AI can be a quiet amplifier, motivator, and searcher across your own work. I hope Scaffold can create that experience for you.
+            , and spending time inside my own library. Even as frontier models keep advancing, I don&apos;t believe AI can ever replace the voice of a writer. At its best, AI can be a reader, editor, and advisor across your own work. I hope Scaffold can create that experience for you.
           </p>
           <p>
             Through this project, I became deeply interested in product design and user behavior. While AI has lowered the barrier to building, I&apos;m focused on developing stronger product judgment: reducing friction, deciding what matters, and understanding when simplicity beats added functionality.
