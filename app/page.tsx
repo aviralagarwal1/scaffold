@@ -81,23 +81,23 @@ export default function HomePage() {
         <div className="mx-auto grid max-w-6xl gap-12 px-6 py-20 md:grid-cols-12 md:items-start md:gap-x-10 md:py-28">
           <div className="md:col-span-7 md:pr-4 lg:col-span-6">
             {/* Headline laid out as a 3-2-1 word pyramid via explicit block
-                lines: "Everything you wrote" / "is still" / "here." Each
+                lines: "Write with" / "your entire" / "library." Each
                 line is shorter than the last, tapering toward the warm
                 punchline noun. The em with the underline accent sits on
                 line two so the eye lands on it before the final word. */}
             <h1 className="animate-rise animate-delay-1 font-serif text-[40px] leading-[1.04] tracking-tighter2 text-ink-900 min-[390px]:text-[44px] md:text-[60px] md:leading-[1.02]">
-              <span className="block">Everything you wrote</span>
+              <span className="block">Write with</span>
               <span className="block">
-                is {" "}
+                your {" "}
                 <span className="relative inline-block whitespace-nowrap">
-                  <em className="font-serif font-normal italic">still</em>
+                  <em className="font-serif font-normal italic">entire</em>
                   <span
                     aria-hidden="true"
                     className="absolute -bottom-0.5 left-0 right-0 h-[7px] -skew-x-6 rounded-sm bg-accent-200/55"
                   />
                 </span>
               </span>
-              <span className="block">here.</span>
+              <span className="block">library.</span>
             </h1>
 
             <p className="animate-rise animate-delay-2 mt-7 max-w-[46ch] font-serif text-[18px] leading-[1.55] text-ink-700 md:text-[19px]">

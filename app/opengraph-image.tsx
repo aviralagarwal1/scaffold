@@ -91,9 +91,9 @@ export default function OpenGraphImage() {
               color: "#141311",
             }}
           >
-            <span style={{ display: "flex" }}>Everything you wrote</span>
+            <span style={{ display: "flex" }}>Write with</span>
             <span style={{ display: "flex", alignItems: "baseline" }}>
-              <span>is&nbsp;</span>
+              <span>your&nbsp;</span>
               <span style={{ display: "flex", flexDirection: "column", position: "relative" }}>
                 <span
                   style={{
@@ -103,7 +103,7 @@ export default function OpenGraphImage() {
                     lineHeight: 1,
                   }}
                 >
-                  still
+                  entire
                 </span>
                 {/* Bronze underline wash sitting just under the word, matching
                     the hero's accent-200/55. Anchored to the text box bottom so
@@ -121,7 +121,7 @@ export default function OpenGraphImage() {
                 />
               </span>
             </span>
-            <span style={{ display: "flex" }}>here.</span>
+            <span style={{ display: "flex" }}>library.</span>
           </div>
         </div>
 

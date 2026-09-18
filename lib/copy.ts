@@ -30,9 +30,14 @@ export const PRODUCT_NAME = "Scaffold";
  * Hero headline, laid out as a three-line pyramid that tapers to the warm
  * word. Exported as parts because the landing page sets each line as its own
  * block and accents the middle one.
+ *
+ * It promises access, not preservation. An earlier draft said the work was
+ * "still here", which answers a problem nobody has — the posts were never
+ * lost, they are sitting on the publication right now. The difficulty is that
+ * an archive is inert: you cannot get at it, so you never use it.
  */
-export const PRODUCT_PROMISE_LINES = ["Everything you wrote", "is still", "here."] as const;
-export const PRODUCT_PROMISE = "Everything you wrote is still here.";
+export const PRODUCT_PROMISE_LINES = ["Write with", "your entire", "library."] as const;
+export const PRODUCT_PROMISE = "Write with your entire library.";
 
 /**
  * One sentence, under 160 characters so it works as a meta description.
