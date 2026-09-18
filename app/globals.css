@@ -201,9 +201,6 @@ body {
      Do NOT use as generic chrome before page headers, settings labels,
      or section markers. The mark loses meaning when it appears everywhere.
   */
-  .accent-rule {
-    @apply inline-block h-px w-6 bg-accent-400 align-middle;
-  }
 
   /* === Section marker ===
      Editorial passage mark for landing-page sections. Echoes the §

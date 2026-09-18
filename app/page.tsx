@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { LogoCTA } from "@/components/LogoCTA";
+import { ScaffoldMark } from "@/components/ScaffoldMark";
 import { SubstackUrlForm } from "@/components/SubstackUrlForm";
 import { planConfig } from "@/lib/server/plans";
 import {
   formatPlanPrice,
-  formatTokenAllowance,
-  formatWorkspaceCapacity,
-  PLAN_SCOPE,
+  PLAN_FOOTNOTE,
+  planRows,
   PRODUCT_SUBHEAD,
 } from "@/lib/copy";
 
@@ -80,15 +80,14 @@ export default function HomePage() {
         />
         <div className="mx-auto grid max-w-6xl gap-12 px-6 py-20 md:grid-cols-12 md:items-start md:gap-x-10 md:py-28">
           <div className="md:col-span-7 md:pr-4 lg:col-span-6">
-            {/* Headline laid out as a 3-2-1 word pyramid via explicit block
-                lines: "Write with" / "your entire" / "library." Each
-                line is shorter than the last, tapering toward the warm
-                punchline noun. The em with the underline accent sits on
-                line two so the eye lands on it before the final word. */}
+            {/* Headline laid out as a two-line pyramid via explicit block
+                lines: "Write with your" / "entire library." The second line
+                is shorter than the first, tapering toward the warm punchline
+                noun, and the accented em opens that line so the eye catches
+                it before the word it qualifies. */}
             <h1 className="animate-rise animate-delay-1 font-serif text-[40px] leading-[1.04] tracking-tighter2 text-ink-900 min-[390px]:text-[44px] md:text-[60px] md:leading-[1.02]">
-              <span className="block">Write with</span>
+              <span className="block">Write with your</span>
               <span className="block">
-                your {" "}
                 <span className="relative inline-block whitespace-nowrap">
                   <em className="font-serif font-normal italic">entire</em>
                   <span
@@ -96,8 +95,8 @@ export default function HomePage() {
                     className="absolute -bottom-0.5 left-0 right-0 h-[7px] -skew-x-6 rounded-sm bg-accent-200/55"
                   />
                 </span>
+                {" "}library.
               </span>
-              <span className="block">library.</span>
             </h1>
 
             <p className="animate-rise animate-delay-2 mt-7 max-w-[46ch] font-serif text-[18px] leading-[1.55] text-ink-700 md:text-[19px]">
@@ -220,22 +219,16 @@ export default function HomePage() {
             <LandingPlanCard
               title={freePlan.label}
               price={formatPlanPrice(freePlan.priceCents)}
-              features={[
-                { label: "Tokens", value: formatTokenAllowance(freePlan.monthlyTokenLimit) },
-                { label: "Workspaces", value: formatWorkspaceCapacity(freePlan.activePublicationLimit) },
-                { label: "Scope", value: PLAN_SCOPE.free },
-              ]}
+              features={planRows(freePlan)}
             />
             <LandingPlanCard
               title={premiumPlan.label}
               price={formatPlanPrice(premiumPlan.priceCents)}
-              features={[
-                { label: "Tokens", value: formatTokenAllowance(premiumPlan.monthlyTokenLimit) },
-                { label: "Workspaces", value: formatWorkspaceCapacity(premiumPlan.activePublicationLimit) },
-                { label: "Scope", value: PLAN_SCOPE.pro },
-              ]}
+              features={planRows(premiumPlan)}
             />
           </div>
+
+          <p className="mt-5 text-center text-[13px] leading-relaxed text-ink-500">{PLAN_FOOTNOTE}</p>
         </div>
       </section>
 
@@ -484,7 +477,7 @@ function PrimaryAnswerCard() {
         </blockquote>
         <figcaption className="mt-7 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-ink-200/60 pt-4">
           <span className="flex items-center gap-2">
-            <span className="accent-rule" />
+            <ScaffoldMark className="h-[15px] w-[15px] shrink-0 text-accent-500" />
             <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent-700">Scaffold</span>
           </span>
           <span className="text-ink-300" aria-hidden="true">
@@ -510,10 +503,7 @@ function CitationColumn({ posts }: { posts: typeof CITED_POSTS }) {
   return (
     <aside className="flex flex-col gap-3 md:col-span-5">
       <div className="flex items-center justify-between gap-3">
-        <span className="flex items-center gap-2 type-eyebrow text-accent-700">
-          <span className="accent-rule" />
-          Cited from your library
-        </span>
+        <span className="type-eyebrow text-accent-700">Cited from your library</span>
         <span className="font-mono text-[10.5px] text-ink-400"></span>
       </div>
       {posts.map((post, i) => (
@@ -609,7 +599,7 @@ function SampleAnswerCard() {
           {/* Answer */}
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-2">
-              <span className="accent-rule" />
+              <ScaffoldMark className="h-[15px] w-[15px] shrink-0 text-accent-500" />
               <span className="text-eyebrow font-medium uppercase text-accent-700">Scaffold</span>
               <span className="text-ink-300" aria-hidden="true">
               </span>
@@ -631,10 +621,7 @@ function SampleAnswerCard() {
 
             {/* Cited posts */}
             <div className="mt-1.5 flex flex-col gap-2">
-              <div className="flex items-center gap-2 type-eyebrow">
-                <span className="accent-rule" />
-                Cited from your library
-              </div>
+              <div className="type-eyebrow">Cited from your library</div>
               <ul className="flex flex-col gap-1.5">
                 <CitationRow
                   num={1}

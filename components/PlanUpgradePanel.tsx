@@ -7,7 +7,7 @@ import type { AccountPlanSummary } from "@/types/workspace";
 import type { PlanConfig } from "@/lib/server/plans";
 import { api, ApiClientError } from "@/lib/client/api";
 import { cn } from "@/lib/client/cn";
-import { formatPlanPrice, formatTokenAllowance, formatWorkspaceCapacity, PLAN_SCOPE } from "@/lib/copy";
+import { formatPlanPrice, PLAN_FOOTNOTE, planRows } from "@/lib/copy";
 
 export function PlanUpgradePanel({
   plan,
@@ -70,11 +70,7 @@ export function PlanUpgradePanel({
             highlighted={highlightedPlan === "free"}
             selected={selectedPlan === "free"}
             onSelect={() => setSelectedPlan("free")}
-            features={[
-              { label: "Tokens", value: formatTokenAllowance(basicPlan.monthlyTokenLimit) },
-              { label: "Workspaces", value: formatWorkspaceCapacity(basicPlan.activePublicationLimit) },
-              { label: "Scope", value: PLAN_SCOPE.free },
-            ]}
+            features={planRows(basicPlan)}
           />
           <PlanCard
             title={premiumPlan.label}
@@ -83,13 +79,11 @@ export function PlanUpgradePanel({
             highlighted={premiumHighlighted}
             selected={selectedPlan === "pro"}
             onSelect={() => setSelectedPlan("pro")}
-            features={[
-              { label: "Tokens", value: formatTokenAllowance(premiumPlan.monthlyTokenLimit) },
-              { label: "Workspaces", value: formatWorkspaceCapacity(premiumPlan.activePublicationLimit) },
-              { label: "Scope", value: PLAN_SCOPE.pro },
-            ]}
+            features={planRows(premiumPlan)}
           />
         </div>
+
+        <p className="text-[13px] leading-relaxed text-ink-500">{PLAN_FOOTNOTE}</p>
 
         <div className="flex flex-col items-start gap-3 border-t border-ink-200/70 pt-5 sm:flex-row sm:items-center sm:justify-between">
           <p className="max-w-xl text-[13px] leading-relaxed text-ink-500">
@@ -197,11 +191,7 @@ function PremiumCurrentCard({ plan }: { plan: PlanConfig }) {
         </span>
       </div>
       <ul className="mt-7 flex flex-col gap-3">
-        {[
-          { label: "Tokens", value: formatTokenAllowance(plan.monthlyTokenLimit) },
-          { label: "Workspaces", value: formatWorkspaceCapacity(plan.activePublicationLimit) },
-          { label: "Scope", value: PLAN_SCOPE.pro },
-        ].map((feature) => (
+        {planRows(plan).map((feature) => (
           <li key={feature.label} className="grid gap-1 border-t border-ink-200/60 pt-3 first:border-t-0 first:pt-0">
             <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-400">{feature.label}</span>
             <span className="text-[14px] leading-relaxed text-ink-600">{feature.value}</span>

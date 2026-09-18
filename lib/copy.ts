@@ -36,7 +36,7 @@ export const PRODUCT_NAME = "Scaffold";
  * lost, they are sitting on the publication right now. The difficulty is that
  * an archive is inert: you cannot get at it, so you never use it.
  */
-export const PRODUCT_PROMISE_LINES = ["Write with", "your entire", "library."] as const;
+export const PRODUCT_PROMISE_LINES = ["Write with your", "entire library."] as const;
 export const PRODUCT_PROMISE = "Write with your entire library.";
 
 /**
@@ -63,13 +63,27 @@ export const PRODUCT_FOR_WRITERS =
   "Most writers lose their own work. Not the files — the thread. You cannot remember what you argued four years ago, so you argue it again, slightly worse. Scaffold keeps the whole body of work within reach while you write the next piece.";
 
 /**
- * Plan comparison rows. A scope line describes what a plan can reach, never
- * the quality of the work — the model is identical on both.
+ * Plan comparison rows.
+ *
+ * Premium differs from Basic in exactly two ways: monthly tokens, and how
+ * many workspaces you can keep. An earlier version padded the cards with a
+ * third "Scope" row that restated the workspace count as prose and used three
+ * words — workspace, publication, library — for one idea. Two honest rows
+ * compare better than three padded ones.
  */
-export const PLAN_SCOPE = {
-  free: "One library with conversation, search, and draft feedback",
-  pro: "Up to three libraries with the same tools",
-} as const;
+export function planRows(plan: { monthlyTokenLimit: number; activePublicationLimit: number }) {
+  return [
+    { label: "Tokens", value: formatTokenAllowance(plan.monthlyTokenLimit) },
+    { label: "Workspaces", value: String(plan.activePublicationLimit) },
+  ];
+}
+
+/**
+ * Shown once beneath the plan cards rather than repeated inside each one.
+ * That features are not gated is a real selling point, and it only reads as
+ * one when it is said plainly instead of implied by two matching rows.
+ */
+export const PLAN_FOOTNOTE = "Every tool is on both plans. Premium adds room, not features.";
 
 /** How the product discloses what it does, where someone goes looking. */
 export const MODEL_DISCLOSURE =

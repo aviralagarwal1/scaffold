@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { AskResponse, ChatSession, SourceCitation } from "@/types/ai";
 import { api, ApiClientError } from "@/lib/client/api";
 import { SavedHistoryStrip } from "./SavedHistoryStrip";
+import { ScaffoldMark } from "./ScaffoldMark";
 import { Markdown } from "./Markdown";
 import { SourceCitationList } from "./SourceCitation";
 
@@ -329,7 +330,10 @@ export function ChatPanel({
                     </div>
                   </div>
                 ) : (
-                  <div key={turn.id} className="flex flex-col gap-3">
+                  <div key={turn.id} className="flex flex-col gap-2.5">
+                    {/* The mark signs each answer the way a printer's device
+                        signs a page — no label, no rule, just the seal. */}
+                    <ScaffoldMark className="h-[15px] w-[15px] text-accent-500" />
                     <div className="prose-editorial">
                       <Markdown text={turn.content} />
                     </div>
@@ -337,7 +341,12 @@ export function ChatPanel({
                   </div>
                 ),
               )}
-              {busy && <ThinkingDots />}
+              {busy && (
+                <div className="flex flex-col gap-2.5">
+                  <ScaffoldMark className="h-[15px] w-[15px] animate-editorial-pulse text-accent-400" />
+                  <ThinkingDots />
+                </div>
+              )}
               {!busy && (
                 <BubbleComposer
                   draft={draft}

@@ -59,7 +59,7 @@ export function SiteHeader() {
 //   verb; the UserMenu sits beside it as the global identity affordance.
 // - About is a landing-page affordance only. Once someone is registering,
 //   setting up, or working, the nav should stay task-focused.
-// - Auth chips depend on session. Logged out → Log in + Register. Logged in
+// - Auth chips depend on session. Logged out → Sign in + Register. Logged in
 //   → UserMenu (which reveals the email, an Account link, and Sign out).
 //   Account is no longer a separate chip — it lives inside the menu so the
 //   nav stays compact and there's exactly one identity surface to look at.
@@ -96,7 +96,7 @@ function renderNavItems(pathname: string | null, isAuthenticated: boolean): Reac
         <>
           {pathname !== "/login" && (
             <Link href="/login" className="btn-secondary">
-              Log In
+              Sign in
             </Link>
           )}
           {pathname !== "/register" && (
