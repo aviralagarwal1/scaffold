@@ -6,7 +6,7 @@ import { NotReadyNotice } from "@/components/NotReadyNotice";
 import { PageHeader } from "@/components/PageHeader";
 
 export default function AskPage() {
-  const { token, overview, curatorName } = useWorkspace();
+  const { token, overview } = useWorkspace();
 
   if (!overview) return null;
 
@@ -21,7 +21,7 @@ export default function AskPage() {
       {!ready ? (
         <NotReadyNotice status={overview.status} token={token} feature="Conversation" />
       ) : (
-        <ChatPanel token={token} curatorName={curatorName} />
+        <ChatPanel token={token} />
       )}
     </div>
   );

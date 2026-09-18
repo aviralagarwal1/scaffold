@@ -103,10 +103,10 @@ export function UserMenu() {
   if (!session?.user) return null;
 
   const email = profile?.email ?? session.user.email ?? "";
-  // Display name resolution, in priority order: explicit creator name from
+  // Display name resolution, in priority order: the account name from
   // /api/me, the session's name, then the email prefix, then a quiet fallback.
   const displayName =
-    profile?.creatorName?.trim() ||
+    profile?.fullName?.trim() ||
     session.user.name?.trim() ||
     (email.includes("@") ? email.split("@")[0] : "") ||
     "you";

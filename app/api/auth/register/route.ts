@@ -4,24 +4,21 @@ import { getDb } from "@/lib/server/db";
 import { users } from "@/lib/server/db/schema";
 import { apiError, AppError } from "@/lib/server/errors";
 import { readJson } from "@/lib/server/http";
+import { requireEmail } from "@/lib/server/auth/email";
 import { hashPassword } from "@/lib/server/auth/password";
 import { sendRegistrationVerification, sendVerificationForEmail } from "@/lib/server/auth/email-verification";
 
 type RegisterRequest = {
   email?: unknown;
   password?: unknown;
-  creatorName?: unknown;
-  editorName?: unknown;
   publicationUrl?: unknown;
 };
 
 export async function POST(request: Request) {
   try {
     const body = await readJson<RegisterRequest>(request);
-    const email = normalizeEmail(body.email);
+    const email = requireEmail(body.email);
     const password = requirePassword(body.password);
-    const creatorName = normalizeCreatorName(body.creatorName);
-    const editorName = normalizeCuratorName(body.editorName);
     const publicationUrl = normalizeOptionalPublicationUrl(body.publicationUrl);
 
     const db = getDb();
@@ -44,8 +41,6 @@ export async function POST(request: Request) {
     const result = await sendRegistrationVerification({
       email,
       passwordHash,
-      creatorName,
-      editorName,
       publicationUrl,
     });
 
@@ -58,48 +53,11 @@ export async function POST(request: Request) {
     return apiError(error, "Could not create account.");
   }
 }
-
-function normalizeEmail(value: unknown): string {
-  if (typeof value !== "string") throw new AppError("Enter an email address.", 400);
-  const email = value.trim().toLowerCase();
-  if (!email || !email.includes("@")) throw new AppError("Enter a valid email address.", 400);
-  return email;
-}
-
 function requirePassword(value: unknown): string {
   if (typeof value !== "string" || value.length < 8) {
     throw new AppError("Password must be at least 8 characters.", 400);
   }
   return value;
-}
-
-function normalizeCreatorName(value: unknown): string | null {
-  if (value === undefined || value === null || value === "") return null;
-  if (typeof value !== "string") throw new AppError("What should we call you?", 400);
-  const creatorName = value.trim();
-  if (creatorName.length === 0) return null;
-  if (creatorName.length < 2) throw new AppError("Use at least two letters.", 400);
-  if (creatorName.length > 24) throw new AppError("Keep your name to 24 letters.", 400);
-  if (/[^\p{L}]/u.test(creatorName)) {
-    throw new AppError("Use one word with letters only. No spaces, numbers, or symbols.", 400);
-  }
-  if (!/^\p{Lu}/u.test(creatorName)) throw new AppError("Start with a capital letter.", 400);
-  if (!/\p{Ll}$/u.test(creatorName)) throw new AppError("End with a lowercase letter.", 400);
-  return creatorName;
-}
-
-function normalizeCuratorName(value: unknown): string {
-  if (value === undefined || value === null || value === "") return "Curator";
-  if (typeof value !== "string") throw new AppError("Choose a curator name.", 400);
-  const editorName = value.trim();
-  if (editorName.length < 2) throw new AppError("Use at least two letters.", 400);
-  if (editorName.length > 24) throw new AppError("Keep your curator name to 24 letters.", 400);
-  if (/[^\p{L}]/u.test(editorName)) {
-    throw new AppError("Use one word with letters only. No spaces, numbers, or symbols.", 400);
-  }
-  if (!/^\p{Lu}/u.test(editorName)) throw new AppError("Start with a capital letter.", 400);
-  if (!/\p{Ll}$/u.test(editorName)) throw new AppError("End with a lowercase letter.", 400);
-  return editorName;
 }
 
 function normalizeOptionalPublicationUrl(value: unknown): string | null {

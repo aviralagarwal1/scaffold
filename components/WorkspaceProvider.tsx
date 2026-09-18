@@ -14,8 +14,6 @@ interface WorkspaceContextValue {
   refetch: () => Promise<void>;
   reingesting: boolean;
   profile: UserProfile | null;
-  curatorName: string;
-  creatorName: string;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
@@ -105,8 +103,6 @@ export function WorkspaceProvider({ token, children }: { token: string; children
       refetch: async () => void (await fetchOnce()),
       reingesting,
       profile,
-      curatorName: profile?.editorName?.trim() || "Curator",
-      creatorName: profile?.creatorName?.trim() || "Creator",
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [token, overview, loading, error, reingesting, profile],
