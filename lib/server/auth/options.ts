@@ -4,6 +4,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { getDb } from "@/lib/server/db";
 import { users } from "@/lib/server/db/schema";
 import { verifyPassword } from "./password";
+import { parseEmail } from "./email";
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -17,7 +18,7 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        const email = normalizeEmail(credentials?.email);
+        const email = parseEmail(credentials?.email);
         const password = typeof credentials?.password === "string" ? credentials.password : "";
         if (!email || !password) return null;
 
@@ -27,7 +28,6 @@ export const authOptions: NextAuthOptions = {
             id: users.id,
             email: users.email,
             emailVerified: users.emailVerified,
-            name: users.name,
             passwordHash: users.passwordHash,
           })
           .from(users)
@@ -40,7 +40,6 @@ export const authOptions: NextAuthOptions = {
         return {
           id: row.id,
           email: row.email,
-          name: row.name ?? row.email,
         };
       },
     }),
@@ -58,9 +57,3 @@ export const authOptions: NextAuthOptions = {
     },
   },
 };
-
-function normalizeEmail(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  const email = value.trim().toLowerCase();
-  return email.includes("@") ? email : null;
-}

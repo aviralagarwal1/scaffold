@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { SubstackUrlForm } from "@/components/SubstackUrlForm";
+import { PublicationUrlForm } from "@/components/marketing/PublicationUrlForm";
 import { getAccountSetupState } from "@/lib/server/account-setup";
 import { getCurrentUserId } from "@/lib/server/auth/current";
 
@@ -38,7 +38,7 @@ export default async function NewPublicationPage({
           Paste your publication link. We'll read the public posts and open your workspace when it's ready. Larger libraries can take a few minutes.
         </p>
         <div className="animate-rise animate-delay-4 mt-10">
-          <SubstackUrlForm autoFocus initialUrl={initialPublicationUrl} />
+          <PublicationUrlForm autoFocus initialUrl={initialPublicationUrl} />
         </div>
       </div>
     </div>

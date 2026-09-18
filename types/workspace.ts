@@ -74,17 +74,12 @@ export interface WorkspaceOverview {
   tokenUsage: TokenUsageSummary;
 }
 
-export type WorkspaceVerificationStatus = "unverified" | "pending" | "verified";
-export type WorkspaceRole = "owner" | "editor" | "viewer";
-
 export interface AccountWorkspaceSummary {
   id: string;
   token: string | null;
   publicationUrl: string;
   publicationName: string | null;
   status: WorkspaceStatus;
-  verificationStatus: WorkspaceVerificationStatus;
-  role: WorkspaceRole;
   createdAt: string;
   updatedAt: string;
   lastIngestedAt: string | null;

@@ -1,7 +1,13 @@
 import Link from "next/link";
-import { LogoCTA } from "@/components/LogoCTA";
-import { SubstackUrlForm } from "@/components/SubstackUrlForm";
+import { LogoCTA } from "@/components/marketing/LogoCTA";
+import { ScaffoldMark } from "@/components/ui/ScaffoldMark";
+import { PublicationUrlForm } from "@/components/marketing/PublicationUrlForm";
 import { planConfig } from "@/lib/server/plans";
+import {
+  formatPlanPrice,
+  planRows,
+  PRODUCT_SUBHEAD,
+} from "@/lib/copy";
 
 export const metadata = {
   alternates: {
@@ -12,20 +18,20 @@ export const metadata = {
 const STEPS = [
   {
     title: "Start your workspace.",
-    body: "Paste your publication URL or custom domain. We only read public posts.",
+    body: "Paste a publication link or custom domain. Only public posts are read.",
   },
   {
-    title: "We read your library.",
-    body: "Posts are parsed, indexed, and grounded in a workspace.",
+    title: "Every post is read.",
+    body: "Every public post is pulled in, split into passages, and indexed.",
   },
   {
-    title: "We surface patterns and insights.",
-    body: "Ask questions, revisit old ideas, and refine new drafts in your voice.",
+    title: "The work comes back.",
+    body: "Put questions to it, find old lines, and write against what is already there.",
   },
 ];
 
 // The §03 section reuses the SampleAnswerCard's library context — the three posts
-// the AI cites in its primary answer. Same titles, same dates as the hero
+// cited in the primary answer. Same titles, same dates as the hero
 // preview, so the brand world stays internally consistent: this is a real
 // library surface that cites the same evidence wherever you encounter it.
 const CITED_POSTS = [
@@ -57,7 +63,7 @@ export default function HomePage() {
     <>
       {/* Logged-in visitors stay on the landing — they may want to re-read
           the brand, share the link, or just look around. The nav UserMenu
-          and the swapped hero CTA ("Open my desk →" via SubstackUrlForm's
+          and the swapped hero CTA ("Open my desk →" via PublicationUrlForm's
           authenticatedFallback) make the logged-in state obvious without
           forcing a redirect. */}
 
@@ -73,15 +79,14 @@ export default function HomePage() {
         />
         <div className="mx-auto grid max-w-6xl gap-12 px-6 py-20 md:grid-cols-12 md:items-start md:gap-x-10 md:py-28">
           <div className="md:col-span-7 md:pr-4 lg:col-span-6">
-            {/* Headline laid out as a 3-2-1 word pyramid via explicit block
-                lines: "Agents that know" / "your entire" / "library." Each
-                line is shorter than the last, tapering toward the warm
-                punchline noun. The em with the underline accent sits on
-                line two so the eye lands on it before the final word. */}
+            {/* Headline laid out as a two-line pyramid via explicit block
+                lines: "Write with your" / "entire library." The second line
+                is shorter than the first, tapering toward the warm punchline
+                noun, and the accented em opens that line so the eye catches
+                it before the word it qualifies. */}
             <h1 className="animate-rise animate-delay-1 font-serif text-[40px] leading-[1.04] tracking-tighter2 text-ink-900 min-[390px]:text-[44px] md:text-[60px] md:leading-[1.02]">
-              <span className="block">Agents that know</span>
+              <span className="block">Write with your</span>
               <span className="block">
-                your {" "}
                 <span className="relative inline-block whitespace-nowrap">
                   <em className="font-serif font-normal italic">entire</em>
                   <span
@@ -89,17 +94,16 @@ export default function HomePage() {
                     className="absolute -bottom-0.5 left-0 right-0 h-[7px] -skew-x-6 rounded-sm bg-accent-200/55"
                   />
                 </span>
+                {" "}library.
               </span>
-              <span className="block">library.</span>
             </h1>
 
             <p className="animate-rise animate-delay-2 mt-7 max-w-[46ch] font-serif text-[18px] leading-[1.55] text-ink-700 md:text-[19px]">
-              A working memory of everything you've written. The patterns you stopped noticing resurface, the
-              half-finished essays reconnect, and every note cites the evidence behind it.
+              {PRODUCT_SUBHEAD}
             </p>
 
             <div className="animate-rise animate-delay-3 mt-10 max-w-xl">
-              <SubstackUrlForm
+              <PublicationUrlForm
                 captureGlobalKeystrokes
                 routeToRegister
                 authenticatedFallback={<ReturningVisitorCTA />}
@@ -155,7 +159,7 @@ export default function HomePage() {
       </section>
 
       {/* § — Why it works
-          The composition makes the editorial claim literal: a single AI
+          The composition makes the editorial claim literal: a single
           answer (left, primary) carries inline citation markers, and the
           right column is the actual evidence — three numbered post-citations
           pulled from the library. The shared numbers tether the two sides
@@ -165,9 +169,9 @@ export default function HomePage() {
           <header className="mb-14">
             <SectionMarker title="Why it works" />
             <h2 className="mt-4 font-serif text-[34px] leading-[1.1] tracking-tightish text-ink-900 md:text-[44px]">
-              Every answer is{" "}
+              Every answer{" "}
               <span className="relative inline-block italic text-ink-700">
-                tethered to a post.
+                shows its work.
                 <span
                   aria-hidden="true"
                   className="animate-editorial-draw absolute -bottom-0.5 left-0 right-3 h-[1.5px] bg-accent-300/70"
@@ -213,23 +217,16 @@ export default function HomePage() {
           <div className="grid gap-4 md:grid-cols-2">
             <LandingPlanCard
               title={freePlan.label}
-              price="Free"
-              features={[
-                { label: "Tokens", value: `${formatTokens(freePlan.monthlyTokenLimit)}/month` },
-                { label: "Workspaces", value: `${freePlan.activePublicationLimit} publication` },
-                { label: "Scope", value: "One library with conversation, search, and draft feedback" },
-              ]}
+              price={formatPlanPrice(freePlan.priceCents)}
+              features={planRows(freePlan)}
             />
             <LandingPlanCard
               title={premiumPlan.label}
-              price={`$${(premiumPlan.priceCents / 100).toFixed(0)}/month`}
-              features={[
-                { label: "Tokens", value: `${formatTokens(premiumPlan.monthlyTokenLimit)}/month` },
-                { label: "Workspaces", value: `${premiumPlan.activePublicationLimit} publications` },
-                { label: "Scope", value: "Multiple libraries with stronger memory and deeper analysis" },
-              ]}
+              price={formatPlanPrice(premiumPlan.priceCents)}
+              features={planRows(premiumPlan)}
             />
           </div>
+
         </div>
       </section>
 
@@ -331,7 +328,7 @@ export default function HomePage() {
  * Hero CTA for returning, signed-in visitors. The composer asks for a URL
  * we already have on file, so we replace it with one black button that
  * takes them back to their desk. Same animated arrow signature as the
- * SubstackUrlForm submit so the swap feels like a quieter version of the
+ * PublicationUrlForm submit so the swap feels like a quieter version of the
  * same affordance, not a different surface.
  */
 function ReturningVisitorCTA() {
@@ -434,10 +431,6 @@ function LandingPlanCard({
   );
 }
 
-function formatTokens(value: number) {
-  return value.toLocaleString();
-}
-
 /**
  * Inline citation marker. Tiny mono superscript in accent color, sits next
  * to the phrase it supports. Numbers match the citation cards on the right
@@ -455,7 +448,7 @@ function Cite({ n }: { n: number }) {
 }
 
 /**
- * Primary answer card — the AI's voice. Drop-cap quote mark, serif body,
+ * Primary answer card — the answer's voice. Drop-cap quote mark, serif body,
  * inline citation markers, and a curator footer that explicitly names how
  * many posts grounded the response. The footer's "grounded in N posts"
  * cross-references the citation column.
@@ -477,13 +470,13 @@ function PrimaryAnswerCard() {
           Across your library, your strongest pieces open with a{" "}
           <mark className="rounded-sm bg-accent-100/70 px-0.5 text-ink-900">personal observation</mark>
           <Cite n={1} /> before moving into a broader product or culture argument
-          <Cite n={2} />. Your recent essays on AI tools use this structure less
+          <Cite n={2} />. Your recent essays on interface design use this structure less
           <Cite n={3} />, which makes them feel more like commentary than your best work.
         </blockquote>
         <figcaption className="mt-7 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-ink-200/60 pt-4">
           <span className="flex items-center gap-2">
-            <span className="accent-rule" />
-            <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent-700">Curator</span>
+            <ScaffoldMark className="h-[15px] w-[15px] shrink-0 text-accent-500" />
+            <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent-700">Scaffold</span>
           </span>
           <span className="text-ink-300" aria-hidden="true">
             ·
@@ -508,10 +501,7 @@ function CitationColumn({ posts }: { posts: typeof CITED_POSTS }) {
   return (
     <aside className="flex flex-col gap-3 md:col-span-5">
       <div className="flex items-center justify-between gap-3">
-        <span className="flex items-center gap-2 type-eyebrow text-accent-700">
-          <span className="accent-rule" />
-          Cited from your library
-        </span>
+        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-400">Sources</span>
         <span className="font-mono text-[10.5px] text-ink-400"></span>
       </div>
       {posts.map((post, i) => (
@@ -604,11 +594,11 @@ function SampleAnswerCard() {
             </div>
           </div>
 
-          {/* Curator response */}
+          {/* Answer */}
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-2">
-              <span className="accent-rule" />
-              <span className="text-eyebrow font-medium uppercase text-accent-700">Curator</span>
+              <ScaffoldMark className="h-[15px] w-[15px] shrink-0 text-accent-500" />
+              <span className="text-eyebrow font-medium uppercase text-accent-700">Scaffold</span>
               <span className="text-ink-300" aria-hidden="true">
               </span>
               <span className="text-[11px] normal-case tracking-normal text-ink-500"></span>
@@ -622,26 +612,30 @@ function SampleAnswerCard() {
                 before moving into a broader product or culture argument.
               </p>
               <p>
-                Your recent essays on AI tools use this structure less. They read more like commentary than your best
+                Your recent essays on interface design use this structure less. They read more like commentary than your best
                 work.
               </p>
             </div>
 
             {/* Cited posts */}
             <div className="mt-1.5 flex flex-col gap-2">
-              <div className="flex items-center gap-2 type-eyebrow">
-                <span className="accent-rule" />
+              {/* Caption for the list below, deliberately quieter than the
+                  "Scaffold" attribution above it. An attribution names who is
+                  speaking; this introduces a list. They read as one level when
+                  they share a size, which flattens the whole card. */}
+              <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-400">
                 Cited from your library
               </div>
               <ul className="flex flex-col gap-1.5">
-                <CitationRow
-                  num={1}
-                  date="Mar 14"
-                  title="The interface as ideology"
-                  snippet="…begins with a small scene at a coffee shop before the argument widens out…"
-                />
-                <CitationRow num={2} date="Feb 9" title="Notes from a quiet rewrite" />
-                <CitationRow num={3} date="Jan 5" title="Why I stopped writing reviews" />
+                {CITED_POSTS.map((post, i) => (
+                  <CitationRow
+                    key={post.title}
+                    num={i + 1}
+                    date={post.date}
+                    title={post.title}
+                    snippet={`…${post.excerpt}…`}
+                  />
+                ))}
               </ul>
             </div>
           </div>
@@ -650,7 +644,7 @@ function SampleAnswerCard() {
         {/* Suggested follow-ups */}
         <footer className="border-t border-ink-200/70 bg-ink-50/40 px-5 py-3">
           <div className="mb-2 flex items-center justify-between">
-            <span className="type-eyebrow">Follow-ups</span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-400">Follow-ups</span>
             <span className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-400">
               <kbd className="rounded border border-ink-200 bg-white px-1 py-px text-ink-500">⌘</kbd>
               <kbd className="rounded border border-ink-200 bg-white px-1 py-px text-ink-500">↵</kbd>

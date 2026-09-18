@@ -2,12 +2,11 @@ import { NextResponse } from "next/server";
 import { apiError, AppError } from "@/lib/server/errors";
 import { buildLibraryExport } from "@/lib/server/library-export";
 import { requireWorkspaceAccess } from "@/lib/server/workspace-access";
+import type { RouteContext } from "@/types/route";
 
 export const runtime = "nodejs";
 
-type RouteContext = { params: Promise<{ token: string }> };
-
-export async function GET(request: Request, context: RouteContext) {
+export async function GET(request: Request, context: RouteContext<{ token: string }>) {
   try {
     const { token } = await context.params;
     await requireWorkspaceAccess(token);

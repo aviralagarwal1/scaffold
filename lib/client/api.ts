@@ -75,6 +75,11 @@ async function request<T>(input: string, init?: RequestInit): Promise<T> {
   return data as T;
 }
 
+/** Workspace-scoped endpoint path. Every workspace call is token-scoped. */
+function ws(token: string, path = ""): string {
+  return `/api/workspaces/${encodeURIComponent(token)}${path}`;
+}
+
 export const api = {
   register(body: RegisterRequest) {
     return request<RegisterVerificationResponse>("/api/auth/register", {
@@ -128,92 +133,92 @@ export const api = {
     return request<AccountWorkspaceSummary[]>("/api/workspaces");
   },
   getWorkspace(token: string) {
-    return request<WorkspaceOverview>(`/api/workspaces/${encodeURIComponent(token)}`);
+    return request<WorkspaceOverview>(ws(token));
   },
   updateWorkspace(token: string, body: UpdateWorkspaceRequest) {
-    return request<WorkspaceOverview>(`/api/workspaces/${encodeURIComponent(token)}`, {
+    return request<WorkspaceOverview>(ws(token), {
       method: "PATCH",
       body: JSON.stringify(body),
     });
   },
   deleteWorkspace(token: string) {
-    return request<{ ok: true }>(`/api/workspaces/${encodeURIComponent(token)}`, {
+    return request<{ ok: true }>(ws(token), {
       method: "DELETE",
     });
   },
   ingest(token: string) {
-    return request<{ status: string }>(`/api/workspaces/${encodeURIComponent(token)}/ingest`, {
+    return request<{ status: string }>(ws(token, "/ingest"), {
       method: "POST",
     });
   },
   listPosts(token: string) {
-    return request<PostSummary[]>(`/api/workspaces/${encodeURIComponent(token)}/posts`);
+    return request<PostSummary[]>(ws(token, "/posts"));
   },
   syncPost(token: string, postId: string) {
     return request<PostSummary>(
-      `/api/workspaces/${encodeURIComponent(token)}/posts/${encodeURIComponent(postId)}/sync`,
+      ws(token, `/posts/${encodeURIComponent(postId)}/sync`),
       { method: "POST" },
     );
   },
   ask(token: string, body: AskRequest) {
-    return request<AskResponse>(`/api/workspaces/${encodeURIComponent(token)}/ask`, {
+    return request<AskResponse>(ws(token, "/ask"), {
       method: "POST",
       body: JSON.stringify(body),
     });
   },
   listChatSessions(token: string) {
-    return request<ChatSession[]>(`/api/workspaces/${encodeURIComponent(token)}/chat-sessions`);
+    return request<ChatSession[]>(ws(token, "/chat-sessions"));
   },
   deleteChatSession(token: string, sessionId: string) {
     return request<{ ok: true }>(
-      `/api/workspaces/${encodeURIComponent(token)}/chat-sessions/${encodeURIComponent(sessionId)}`,
+      ws(token, `/chat-sessions/${encodeURIComponent(sessionId)}`),
       { method: "DELETE" },
     );
   },
   draftFeedback(token: string, body: DraftFeedbackRequest) {
-    return request<DraftFeedbackResponse>(`/api/workspaces/${encodeURIComponent(token)}/draft-feedback`, {
+    return request<DraftFeedbackResponse>(ws(token, "/draft-feedback"), {
       method: "POST",
       body: JSON.stringify(body),
     });
   },
   listDraftFeedback(token: string) {
-    return request<SavedDraftFeedback[]>(`/api/workspaces/${encodeURIComponent(token)}/draft-feedback`);
+    return request<SavedDraftFeedback[]>(ws(token, "/draft-feedback"));
   },
   deleteDraftFeedback(token: string, reviewId: string) {
     return request<{ ok: true }>(
-      `/api/workspaces/${encodeURIComponent(token)}/draft-feedback/${encodeURIComponent(reviewId)}`,
+      ws(token, `/draft-feedback/${encodeURIComponent(reviewId)}`),
       { method: "DELETE" },
     );
   },
   ideas(token: string, body?: { focus?: string }) {
-    return request<IdeasResponse>(`/api/workspaces/${encodeURIComponent(token)}/ideas`, {
+    return request<IdeasResponse>(ws(token, "/ideas"), {
       method: "POST",
       body: JSON.stringify(body ?? {}),
     });
   },
   updateCustomThemes(token: string, labels: string[]) {
-    return request<{ customThemes: string[] }>(`/api/workspaces/${encodeURIComponent(token)}/custom-themes`, {
+    return request<{ customThemes: string[] }>(ws(token, "/custom-themes"), {
       method: "PUT",
       body: JSON.stringify({ labels }),
     });
   },
   listSavedIdeas(token: string) {
-    return request<SavedIdea[]>(`/api/workspaces/${encodeURIComponent(token)}/saved-ideas`);
+    return request<SavedIdea[]>(ws(token, "/saved-ideas"));
   },
   saveIdea(token: string, idea: Idea) {
-    return request<SavedIdea>(`/api/workspaces/${encodeURIComponent(token)}/saved-ideas`, {
+    return request<SavedIdea>(ws(token, "/saved-ideas"), {
       method: "POST",
       body: JSON.stringify({ idea }),
     });
   },
   deleteSavedIdea(token: string, ideaId: string) {
-    return request<{ ok: true }>(`/api/workspaces/${encodeURIComponent(token)}/saved-ideas/${encodeURIComponent(ideaId)}`, {
+    return request<{ ok: true }>(ws(token, `/saved-ideas/${encodeURIComponent(ideaId)}`), {
       method: "DELETE",
     });
   },
   promptSuggestions(token: string, body?: PromptSuggestionsRequest) {
     return request<PromptSuggestionsResponse>(
-      `/api/workspaces/${encodeURIComponent(token)}/prompt-suggestions`,
+      ws(token, "/prompt-suggestions"),
       {
         method: "POST",
         body: JSON.stringify(body ?? {}),
@@ -222,7 +227,7 @@ export const api = {
   },
   generateDistribution(token: string, body: DistributionRequest) {
     return request<{ drafts: RepurposeDraft[] }>(
-      `/api/workspaces/${encodeURIComponent(token)}/distribution`,
+      ws(token, "/distribution"),
       {
         method: "POST",
         body: JSON.stringify(body),
@@ -234,11 +239,11 @@ export const api = {
     if (opts?.platform) qs.set("platform", opts.platform);
     if (opts?.status) qs.set("status", opts.status);
     const tail = qs.toString() ? `?${qs.toString()}` : "";
-    return request<RepurposeDraft[]>(`/api/workspaces/${encodeURIComponent(token)}/repurpose-drafts${tail}`);
+    return request<RepurposeDraft[]>(ws(token, `/repurpose-drafts${tail}`));
   },
   updateDraft(token: string, draftId: string, body: Partial<Pick<RepurposeDraft, "status" | "content" | "title">>) {
     return request<RepurposeDraft>(
-      `/api/workspaces/${encodeURIComponent(token)}/repurpose-drafts/${encodeURIComponent(draftId)}`,
+      ws(token, `/repurpose-drafts/${encodeURIComponent(draftId)}`),
       {
         method: "PATCH",
         body: JSON.stringify(body),
@@ -247,28 +252,28 @@ export const api = {
   },
   deleteDraft(token: string, draftId: string) {
     return request<{ ok: true }>(
-      `/api/workspaces/${encodeURIComponent(token)}/repurpose-drafts/${encodeURIComponent(draftId)}`,
+      ws(token, `/repurpose-drafts/${encodeURIComponent(draftId)}`),
       {
         method: "DELETE",
       },
     );
   },
   grammarAudit(token: string, body?: { postId?: string }) {
-    return request<GrammarAuditResponse>(`/api/workspaces/${encodeURIComponent(token)}/grammar-audit`, {
+    return request<GrammarAuditResponse>(ws(token, "/grammar-audit"), {
       method: "POST",
       body: JSON.stringify(body ?? {}),
     });
   },
   grammarIssues(token: string) {
-    return request<GrammarIssue[]>(`/api/workspaces/${encodeURIComponent(token)}/grammar-issues`);
+    return request<GrammarIssue[]>(ws(token, "/grammar-issues"));
   },
   clearGrammarIssues(token: string) {
-    return request<{ ok: true }>(`/api/workspaces/${encodeURIComponent(token)}/grammar-issues`, {
+    return request<{ ok: true }>(ws(token, "/grammar-issues"), {
       method: "DELETE",
     });
   },
   search(token: string, body: SearchRequest) {
-    return request<SearchResponse>(`/api/workspaces/${encodeURIComponent(token)}/search`, {
+    return request<SearchResponse>(ws(token, "/search"), {
       method: "POST",
       body: JSON.stringify(body),
     });

@@ -1,13 +1,11 @@
 import { sql } from "drizzle-orm";
 import {
-  boolean,
   doublePrecision,
   index,
   integer,
   jsonb,
   pgEnum,
   pgTable,
-  pgView,
   primaryKey,
   text,
   timestamp,
@@ -17,7 +15,6 @@ import {
 } from "drizzle-orm/pg-core";
 
 export const workspaceStatus = pgEnum("workspace_status", ["pending", "ingesting", "ready", "failed", "partial"]);
-export const workspaceVerificationStatus = pgEnum("workspace_verification_status", ["unverified", "pending", "verified"]);
 export const workspaceRole = pgEnum("workspace_role", ["owner", "editor", "viewer"]);
 export const distributionPlatform = pgEnum("distribution_platform", ["twitter", "linkedin", "reddit", "facebook", "instagram"]);
 export const repurposeDraftStatus = pgEnum("repurpose_draft_status", ["pending", "saved", "deleted"]);
@@ -30,7 +27,6 @@ const timestamps = {
 
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
-  name: text("name"),
   email: text("email").unique(),
   emailVerified: timestamp("email_verified", { withTimezone: true }),
   image: text("image"),
@@ -41,43 +37,6 @@ export const users = pgTable("users", {
   stripeSubscriptionStatus: varchar("stripe_subscription_status", { length: 40 }),
   stripeCurrentPeriodEnd: timestamp("stripe_current_period_end", { withTimezone: true }),
 });
-
-export const accounts = pgTable(
-  "accounts",
-  {
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    type: text("type").notNull(),
-    provider: text("provider").notNull(),
-    providerAccountId: text("provider_account_id").notNull(),
-    refreshToken: text("refresh_token"),
-    accessToken: text("access_token"),
-    expiresAt: integer("expires_at"),
-    tokenType: text("token_type"),
-    scope: text("scope"),
-    idToken: text("id_token"),
-    sessionState: text("session_state"),
-  },
-  (table) => ({
-    pk: primaryKey({ columns: [table.provider, table.providerAccountId] }),
-    userIdIdx: index("accounts_user_id_idx").on(table.userId),
-  }),
-);
-
-export const sessions = pgTable(
-  "sessions",
-  {
-    sessionToken: text("session_token").primaryKey(),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    expires: timestamp("expires", { withTimezone: true }).notNull(),
-  },
-  (table) => ({
-    userIdIdx: index("sessions_user_id_idx").on(table.userId),
-  }),
-);
 
 export const verificationTokens = pgTable(
   "verification_tokens",
@@ -99,45 +58,12 @@ export const profiles = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     fullName: text("full_name"),
-    phoneNumber: varchar("phone_number", { length: 32 }),
-    handle: varchar("handle", { length: 32 }),
-    editorName: varchar("editor_name", { length: 80 }).notNull(),
     ...timestamps,
   },
   (table) => ({
     userIdIdx: uniqueIndex("profiles_user_id_idx").on(table.userId),
-    handleIdx: uniqueIndex("profiles_handle_idx").on(table.handle),
   }),
 );
-
-export const accountProfiles = pgView("account_profiles", {
-  userId: uuid("user_id"),
-  email: text("email"),
-  emailVerified: timestamp("email_verified", { withTimezone: true }),
-  fullName: text("full_name"),
-  phoneNumber: varchar("phone_number", { length: 32 }),
-  handle: varchar("handle", { length: 32 }),
-  creatorName: text("creator_name"),
-  editorName: varchar("editor_name", { length: 80 }),
-  plan: varchar("plan", { length: 24 }),
-  createdAt: timestamp("created_at", { withTimezone: true }),
-  updatedAt: timestamp("updated_at", { withTimezone: true }),
-}).as(sql`
-  select
-    ${users.id} as "user_id",
-    ${users.email} as "email",
-    ${users.emailVerified} as "email_verified",
-    ${profiles.fullName} as "full_name",
-    ${profiles.phoneNumber} as "phone_number",
-    ${profiles.handle} as "handle",
-    ${users.name} as "creator_name",
-    ${profiles.editorName} as "editor_name",
-    ${users.plan} as "plan",
-    ${profiles.createdAt} as "created_at",
-    ${profiles.updatedAt} as "updated_at"
-  from ${users}
-  left join ${profiles} on ${profiles.userId} = ${users.id}
-`);
 
 export const workspaces = pgTable(
   "workspaces",
@@ -150,7 +76,6 @@ export const workspaces = pgTable(
     publicationUrl: text("publication_url").notNull(),
     publicationName: text("publication_name"),
     status: workspaceStatus("status").default("pending").notNull(),
-    verificationStatus: workspaceVerificationStatus("verification_status").default("unverified").notNull(),
     lastIngestedAt: timestamp("last_ingested_at", { withTimezone: true }),
     ingestionError: text("ingestion_error"),
     ...timestamps,
@@ -176,24 +101,6 @@ export const workspaceMemberships = pgTable(
   (table) => ({
     pk: primaryKey({ columns: [table.workspaceId, table.userId] }),
     userIdIdx: index("workspace_memberships_user_id_idx").on(table.userId),
-  }),
-);
-
-export const workspaceVerifications = pgTable(
-  "workspace_verifications",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    workspaceId: uuid("workspace_id")
-      .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
-    method: varchar("method", { length: 40 }).notNull(),
-    targetUrl: text("target_url"),
-    code: varchar("code", { length: 120 }).notNull(),
-    verifiedAt: timestamp("verified_at", { withTimezone: true }),
-    ...timestamps,
-  },
-  (table) => ({
-    workspaceIdIdx: index("workspace_verifications_workspace_id_idx").on(table.workspaceId),
   }),
 );
 
@@ -378,23 +285,6 @@ export const grammarIssues = pgTable(
   }),
 );
 
-export const auditRuns = pgTable(
-  "audit_runs",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    workspaceId: uuid("workspace_id")
-      .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
-    postId: uuid("post_id").references(() => posts.id, { onDelete: "set null" }),
-    summary: text("summary").notNull(),
-    issueCount: integer("issue_count").default(0).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-  },
-  (table) => ({
-    workspaceIdIdx: index("audit_runs_workspace_id_idx").on(table.workspaceId),
-  }),
-);
-
 export const savedReviews = pgTable(
   "saved_reviews",
   {
@@ -412,13 +302,6 @@ export const savedReviews = pgTable(
     workspaceIdIdx: index("saved_reviews_workspace_id_idx").on(table.workspaceId),
   }),
 );
-
-export const featureFlags = pgTable("feature_flags", {
-  key: varchar("key", { length: 120 }).primaryKey(),
-  enabled: boolean("enabled").default(false).notNull(),
-  description: text("description"),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-});
 
 export const appState = pgTable("app_state", {
   key: varchar("key", { length: 120 }).primaryKey(),

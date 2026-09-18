@@ -1,9 +1,9 @@
 "use client";
 
-import { useWorkspace } from "@/components/WorkspaceProvider";
-import { IdeasPanel } from "@/components/IdeasPanel";
-import { NotReadyNotice } from "@/components/NotReadyNotice";
-import { PageHeader } from "@/components/PageHeader";
+import { useWorkspace } from "@/components/workspace/WorkspaceProvider";
+import { IdeasPanel } from "@/components/workspace/IdeasPanel";
+import { NotReadyNotice } from "@/components/workspace/NotReadyNotice";
+import { PageHeader } from "@/components/workspace/PageHeader";
 
 export default function IdeasPage() {
   const { token, overview } = useWorkspace();
@@ -17,7 +17,7 @@ export default function IdeasPage() {
         title="Explore your ideas."
         meta={ready ? "Ideas rise from gaps and recurring patterns in your library. Expect sequels, contrarian angles, and themes worth revisiting." : undefined}
       />
-      {!ready ? <NotReadyNotice status={overview.status} token={token} feature="Ideas" /> : <IdeasPanel token={token} />}
+      {!ready ? <NotReadyNotice status={overview.status} token={token} feature="Exploration" /> : <IdeasPanel token={token} />}
     </div>
   );
 }

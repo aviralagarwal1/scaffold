@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import type { PostSummary } from "@/types/post";
-import { useWorkspace } from "@/components/WorkspaceProvider";
-import { ArchiveBrowser } from "@/components/ArchiveBrowser";
-import { NotReadyNotice } from "@/components/NotReadyNotice";
-import { LoadingState, ErrorState } from "@/components/states";
+import { useWorkspace } from "@/components/workspace/WorkspaceProvider";
+import { LibraryBrowser } from "@/components/workspace/LibraryBrowser";
+import { NotReadyNotice } from "@/components/workspace/NotReadyNotice";
+import { LoadingState, ErrorState } from "@/components/ui/states";
 import { api, ApiClientError } from "@/lib/client/api";
-import { PageHeader } from "@/components/PageHeader";
+import { PageHeader } from "@/components/workspace/PageHeader";
 
 export default function ArchivePage() {
   const { token, overview, refetch } = useWorkspace();
@@ -50,7 +50,7 @@ export default function ArchivePage() {
       ) : posts === null ? (
         <LoadingState label="Loading your posts..." />
       ) : (
-        <ArchiveBrowser
+        <LibraryBrowser
           token={token}
           posts={posts}
           onPostSynced={(post) => {

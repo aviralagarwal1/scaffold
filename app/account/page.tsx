@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { AccountPanel } from "@/components/AccountPanel";
+import { AccountPanel } from "@/components/account/AccountPanel";
 import { getCurrentUserId } from "@/lib/server/auth/current";
 import { getAccountSetupState } from "@/lib/server/account-setup";
 

@@ -3,6 +3,7 @@ import { and, eq, like } from "drizzle-orm";
 import { getDb } from "@/lib/server/db";
 import { profiles, users, verificationTokens } from "@/lib/server/db/schema";
 import { AppError } from "@/lib/server/errors";
+import { escapeHtml, requireEmail } from "./email";
 
 const TOKEN_BYTES = 32;
 const TOKEN_TTL_MS = 1000 * 60 * 60 * 24;
@@ -14,15 +15,13 @@ export type VerificationResult =
 
 type PendingRegistration = {
   passwordHash: string;
-  creatorName: string | null;
-  editorName: string;
   publicationUrl: string | null;
 };
 
 export async function sendVerificationForEmail(
   email: string,
 ): Promise<{ delivery: VerificationEmailDelivery }> {
-  const normalizedEmail = normalizeEmail(email);
+  const normalizedEmail = requireEmail(email);
   const token = randomBytes(TOKEN_BYTES).toString("base64url");
   const expires = new Date(Date.now() + TOKEN_TTL_MS);
   const db = getDb();
@@ -43,24 +42,18 @@ export async function sendVerificationForEmail(
 export async function sendRegistrationVerification({
   email,
   passwordHash,
-  creatorName,
-  editorName,
   publicationUrl,
 }: {
   email: string;
   passwordHash: string;
-  creatorName: string | null;
-  editorName: string;
   publicationUrl?: string | null;
 }): Promise<{ delivery: VerificationEmailDelivery }> {
-  const normalizedEmail = normalizeEmail(email);
+  const normalizedEmail = requireEmail(email);
   const token = randomBytes(TOKEN_BYTES).toString("base64url");
   const expires = new Date(Date.now() + TOKEN_TTL_MS);
   const db = getDb();
   const payload: PendingRegistration = {
     passwordHash,
-    creatorName,
-    editorName,
     publicationUrl: publicationUrl?.trim() || null,
   };
 
@@ -78,7 +71,7 @@ export async function sendRegistrationVerification({
 }
 
 export async function verifyEmailToken(email: string, token: string): Promise<VerificationResult> {
-  const normalizedEmail = normalizeEmail(email);
+  const normalizedEmail = requireEmail(email);
   if (!token.trim()) throw new AppError("Verification link is missing a token.", 400);
 
   const pending = await verifyPendingRegistration(normalizedEmail, token);
@@ -111,13 +104,6 @@ export async function verifyEmailToken(email: string, token: string): Promise<Ve
 
   return { kind: "account" };
 }
-
-function normalizeEmail(value: string): string {
-  const email = value.trim().toLowerCase();
-  if (!email || !email.includes("@")) throw new AppError("Enter a valid email address.", 400);
-  return email;
-}
-
 function verificationIdentifier(email: string): string {
   return `email:${email}`;
 }
@@ -134,11 +120,9 @@ function decodePendingRegistrationIdentifier(email: string, identifier: string):
   const encoded = identifier.slice(pendingRegistrationPrefix(email).length);
   try {
     const parsed = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8")) as Partial<PendingRegistration>;
-    if (!parsed.passwordHash || !parsed.editorName) throw new Error("missing fields");
+    if (!parsed.passwordHash) throw new Error("missing fields");
     return {
       passwordHash: parsed.passwordHash,
-      creatorName: typeof parsed.creatorName === "string" ? parsed.creatorName : null,
-      editorName: parsed.editorName,
       publicationUrl: typeof parsed.publicationUrl === "string" ? parsed.publicationUrl : null,
     };
   } catch {
@@ -177,16 +161,12 @@ async function verifyPendingRegistration(email: string, token: string): Promise<
       .insert(users)
       .values({
         email,
-        name: payload.creatorName,
         passwordHash: payload.passwordHash,
         emailVerified: new Date(),
       })
       .returning({ id: users.id });
 
-    await tx.insert(profiles).values({
-      userId: user.id,
-      editorName: payload.editorName,
-    });
+    await tx.insert(profiles).values({ userId: user.id });
   });
 
   return { kind: "registration", email, publicationUrl: payload.publicationUrl };
@@ -252,12 +232,4 @@ async function sendVerificationEmail(
   }
 
   return { delivery: "email" };
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
 }

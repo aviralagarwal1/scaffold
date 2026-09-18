@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useWorkspace } from "@/components/WorkspaceProvider";
-import { PrivateLinkBanner } from "@/components/PrivateLinkBanner";
-import { IngestionProgress } from "@/components/IngestionProgress";
-import { InsightCard } from "@/components/InsightCard";
+import { useWorkspace } from "@/components/workspace/WorkspaceProvider";
+import { PrivateLinkBanner } from "@/components/workspace/PrivateLinkBanner";
+import { IngestionProgress } from "@/components/workspace/IngestionProgress";
+import { InsightCard } from "@/components/workspace/InsightCard";
 import { formatDate, pluralize } from "@/lib/client/format";
 import type { ArchiveTheme } from "@/types/workspace";
 

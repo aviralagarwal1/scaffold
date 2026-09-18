@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { AccountIdentityPanel } from "@/components/AccountIdentityPanel";
+import { AccountProfilePanel } from "@/components/account/AccountProfilePanel";
 import { getCurrentUserId } from "@/lib/server/auth/current";
 
 export const metadata = {
@@ -43,13 +43,13 @@ export default async function AccountProfilePage({ searchParams }: AccountProfil
           </h1>
           <p className="animate-rise animate-delay-3 mt-4 font-serif text-[16.5px] leading-relaxed text-ink-600">
             {setupMode
-              ? "Complete your profile and choose the names for your library."
+              ? "One detail and you're in."
               : "Manage your personal details and account settings."}
           </p>
         </header>
 
         <div className="animate-rise animate-delay-4">
-          <AccountIdentityPanel setupMode={setupMode} continueHref={continueHref} />
+          <AccountProfilePanel setupMode={setupMode} continueHref={continueHref} />
         </div>
       </div>
     </section>

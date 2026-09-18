@@ -4,12 +4,11 @@ import { generateDistributionDrafts } from "@/lib/server/ai";
 import { AppError, apiError } from "@/lib/server/errors";
 import { readJson, requireString } from "@/lib/server/http";
 import { requireWorkspaceAccess } from "@/lib/server/workspace-access";
-
-type RouteContext = { params: Promise<{ token: string }> };
+import type { RouteContext } from "@/types/route";
 
 const platforms: DistributionPlatform[] = ["twitter", "linkedin", "facebook", "instagram", "reddit"];
 
-export async function POST(request: Request, context: RouteContext) {
+export async function POST(request: Request, context: RouteContext<{ token: string }>) {
   try {
     const { token } = await context.params;
     await requireWorkspaceAccess(token, "edit");

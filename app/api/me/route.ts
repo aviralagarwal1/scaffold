@@ -9,11 +9,7 @@ import { readJson } from "@/lib/server/http";
 import { deleteWorkspacesByTokens } from "@/lib/server/store";
 
 type UpdateProfileRequest = {
-  creatorName?: unknown;
-  editorName?: unknown;
   fullName?: unknown;
-  phoneNumber?: unknown;
-  handle?: unknown;
 };
 
 export async function GET() {
@@ -30,60 +26,13 @@ export async function PATCH(request: Request) {
   try {
     const userId = await requireCurrentUserId();
     const body = await readJson<UpdateProfileRequest>(request);
+    if (!("fullName" in body)) throw new AppError("Choose what to update.", 400);
+
     const db = getDb();
-
-    const patch: {
-      creatorName?: string;
-      editorName?: string;
-      fullName?: string | null;
-      phoneNumber?: string | null;
-      handle?: string | null;
-    } = {};
-
-    if ("creatorName" in body) patch.creatorName = requireCreatorName(body.creatorName);
-    if ("editorName" in body) patch.editorName = requireCuratorName(body.editorName);
-    if ("fullName" in body) patch.fullName = normalizeFullName(body.fullName);
-    if ("phoneNumber" in body) patch.phoneNumber = normalizePhoneNumber(body.phoneNumber);
-    if ("handle" in body) patch.handle = await normalizeHandle(body.handle, userId);
-    if (
-      patch.creatorName === undefined &&
-      patch.editorName === undefined &&
-      patch.fullName === undefined &&
-      patch.phoneNumber === undefined &&
-      patch.handle === undefined
-    ) {
-      throw new AppError("Choose what to update.", 400);
-    }
-
-    if (patch.creatorName !== undefined) {
-      await db.update(users).set({ name: patch.creatorName }).where(eq(users.id, userId));
-    }
-    if (patch.editorName !== undefined) {
-      await db
-        .update(profiles)
-        .set({ editorName: patch.editorName, updatedAt: new Date() })
-        .where(eq(profiles.userId, userId));
-    }
-    const profilePatch: {
-      fullName?: string | null;
-      phoneNumber?: string | null;
-      handle?: string | null;
-      updatedAt: Date;
-    } = { updatedAt: new Date() };
-    if (patch.fullName !== undefined) profilePatch.fullName = patch.fullName;
-    if (patch.phoneNumber !== undefined) profilePatch.phoneNumber = patch.phoneNumber;
-    if (patch.handle !== undefined) profilePatch.handle = patch.handle;
-
-    if (
-      profilePatch.fullName !== undefined ||
-      profilePatch.phoneNumber !== undefined ||
-      profilePatch.handle !== undefined
-    ) {
-      await db
-        .update(profiles)
-        .set(profilePatch)
-        .where(eq(profiles.userId, userId));
-    }
+    await db
+      .update(profiles)
+      .set({ fullName: normalizeFullName(body.fullName), updatedAt: new Date() })
+      .where(eq(profiles.userId, userId));
 
     return NextResponse.json(await loadProfile(userId));
   } catch (error) {
@@ -144,11 +93,7 @@ async function loadProfile(userId: string) {
       id: users.id,
       email: users.email,
       emailVerified: users.emailVerified,
-      creatorName: users.name,
       fullName: profiles.fullName,
-      phoneNumber: profiles.phoneNumber,
-      handle: profiles.handle,
-      editorName: profiles.editorName,
     })
     .from(users)
     .leftJoin(profiles, eq(profiles.userId, users.id))
@@ -161,84 +106,19 @@ async function loadProfile(userId: string) {
     email: row.email,
     emailVerified: row.emailVerified?.toISOString() ?? null,
     fullName: row.fullName ?? null,
-    phoneNumber: row.phoneNumber ?? null,
-    handle: row.handle ?? null,
     plan: await getAccountPlanSummary(userId),
-    creatorName: row.creatorName ?? "",
-    editorName: row.editorName ?? "Curator",
   };
 }
 
-function requireCreatorName(value: unknown): string {
-  if (typeof value !== "string") throw new AppError("What should we call you?", 400);
-  const creatorName = value.trim();
-  if (creatorName.length < 2) throw new AppError("Use at least two letters.", 400);
-  if (creatorName.length > 24) throw new AppError("Keep your name to 24 letters.", 400);
-  if (/[^\p{L}]/u.test(creatorName)) {
-    throw new AppError("Use one word with letters only. No spaces, numbers, or symbols.", 400);
-  }
-  if (!/^\p{Lu}/u.test(creatorName)) throw new AppError("Start with a capital letter.", 400);
-  if (!/\p{Ll}$/u.test(creatorName)) throw new AppError("End with a lowercase letter.", 400);
-  return creatorName;
-}
-
-function requireCuratorName(value: unknown): string {
-  if (typeof value !== "string") throw new AppError("Choose a curator name.", 400);
-  const editorName = value.trim();
-  if (editorName.length < 2) throw new AppError("Use at least two letters.", 400);
-  if (editorName.length > 24) throw new AppError("Keep your curator name to 24 letters.", 400);
-  if (/[^\p{L}]/u.test(editorName)) {
-    throw new AppError("Use one word with letters only. No spaces, numbers, or symbols.", 400);
-  }
-  if (!/^\p{Lu}/u.test(editorName)) throw new AppError("Start with a capital letter.", 400);
-  if (!/\p{Ll}$/u.test(editorName)) throw new AppError("End with a lowercase letter.", 400);
-  return editorName;
-}
-
-function normalizeFullName(value: unknown): string | null {
-  if (value === undefined || value === null || value === "") throw new AppError("Please save your full name.", 400);
+function normalizeFullName(value: unknown): string {
   if (typeof value !== "string") throw new AppError("Please save your full name.", 400);
   const fullName = value.replace(/\s+/g, " ").trim();
   if (!fullName) throw new AppError("Please save your full name.", 400);
   const letterCount = fullName.match(/\p{L}/gu)?.length ?? 0;
   if (letterCount < 2) throw new AppError("Use at least two letters for your full name.", 400);
   if (fullName.length > 100) throw new AppError("Keep your full name under 100 characters.", 400);
-  if (!/\p{L}/u.test(fullName)) throw new AppError("Use letters in your full name.", 400);
   if (/[^\p{L}\s'.-]/u.test(fullName)) {
     throw new AppError("Use letters, spaces, hyphens, apostrophes, or periods.", 400);
   }
   return fullName;
-}
-
-function normalizePhoneNumber(value: unknown): string | null {
-  if (value === undefined || value === null || value === "") throw new AppError("Please save your phone number.", 400);
-  if (typeof value !== "string") throw new AppError("Please save your phone number.", 400);
-  const digits = value.replace(/\D/g, "");
-  const national = digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
-  if (national.length !== 10) throw new AppError("Use a 10-digit US number.", 400);
-  return `+1 (${national.slice(0, 3)}) ${national.slice(3, 6)}-${national.slice(6)}`;
-}
-
-async function normalizeHandle(value: unknown, userId: string): Promise<string | null> {
-  if (value === undefined || value === null || value === "") throw new AppError("Please save your handle.", 400);
-  if (typeof value !== "string") throw new AppError("Please save your handle.", 400);
-  const handle = value.replace(/^@+/, "").trim().toLowerCase();
-  if (!handle) throw new AppError("Please save your handle.", 400);
-  if (handle.length < 3) throw new AppError("Use at least 3 characters for your handle.", 400);
-  if (handle.length > 24) throw new AppError("Keep your handle to 24 characters.", 400);
-  if (!/^[a-z]/.test(handle)) throw new AppError("Start your handle with a letter.", 400);
-  if (!/^[a-z0-9_]+$/.test(handle)) {
-    throw new AppError("Use lowercase letters, numbers, or underscores.", 400);
-  }
-
-  const db = getDb();
-  const [existing] = await db
-    .select({ userId: profiles.userId })
-    .from(profiles)
-    .where(eq(profiles.handle, handle))
-    .limit(1);
-  if (existing && existing.userId !== userId) {
-    throw new AppError("That handle is already taken.", 409);
-  }
-  return handle;
 }

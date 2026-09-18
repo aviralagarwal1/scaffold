@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import type { PostSummary } from "@/types/post";
-import { useWorkspace } from "@/components/WorkspaceProvider";
-import { GrammarAuditPanel } from "@/components/GrammarAuditPanel";
-import { NotReadyNotice } from "@/components/NotReadyNotice";
+import { useWorkspace } from "@/components/workspace/WorkspaceProvider";
+import { GrammarAuditPanel } from "@/components/workspace/GrammarAuditPanel";
+import { NotReadyNotice } from "@/components/workspace/NotReadyNotice";
 import { api } from "@/lib/client/api";
-import { LoadingState } from "@/components/states";
-import { PageHeader } from "@/components/PageHeader";
+import { LoadingState } from "@/components/ui/states";
+import { PageHeader } from "@/components/workspace/PageHeader";
 
 export default function GrammarPage() {
   const { token, overview } = useWorkspace();
@@ -39,7 +39,7 @@ export default function GrammarPage() {
         meta={ready ? "Notes are surfaced from across your library, not from generic spellcheck. Your voice always stays intact." : undefined}
       />
       {!ready ? (
-        <NotReadyNotice status={overview.status} token={token} feature="Audit" />
+        <NotReadyNotice status={overview.status} token={token} feature="Proofreading" />
       ) : posts === null ? (
         <LoadingState label="Loading your posts..." />
       ) : (

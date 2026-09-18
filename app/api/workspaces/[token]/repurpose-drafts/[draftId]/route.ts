@@ -4,12 +4,11 @@ import { AppError, apiError } from "@/lib/server/errors";
 import { readJson } from "@/lib/server/http";
 import { updateRepurposeDraft } from "@/lib/server/store";
 import { requireWorkspaceAccess } from "@/lib/server/workspace-access";
-
-type RouteContext = { params: Promise<{ token: string; draftId: string }> };
+import type { RouteContext } from "@/types/route";
 
 const statuses: RepurposeDraftStatus[] = ["pending", "saved", "deleted"];
 
-export async function PATCH(request: Request, context: RouteContext) {
+export async function PATCH(request: Request, context: RouteContext<{ token: string; draftId: string }>) {
   try {
     const { token, draftId } = await context.params;
     await requireWorkspaceAccess(token, "edit");
@@ -35,7 +34,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 }
 
-export async function DELETE(_request: Request, context: RouteContext) {
+export async function DELETE(_request: Request, context: RouteContext<{ token: string; draftId: string }>) {
   try {
     const { token, draftId } = await context.params;
     await requireWorkspaceAccess(token, "edit");

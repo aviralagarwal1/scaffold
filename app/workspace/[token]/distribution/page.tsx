@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import type { PostSummary } from "@/types/post";
-import { useWorkspace } from "@/components/WorkspaceProvider";
-import { DistributionPanel } from "@/components/DistributionPanel";
-import { NotReadyNotice } from "@/components/NotReadyNotice";
-import { LoadingState } from "@/components/states";
+import { useWorkspace } from "@/components/workspace/WorkspaceProvider";
+import { DistributionPanel } from "@/components/workspace/DistributionPanel";
+import { NotReadyNotice } from "@/components/workspace/NotReadyNotice";
+import { LoadingState } from "@/components/ui/states";
 import { api } from "@/lib/client/api";
-import { PageHeader } from "@/components/PageHeader";
+import { PageHeader } from "@/components/workspace/PageHeader";
 
 export default function DistributionPage() {
   const { token, overview } = useWorkspace();

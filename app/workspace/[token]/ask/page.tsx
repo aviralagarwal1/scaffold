@@ -1,12 +1,12 @@
 "use client";
 
-import { useWorkspace } from "@/components/WorkspaceProvider";
-import { ChatPanel } from "@/components/ChatPanel";
-import { NotReadyNotice } from "@/components/NotReadyNotice";
-import { PageHeader } from "@/components/PageHeader";
+import { useWorkspace } from "@/components/workspace/WorkspaceProvider";
+import { ChatPanel } from "@/components/workspace/ChatPanel";
+import { NotReadyNotice } from "@/components/workspace/NotReadyNotice";
+import { PageHeader } from "@/components/workspace/PageHeader";
 
 export default function AskPage() {
-  const { token, overview, curatorName } = useWorkspace();
+  const { token, overview } = useWorkspace();
 
   if (!overview) return null;
 
@@ -21,7 +21,7 @@ export default function AskPage() {
       {!ready ? (
         <NotReadyNotice status={overview.status} token={token} feature="Conversation" />
       ) : (
-        <ChatPanel token={token} curatorName={curatorName} />
+        <ChatPanel token={token} />
       )}
     </div>
   );

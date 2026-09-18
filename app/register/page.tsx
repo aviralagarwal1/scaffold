@@ -1,7 +1,7 @@
 import { Suspense } from "react";
-import { AuthForm } from "@/components/AuthForm";
-import { AuthSurface } from "@/components/AuthSurface";
-import { AuthedRedirect } from "@/components/AuthedRedirect";
+import { AuthForm } from "@/components/auth/AuthForm";
+import { AuthSurface } from "@/components/auth/AuthSurface";
+import { AuthedRedirect } from "@/components/auth/AuthedRedirect";
 
 export const metadata = {
   title: "Create your account · Scaffold",

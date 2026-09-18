@@ -3,11 +3,11 @@ import { apiError, AppError } from "@/lib/server/errors";
 import { readJson } from "@/lib/server/http";
 import { updateCustomThemes } from "@/lib/server/store";
 import { requireWorkspaceAccess } from "@/lib/server/workspace-access";
+import type { RouteContext } from "@/types/route";
 
-type RouteContext = { params: Promise<{ token: string }> };
 type CustomThemesRequest = { labels?: unknown };
 
-export async function PUT(request: Request, context: RouteContext) {
+export async function PUT(request: Request, context: RouteContext<{ token: string }>) {
   try {
     const { token } = await context.params;
     await requireWorkspaceAccess(token, "edit");

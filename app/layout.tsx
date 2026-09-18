@@ -1,9 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { getServerSession } from "next-auth";
 import "./globals.css";
-import { AppShell } from "@/components/AppShell";
-import { Providers } from "@/components/Providers";
+import { AppShell } from "@/components/shell/AppShell";
+import { Providers } from "@/components/shell/Providers";
 import { authOptions } from "@/lib/server/auth/options";
+import { PRODUCT_DESCRIPTION, PRODUCT_NAME } from "@/lib/copy";
 
 function publicAppUrl(): URL {
   const raw = process.env.APP_BASE_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
@@ -16,9 +17,8 @@ function publicAppUrl(): URL {
 
 export const metadata: Metadata = {
   metadataBase: publicAppUrl(),
-  title: "Scaffold",
-  description:
-    "Build an AI-powered workspace around a publication library, then get tailored feedback, ideas, and distribution drafts grounded in the writing.",
+  title: PRODUCT_NAME,
+  description: PRODUCT_DESCRIPTION,
 };
 
 export const viewport: Viewport = {

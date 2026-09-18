@@ -3,11 +3,11 @@ import { apiError } from "@/lib/server/errors";
 import { readJson } from "@/lib/server/http";
 import { addSavedIdea, listSavedIdeas } from "@/lib/server/store";
 import { requireWorkspaceAccess } from "@/lib/server/workspace-access";
+import type { RouteContext } from "@/types/route";
 
-type RouteContext = { params: Promise<{ token: string }> };
 type SaveIdeaRequest = { idea?: unknown };
 
-export async function GET(_request: Request, context: RouteContext) {
+export async function GET(_request: Request, context: RouteContext<{ token: string }>) {
   try {
     const { token } = await context.params;
     await requireWorkspaceAccess(token);
@@ -17,7 +17,7 @@ export async function GET(_request: Request, context: RouteContext) {
   }
 }
 
-export async function POST(request: Request, context: RouteContext) {
+export async function POST(request: Request, context: RouteContext<{ token: string }>) {
   try {
     const { token } = await context.params;
     await requireWorkspaceAccess(token, "edit");

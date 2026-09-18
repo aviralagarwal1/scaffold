@@ -55,11 +55,6 @@ function tagValue(xml: string, tag: string): string | null {
   return decodeEntities(match[1].replace(/^<!\[CDATA\[([\s\S]*)\]\]>$/i, "$1").trim());
 }
 
-function attrValue(xml: string, tag: string, attr: string): string | null {
-  const pattern = new RegExp(`<${tag}[^>]*\\s${attr}=["']([^"']+)["'][^>]*>`, "i");
-  return xml.match(pattern)?.[1] ?? null;
-}
-
 function itemBlocks(xml: string): string[] {
   return [...xml.matchAll(/<item\b[\s\S]*?<\/item>/gi)].map((match) => match[0]);
 }

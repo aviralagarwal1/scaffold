@@ -5,10 +5,9 @@ import { apiError } from "@/lib/server/errors";
 import { listSavedDraftFeedback, saveDraftFeedback } from "@/lib/server/history";
 import { readJson, requireString } from "@/lib/server/http";
 import { requireWorkspaceAccess } from "@/lib/server/workspace-access";
+import type { RouteContext } from "@/types/route";
 
-type RouteContext = { params: Promise<{ token: string }> };
-
-export async function GET(_request: Request, context: RouteContext) {
+export async function GET(_request: Request, context: RouteContext<{ token: string }>) {
   try {
     const { token } = await context.params;
     await requireWorkspaceAccess(token, "view");
@@ -18,7 +17,7 @@ export async function GET(_request: Request, context: RouteContext) {
   }
 }
 
-export async function POST(request: Request, context: RouteContext) {
+export async function POST(request: Request, context: RouteContext<{ token: string }>) {
   try {
     const { token } = await context.params;
     await requireWorkspaceAccess(token, "edit");

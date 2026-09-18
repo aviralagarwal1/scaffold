@@ -4,6 +4,7 @@ import { getDb } from "@/lib/server/db";
 import { users, verificationTokens } from "@/lib/server/db/schema";
 import { AppError } from "@/lib/server/errors";
 import { hashPassword } from "./password";
+import { escapeHtml, requireEmail } from "./email";
 
 const TOKEN_BYTES = 32;
 const TOKEN_TTL_MS = 1000 * 60 * 30;
@@ -11,7 +12,7 @@ const TOKEN_TTL_MS = 1000 * 60 * 30;
 export type PasswordResetDelivery = "email" | "console";
 
 export async function sendPasswordResetForEmail(email: string): Promise<{ delivery?: PasswordResetDelivery }> {
-  const normalizedEmail = normalizeEmail(email);
+  const normalizedEmail = requireEmail(email);
   const db = getDb();
   const [user] = await db
     .select({ id: users.id, emailVerified: users.emailVerified })
@@ -34,7 +35,7 @@ export async function sendPasswordResetForEmail(email: string): Promise<{ delive
 }
 
 export async function resetPasswordWithToken(email: string, token: string, password: string): Promise<void> {
-  const normalizedEmail = normalizeEmail(email);
+  const normalizedEmail = requireEmail(email);
   const cleanToken = token.trim();
   if (!cleanToken) throw new AppError("Reset link is missing a token.", 400);
   if (password.length < 8) throw new AppError("Password must be at least 8 characters.", 400);
@@ -65,13 +66,6 @@ export async function resetPasswordWithToken(email: string, token: string, passw
     .returning({ id: users.id });
   if (!updated) throw new AppError("Reset link is invalid or has already been used.", 400);
 }
-
-function normalizeEmail(value: string): string {
-  const email = value.trim().toLowerCase();
-  if (!email || !email.includes("@")) throw new AppError("Enter a valid email address.", 400);
-  return email;
-}
-
 function resetIdentifier(email: string): string {
   return `password-reset:${email}`;
 }
@@ -136,12 +130,4 @@ async function sendPasswordResetEmail(
   }
 
   return { delivery: "email" };
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
 }
