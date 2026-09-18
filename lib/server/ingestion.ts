@@ -11,7 +11,7 @@ import {
   setWorkspaceStatus,
   getWorkspaceByToken
 } from "./store";
-import { analyzeArchiveThemes } from "./ai";
+import { analyzeArchiveThemes } from "./themes";
 import { AppError } from "./errors";
 import { wordCount } from "./text";
 
@@ -29,14 +29,14 @@ export async function ingestWorkspaceWithFeed(
   const workspace = await getWorkspaceByToken(token);
   const previousStatus = workspace.status;
   const previousError = workspace.ingestionError;
-  await assertWorkspaceTokenBudget(token, 20_000, "sync");
+  await assertWorkspaceTokenBudget(token, 20_000);
   await setWorkspaceStatus(token, "ingesting");
 
   try {
     const feed = preloadedFeed ?? await fetchSubstackFeed(workspace.publicationUrl, workspace.id);
     const reusableThemes = await getReusableArchiveThemes(token, feed.posts);
     const indexingTokens = 1200 + feed.posts.reduce((total, post) => total + Math.ceil(post.contentText.length / 6), 0);
-    await assertWorkspaceTokenBudget(token, indexingTokens, "sync");
+    await assertWorkspaceTokenBudget(token, indexingTokens);
     await recordWorkspaceTokenUsage({
       token,
       feature: "sync",
@@ -66,7 +66,7 @@ export async function ingestWorkspacePost(token: string, postId: string) {
   }
 
   const indexingTokens = 400 + Math.ceil(feedPost.contentText.length / 6);
-  await assertWorkspaceTokenBudget(token, indexingTokens, "sync");
+  await assertWorkspaceTokenBudget(token, indexingTokens);
   await recordWorkspaceTokenUsage({
     token,
     feature: "sync",
@@ -90,15 +90,16 @@ export async function ingestWorkspacePost(token: string, postId: string) {
 }
 
 function findMatchingFeedPost(posts: ParsedFeedPost[], currentPost: Post): ParsedFeedPost | null {
-  const currentUrl = normalizePostUrl(currentPost.url);
-  const byUrl = posts.find((post) => normalizePostUrl(post.url) === currentUrl);
+  const currentUrl = feedPostUrlKey(currentPost.url);
+  const byUrl = posts.find((post) => feedPostUrlKey(post.url) === currentUrl);
   if (byUrl) return byUrl;
 
-  const currentTitle = normalizePostTitle(currentPost.title);
-  return posts.find((post) => normalizePostTitle(post.title) === currentTitle) ?? null;
+  const currentTitle = feedPostTitleKey(currentPost.title);
+  return posts.find((post) => feedPostTitleKey(post.title) === currentTitle) ?? null;
 }
 
-function normalizePostUrl(value: string): string {
+/** Canonical URL identity for one feed entry: no hash, no query, no trailing slash. */
+function feedPostUrlKey(value: string): string {
   try {
     const url = new URL(value);
     url.hash = "";
@@ -109,6 +110,7 @@ function normalizePostUrl(value: string): string {
   }
 }
 
-function normalizePostTitle(value: string): string {
+/** Fallback match key when a post's URL changed but its title did not. */
+function feedPostTitleKey(value: string): string {
   return value.trim().replace(/\s+/g, " ").toLowerCase();
 }
