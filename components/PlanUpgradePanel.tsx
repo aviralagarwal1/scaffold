@@ -7,7 +7,7 @@ import type { AccountPlanSummary } from "@/types/workspace";
 import type { PlanConfig } from "@/lib/server/plans";
 import { api, ApiClientError } from "@/lib/client/api";
 import { cn } from "@/lib/client/cn";
-import { formatPlanPrice, PLAN_FOOTNOTE, planRows } from "@/lib/copy";
+import { formatPlanPrice, planRows } from "@/lib/copy";
 
 export function PlanUpgradePanel({
   plan,
@@ -82,8 +82,6 @@ export function PlanUpgradePanel({
             features={planRows(premiumPlan)}
           />
         </div>
-
-        <p className="text-[13px] leading-relaxed text-ink-500">{PLAN_FOOTNOTE}</p>
 
         <div className="flex flex-col items-start gap-3 border-t border-ink-200/70 pt-5 sm:flex-row sm:items-center sm:justify-between">
           <p className="max-w-xl text-[13px] leading-relaxed text-ink-500">

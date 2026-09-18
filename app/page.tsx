@@ -5,7 +5,6 @@ import { SubstackUrlForm } from "@/components/SubstackUrlForm";
 import { planConfig } from "@/lib/server/plans";
 import {
   formatPlanPrice,
-  PLAN_FOOTNOTE,
   planRows,
   PRODUCT_SUBHEAD,
 } from "@/lib/copy";
@@ -228,7 +227,6 @@ export default function HomePage() {
             />
           </div>
 
-          <p className="mt-5 text-center text-[13px] leading-relaxed text-ink-500">{PLAN_FOOTNOTE}</p>
         </div>
       </section>
 
@@ -503,7 +501,7 @@ function CitationColumn({ posts }: { posts: typeof CITED_POSTS }) {
   return (
     <aside className="flex flex-col gap-3 md:col-span-5">
       <div className="flex items-center justify-between gap-3">
-        <span className="type-eyebrow text-accent-700">Cited from your library</span>
+        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-400">Sources</span>
         <span className="font-mono text-[10.5px] text-ink-400"></span>
       </div>
       {posts.map((post, i) => (
@@ -621,16 +619,23 @@ function SampleAnswerCard() {
 
             {/* Cited posts */}
             <div className="mt-1.5 flex flex-col gap-2">
-              <div className="type-eyebrow">Cited from your library</div>
+              {/* Caption for the list below, deliberately quieter than the
+                  "Scaffold" attribution above it. An attribution names who is
+                  speaking; this introduces a list. They read as one level when
+                  they share a size, which flattens the whole card. */}
+              <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-400">
+                Cited from your library
+              </div>
               <ul className="flex flex-col gap-1.5">
-                <CitationRow
-                  num={1}
-                  date="Mar 14"
-                  title="The interface as ideology"
-                  snippet="…begins with a small scene at a coffee shop before the argument widens out…"
-                />
-                <CitationRow num={2} date="Feb 9" title="Notes from a quiet rewrite" />
-                <CitationRow num={3} date="Jan 5" title="Why I stopped writing reviews" />
+                {CITED_POSTS.map((post, i) => (
+                  <CitationRow
+                    key={post.title}
+                    num={i + 1}
+                    date={post.date}
+                    title={post.title}
+                    snippet={`…${post.excerpt}…`}
+                  />
+                ))}
               </ul>
             </div>
           </div>
@@ -639,7 +644,7 @@ function SampleAnswerCard() {
         {/* Suggested follow-ups */}
         <footer className="border-t border-ink-200/70 bg-ink-50/40 px-5 py-3">
           <div className="mb-2 flex items-center justify-between">
-            <span className="type-eyebrow">Follow-ups</span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-400">Follow-ups</span>
             <span className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-400">
               <kbd className="rounded border border-ink-200 bg-white px-1 py-px text-ink-500">⌘</kbd>
               <kbd className="rounded border border-ink-200 bg-white px-1 py-px text-ink-500">↵</kbd>

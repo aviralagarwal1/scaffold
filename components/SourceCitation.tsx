@@ -29,7 +29,9 @@ export function SourceCitationList({ sources }: { sources: Source[] }) {
   if (!sources.length) return null;
   return (
     <div className="flex flex-col gap-2.5">
-      <div className="type-eyebrow">Cited from your library</div>
+      <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-400">
+        Cited from your library
+      </div>
       <div className="grid gap-2 sm:grid-cols-2">
         {sources.map((s, i) => (
           <SourceCitation key={`${s.url}-${i}`} source={s} index={i} />

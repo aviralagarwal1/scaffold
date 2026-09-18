@@ -78,12 +78,13 @@ export function planRows(plan: { monthlyTokenLimit: number; activePublicationLim
   ];
 }
 
-/**
- * Shown once beneath the plan cards rather than repeated inside each one.
- * That features are not gated is a real selling point, and it only reads as
- * one when it is said plainly instead of implied by two matching rows.
- */
-export const PLAN_FOOTNOTE = "Every tool is on both plans. Premium adds room, not features.";
+// There is deliberately no prose beneath the plan cards. "Every tool is on
+// both plans" was true and actively unhelpful: it tells someone on Basic that
+// they are not missing anything, which is the opposite of what a pricing
+// comparison is for. The two rows already say 4x the tokens and 3x the
+// workspaces, and that is the whole argument. If a line goes back here it
+// should name the trigger to upgrade, not reassure the person who has not hit
+// it yet.
 
 /** How the product discloses what it does, where someone goes looking. */
 export const MODEL_DISCLOSURE =
