@@ -512,6 +512,33 @@ body {
   .logo-cta { transition: none !important; }
 }
 
+/* === Mobile input sizing ===
+   iOS Safari zooms the viewport whenever a focused input has a font size
+   below 16px. At 14px that meant tapping any field — name, email, password,
+   the reset code — jerked the page in and shifted the layout under the
+   reader's thumb mid-type. Desktop keeps the tighter 14px. */
+@media (max-width: 640px) {
+  .input,
+  textarea.input,
+  select.input {
+    font-size: 16px;
+  }
+}
+
+/* === Touch targets ===
+   36px control heights are comfortable with a cursor and unreliable with a
+   thumb. Coarse pointers get the 44px minimum. */
+@media (hover: none) and (pointer: coarse) {
+  .btn-primary,
+  .btn-secondary,
+  .btn-link,
+  .input,
+  textarea.input,
+  select.input {
+    min-height: 44px;
+  }
+}
+
 @media (hover: none) and (pointer: coarse) {
   .site-wordmark-mark {
     /* The mark is an outlined path now, not a typeset character, so it needs
