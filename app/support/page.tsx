@@ -131,7 +131,7 @@ function buildQuestions(
     {
       question: "Why not just paste my posts into a chatbot?",
       answer:
-        "Because you would do it again every time. Scaffold reads the whole archive once, keeps it, and stays current as you publish — so an answer can draw on something you wrote years ago without you remembering it existed, and can tell you which post it came from.",
+        "Because you would do it again every time. Scaffold reads everything once, keeps it, and stays current as you publish — so an answer can draw on something you wrote years ago without you remembering it existed, and can tell you which post it came from.",
     },
     {
       question: "Who built Scaffold?",

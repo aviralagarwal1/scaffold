@@ -21,7 +21,7 @@ const STEPS = [
     body: "Paste a publication link or custom domain. Only public posts are read.",
   },
   {
-    title: "The archive is read.",
+    title: "Every post is read.",
     body: "Every public post is pulled in, split into passages, and indexed.",
   },
   {
