@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import path from "path";
 import { promisify } from "util";
 import { feedUrlForPublication } from "./url";
+import { assertFetchableUrl, safeFetch } from "./safe-fetch";
 import { decodeEntities, stripHtml, wordCount } from "./text";
 
 const execFileAsync = promisify(execFile);
@@ -111,13 +112,11 @@ async function fetchFeedXml(feedUrl: string): Promise<{ xml: string; feedUrl: st
 async function fetchFeedXmlCandidate(feedUrl: string, attempted: Set<string>): Promise<{ xml: string; feedUrl: string }> {
   attempted.add(feedUrl);
   try {
-    const response = await fetch(feedUrl, {
-      headers: RSS_HEADERS,
-      redirect: "follow",
-      next: { revalidate: 0 }
-    });
+    // safeFetch resolves the host and checks every redirect hop, so a public
+    // URL cannot bounce the request onto a private address.
+    const response = await safeFetch(feedUrl, { headers: RSS_HEADERS });
 
-    const body = await response.text();
+    const body = response.body;
     if (response.ok && looksLikeXml(body)) {
       return { xml: body, feedUrl: response.url || feedUrl };
     }
@@ -149,12 +148,22 @@ async function fetchFeedXmlCandidate(feedUrl: string, attempted: Set<string>): P
 class FeedFetchError extends Error {}
 
 async function fetchFeedXmlWithCurlCffi(feedUrl: string): Promise<string | null> {
+  // The guard cannot see inside curl_cffi, so the destination is checked here
+  // and redirects are refused below — a redirect the guard never inspects is
+  // exactly the hole this whole module exists to close. A feed that only
+  // works via a redirect will fail rather than be followed blind.
+  try {
+    await assertFetchableUrl(feedUrl);
+  } catch {
+    return null;
+  }
+
   const script = [
     "import json, sys",
     "from curl_cffi import requests",
     "url = sys.argv[1]",
     "headers = json.loads(sys.argv[2])",
-    "response = requests.get(url, headers=headers, impersonate='chrome124', timeout=20, allow_redirects=True)",
+    "response = requests.get(url, headers=headers, impersonate='chrome124', timeout=20, allow_redirects=False)",
     "sys.stdout.write(response.text)",
     "sys.exit(0 if response.status_code < 400 else response.status_code)"
   ].join("\n");

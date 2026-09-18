@@ -1,5 +1,25 @@
 import { Fragment, type ReactNode } from "react";
 
+/**
+ * Only render a link the browser should be willing to follow.
+ *
+ * The text here is model output composed from library posts, and a library is
+ * built from whatever a public publication chose to publish. A post could
+ * carry `[click me](javascript:…)` and it would arrive here as an ordinary
+ * link. Anything that is not plainly http, https or mailto renders as text
+ * instead of a link.
+ */
+function safeHref(raw: string): string | null {
+  const href = raw.trim();
+  if (href.startsWith("/") || href.startsWith("#")) return href;
+  try {
+    const { protocol } = new URL(href);
+    return protocol === "http:" || protocol === "https:" || protocol === "mailto:" ? href : null;
+  } catch {
+    return null;
+  }
+}
+
 function renderInline(text: string, keyPrefix: string): ReactNode[] {
   const nodes: ReactNode[] = [];
   let remaining = text;
@@ -25,10 +45,15 @@ function renderInline(text: string, keyPrefix: string): ReactNode[] {
         </code>,
       );
     } else if (m[4] && m[5]) {
+      const href = safeHref(m[5]);
       nodes.push(
-        <a key={`${keyPrefix}-a-${i++}`} href={m[5]} target="_blank" rel="noreferrer" className="text-ink-900 underline underline-offset-2 hover:text-ink-700">
-          {m[4]}
-        </a>,
+        href ? (
+          <a key={`${keyPrefix}-a-${i++}`} href={href} target="_blank" rel="noreferrer" className="text-ink-900 underline underline-offset-2 hover:text-ink-700">
+            {m[4]}
+          </a>
+        ) : (
+          <Fragment key={`${keyPrefix}-a-${i++}`}>{m[4]}</Fragment>
+        ),
       );
     }
     remaining = remaining.slice(m.index + m[0].length);

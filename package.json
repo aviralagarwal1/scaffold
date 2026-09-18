@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "copy:audit": "node scripts/copy-audit.mjs",
+    "test:guard": "node --experimental-strip-types --no-warnings scripts/ip-rules.test.mts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
