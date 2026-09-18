@@ -7,7 +7,7 @@ import { cn } from "@/lib/client/cn";
 export function BillingPortalButton({
   className,
   idleLabel = "Manage billing",
-  busyLabel = "Opening Billing",
+  busyLabel = "Opening billing",
 }: {
   className?: string;
   idleLabel?: string;

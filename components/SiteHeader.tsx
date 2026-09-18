@@ -55,7 +55,7 @@ export function SiteHeader() {
 
 // Nav is contextual. Order is: workspace context → marketing/auth context.
 //
-// - Workspace pages (non-settings): Sync Workspace is the workspace's own
+// - Workspace pages (non-settings): Sync workspace is the workspace's own
 //   verb; the UserMenu sits beside it as the global identity affordance.
 // - About is a landing-page affordance only. Once someone is registering,
 //   setting up, or working, the nav should stay task-focused.
@@ -75,7 +75,7 @@ function renderNavItems(pathname: string | null, isAuthenticated: boolean): Reac
       <>
         {subpath !== "settings" && (
           <Link href={`/workspace/${token}/settings#sync`} className="btn-secondary">
-            Sync Workspace
+            Sync workspace
           </Link>
         )}
         {isAuthenticated && <UserMenu />}

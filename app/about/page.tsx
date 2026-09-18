@@ -46,7 +46,7 @@ export default function AboutPage() {
           {/* Italic byline below the name. The draw-in hairline lives
               under THIS phrase rather than under the name — same recipe
               the landing uses on its section heads ("Less than a minute.",
-              "tethered to a post."). Animation now belongs to the italic
+              "shows its work."). Animation now belongs to the italic
               phrase rather than competing with the name itself. */}
           <span className="relative mt-3 inline-block font-serif italic text-[15px] text-ink-600 md:text-[16px]">
             Writer · Builder · Observer

@@ -223,7 +223,7 @@ export function UserMenu() {
                 onClick={() => void signOut({ callbackUrl: "/" })}
                 className="block w-full px-3.5 py-1.5 text-left text-[13px] text-ink-700 transition-colors hover:bg-critical-100/40 hover:text-critical-700"
               >
-                Sign Out
+                Sign out
               </button>
             </li>
           </ul>

@@ -169,9 +169,9 @@ export default function HomePage() {
           <header className="mb-14">
             <SectionMarker title="Why it works" />
             <h2 className="mt-4 font-serif text-[34px] leading-[1.1] tracking-tightish text-ink-900 md:text-[44px]">
-              Every answer is{" "}
+              Every answer{" "}
               <span className="relative inline-block italic text-ink-700">
-                tethered to a post.
+                shows its work.
                 <span
                   aria-hidden="true"
                   className="animate-editorial-draw absolute -bottom-0.5 left-0 right-3 h-[1.5px] bg-accent-300/70"

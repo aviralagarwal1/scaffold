@@ -4,19 +4,22 @@ import { usePathname } from "next/navigation";
 
 export function SiteFooter() {
   const pathname = usePathname();
+  // Computed, not written down. A hardcoded year is wrong every January and
+  // nobody notices until someone screenshots the footer.
+  const year = new Date().getFullYear();
   // The full editorial colophon belongs to the marketing surfaces — landing
   // and About. Every other page (workspace, account, auth, /publications/new) gets the
   // quieter minimal footer so the reading surface stays calm.
   const isMarketing = pathname === "/" || pathname === "/about";
 
   if (isMarketing) {
-    return <LandingFooter />;
+    return <LandingFooter year={year} />;
   }
 
-  return <WorkspaceFooter />;
+  return <WorkspaceFooter year={year} />;
 }
 
-function LandingFooter() {
+function LandingFooter({ year }: { year: number }) {
   return (
     <footer className="border-t border-ink-200/50">
       <div className="mx-auto max-w-3xl px-6 py-10 text-center">
@@ -39,7 +42,7 @@ function LandingFooter() {
 
         {/* Colophon credit. Quietly informational, mono caps, low contrast. */}
         <p className="mt-6 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink-400">
-          <span>© 2026 Scaffold</span>
+          <span suppressHydrationWarning>© {year} Scaffold</span>
           <span aria-hidden="true" className="text-ink-300">
             ·
           </span>
@@ -52,12 +55,12 @@ function LandingFooter() {
   );
 }
 
-function WorkspaceFooter() {
+function WorkspaceFooter({ year }: { year: number }) {
   return (
     <footer className="mt-8 border-t border-ink-200/40">
       <div className="mx-auto max-w-6xl px-6 py-4 text-right">
-        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-300">
-          © 2026 Aviral Agarwal
+        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-300" suppressHydrationWarning>
+          © {year} Aviral Agarwal
         </p>
       </div>
     </footer>
