@@ -62,10 +62,7 @@ export default function AboutPage() {
             warm-paper feel as the landing hero p tag. */}
         <div className="animate-rise animate-delay-3 mt-10 flex flex-col gap-5 font-serif text-[17px] leading-[1.6] text-ink-700 md:text-[18px]">
           <p>
-            Hi! I&apos;m Aviral, a Business Honors and Information Systems student at UT Austin.
-          </p>
-          <p>
-            I built Scaffold as a workspace for writers to revisit what they&apos;ve already written, uncover recurring ideas, and surface the half-finished thoughts that still have something left in them. The project grew out of running my own publication,{" "}
+            Hi! I&apos;m Aviral. I built Scaffold as a workspace for writers to revisit what they&apos;ve already written, uncover recurring ideas, and surface the half-finished thoughts that still have something left in them. The project grew out of running my own publication,{" "}
             <a
               href="https://aviralwrites.com"
               target="_blank"
