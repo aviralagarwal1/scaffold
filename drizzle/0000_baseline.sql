@@ -3,20 +3,10 @@ CREATE TYPE "public"."grammar_severity" AS ENUM('low', 'medium', 'high');--> sta
 CREATE TYPE "public"."repurpose_draft_status" AS ENUM('pending', 'saved', 'deleted');--> statement-breakpoint
 CREATE TYPE "public"."workspace_role" AS ENUM('owner', 'editor', 'viewer');--> statement-breakpoint
 CREATE TYPE "public"."workspace_status" AS ENUM('pending', 'ingesting', 'ready', 'failed', 'partial');--> statement-breakpoint
-CREATE TYPE "public"."workspace_verification_status" AS ENUM('unverified', 'pending', 'verified');--> statement-breakpoint
-CREATE TABLE "accounts" (
-	"user_id" uuid NOT NULL,
-	"type" text NOT NULL,
-	"provider" text NOT NULL,
-	"provider_account_id" text NOT NULL,
-	"refresh_token" text,
-	"access_token" text,
-	"expires_at" integer,
-	"token_type" text,
-	"scope" text,
-	"id_token" text,
-	"session_state" text,
-	CONSTRAINT "accounts_provider_provider_account_id_pk" PRIMARY KEY("provider","provider_account_id")
+CREATE TABLE "app_state" (
+	"key" varchar(120) PRIMARY KEY NOT NULL,
+	"value" jsonb NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "archive_themes" (
@@ -35,13 +25,22 @@ CREATE TABLE "archive_themes" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "audit_runs" (
+CREATE TABLE "chat_messages" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"session_id" uuid NOT NULL,
+	"role" varchar(20) NOT NULL,
+	"content" text NOT NULL,
+	"sources" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "chat_sessions" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"workspace_id" uuid NOT NULL,
-	"post_id" uuid,
-	"summary" text NOT NULL,
-	"issue_count" integer DEFAULT 0 NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+	"user_id" uuid NOT NULL,
+	"title" text NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "custom_themes" (
@@ -49,13 +48,6 @@ CREATE TABLE "custom_themes" (
 	"workspace_id" uuid NOT NULL,
 	"label" varchar(80) NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
-);
---> statement-breakpoint
-CREATE TABLE "feature_flags" (
-	"key" varchar(120) PRIMARY KEY NOT NULL,
-	"enabled" boolean DEFAULT false NOT NULL,
-	"description" text,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
@@ -98,7 +90,7 @@ CREATE TABLE "posts" (
 CREATE TABLE "profiles" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
-	"editor_name" varchar(80) NOT NULL,
+	"full_name" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -140,20 +132,20 @@ CREATE TABLE "saved_reviews" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "sessions" (
-	"session_token" text PRIMARY KEY NOT NULL,
-	"user_id" uuid NOT NULL,
-	"expires" timestamp with time zone NOT NULL
-);
---> statement-breakpoint
 CREATE TABLE "users" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"name" text,
 	"email" text,
 	"email_verified" timestamp with time zone,
 	"image" text,
 	"password_hash" text,
-	CONSTRAINT "users_email_unique" UNIQUE("email")
+	"plan" varchar(24) DEFAULT 'free' NOT NULL,
+	"stripe_customer_id" text,
+	"stripe_subscription_id" text,
+	"stripe_subscription_status" varchar(40),
+	"stripe_current_period_end" timestamp with time zone,
+	CONSTRAINT "users_email_unique" UNIQUE("email"),
+	CONSTRAINT "users_stripe_customer_id_unique" UNIQUE("stripe_customer_id"),
+	CONSTRAINT "users_stripe_subscription_id_unique" UNIQUE("stripe_subscription_id")
 );
 --> statement-breakpoint
 CREATE TABLE "verification_tokens" (
@@ -171,17 +163,6 @@ CREATE TABLE "workspace_memberships" (
 	CONSTRAINT "workspace_memberships_workspace_id_user_id_pk" PRIMARY KEY("workspace_id","user_id")
 );
 --> statement-breakpoint
-CREATE TABLE "workspace_verifications" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"workspace_id" uuid NOT NULL,
-	"method" varchar(40) NOT NULL,
-	"target_url" text,
-	"code" varchar(120) NOT NULL,
-	"verified_at" timestamp with time zone,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
-);
---> statement-breakpoint
 CREATE TABLE "workspaces" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"owner_user_id" uuid NOT NULL,
@@ -189,7 +170,6 @@ CREATE TABLE "workspaces" (
 	"publication_url" text NOT NULL,
 	"publication_name" text,
 	"status" "workspace_status" DEFAULT 'pending' NOT NULL,
-	"verification_status" "workspace_verification_status" DEFAULT 'unverified' NOT NULL,
 	"last_ingested_at" timestamp with time zone,
 	"ingestion_error" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -197,10 +177,10 @@ CREATE TABLE "workspaces" (
 	CONSTRAINT "workspaces_token_unique" UNIQUE("token")
 );
 --> statement-breakpoint
-ALTER TABLE "accounts" ADD CONSTRAINT "accounts_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "archive_themes" ADD CONSTRAINT "archive_themes_workspace_id_workspaces_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspaces"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "audit_runs" ADD CONSTRAINT "audit_runs_workspace_id_workspaces_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspaces"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "audit_runs" ADD CONSTRAINT "audit_runs_post_id_posts_id_fk" FOREIGN KEY ("post_id") REFERENCES "public"."posts"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "chat_messages" ADD CONSTRAINT "chat_messages_session_id_chat_sessions_id_fk" FOREIGN KEY ("session_id") REFERENCES "public"."chat_sessions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "chat_sessions" ADD CONSTRAINT "chat_sessions_workspace_id_workspaces_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspaces"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "chat_sessions" ADD CONSTRAINT "chat_sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "custom_themes" ADD CONSTRAINT "custom_themes_workspace_id_workspaces_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspaces"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "grammar_issues" ADD CONSTRAINT "grammar_issues_workspace_id_workspaces_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspaces"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "grammar_issues" ADD CONSTRAINT "grammar_issues_post_id_posts_id_fk" FOREIGN KEY ("post_id") REFERENCES "public"."posts"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
@@ -212,15 +192,14 @@ ALTER TABLE "repurpose_drafts" ADD CONSTRAINT "repurpose_drafts_workspace_id_wor
 ALTER TABLE "repurpose_drafts" ADD CONSTRAINT "repurpose_drafts_post_id_posts_id_fk" FOREIGN KEY ("post_id") REFERENCES "public"."posts"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "saved_ideas" ADD CONSTRAINT "saved_ideas_workspace_id_workspaces_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspaces"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "saved_reviews" ADD CONSTRAINT "saved_reviews_workspace_id_workspaces_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspaces"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "sessions" ADD CONSTRAINT "sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "workspace_memberships" ADD CONSTRAINT "workspace_memberships_workspace_id_workspaces_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspaces"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "workspace_memberships" ADD CONSTRAINT "workspace_memberships_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "workspace_verifications" ADD CONSTRAINT "workspace_verifications_workspace_id_workspaces_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspaces"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "workspaces" ADD CONSTRAINT "workspaces_owner_user_id_users_id_fk" FOREIGN KEY ("owner_user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-CREATE INDEX "accounts_user_id_idx" ON "accounts" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "archive_themes_workspace_id_idx" ON "archive_themes" USING btree ("workspace_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "archive_themes_workspace_label_idx" ON "archive_themes" USING btree ("workspace_id","label");--> statement-breakpoint
-CREATE INDEX "audit_runs_workspace_id_idx" ON "audit_runs" USING btree ("workspace_id");--> statement-breakpoint
+CREATE INDEX "chat_messages_session_id_idx" ON "chat_messages" USING btree ("session_id");--> statement-breakpoint
+CREATE INDEX "chat_sessions_workspace_id_idx" ON "chat_sessions" USING btree ("workspace_id");--> statement-breakpoint
+CREATE INDEX "chat_sessions_user_id_idx" ON "chat_sessions" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "custom_themes_workspace_id_idx" ON "custom_themes" USING btree ("workspace_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "custom_themes_workspace_label_idx" ON "custom_themes" USING btree ("workspace_id","label");--> statement-breakpoint
 CREATE INDEX "grammar_issues_workspace_id_idx" ON "grammar_issues" USING btree ("workspace_id");--> statement-breakpoint
@@ -234,8 +213,6 @@ CREATE INDEX "repurpose_drafts_workspace_id_idx" ON "repurpose_drafts" USING btr
 CREATE INDEX "repurpose_drafts_status_idx" ON "repurpose_drafts" USING btree ("status");--> statement-breakpoint
 CREATE INDEX "saved_ideas_workspace_id_idx" ON "saved_ideas" USING btree ("workspace_id");--> statement-breakpoint
 CREATE INDEX "saved_reviews_workspace_id_idx" ON "saved_reviews" USING btree ("workspace_id");--> statement-breakpoint
-CREATE INDEX "sessions_user_id_idx" ON "sessions" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "workspace_memberships_user_id_idx" ON "workspace_memberships" USING btree ("user_id");--> statement-breakpoint
-CREATE INDEX "workspace_verifications_workspace_id_idx" ON "workspace_verifications" USING btree ("workspace_id");--> statement-breakpoint
 CREATE INDEX "workspaces_owner_user_id_idx" ON "workspaces" USING btree ("owner_user_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "workspaces_owner_publication_url_idx" ON "workspaces" USING btree ("owner_user_id","publication_url");

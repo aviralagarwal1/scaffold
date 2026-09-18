@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 import type { UserProfile } from "@/types/auth";
 import type { AccountWorkspaceSummary, WorkspaceStatus } from "@/types/workspace";
 import { api, ApiClientError } from "@/lib/client/api";
-import { cn } from "@/lib/client/cn";
 import { formatRelative, hostnameOf, statusLabel } from "@/lib/client/format";
 import { LoadingState } from "./states";
 
@@ -182,12 +181,6 @@ function WorkspaceRow({ workspace }: { workspace: AccountWorkspaceSummary }) {
             </div>
             <div className="mt-0.5 flex items-center gap-2 truncate font-mono text-[11px] tracking-tightish text-ink-500">
               <span className="truncate">{host}</span>
-              {workspace.role !== "owner" && (
-                <>
-                  <span className="text-ink-300" aria-hidden="true">&middot;</span>
-                  <span className="capitalize">{workspace.role}</span>
-                </>
-              )}
             </div>
           </div>
         </div>
