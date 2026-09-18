@@ -177,12 +177,18 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         <label htmlFor={passwordInputId} className="type-eyebrow text-ink-400">
           Password
         </label>
-        <span className="relative block">
+        {/* Flex, not block. An input is inline-block, so a block wrapper adds a
+            baseline descender gap below it — the wrapper ends up a few pixels
+            taller than the field, and `inset-y-0` centres the reveal button
+            against the wrapper rather than the input. On a mouse that is an
+            invisible nudge; on a thumb it is the difference between hitting
+            the control and focusing the field behind it. */}
+        <span className="relative flex">
           <input
             id={passwordInputId}
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className={cn("input pr-10", passwordAlerting && "animate-editorial-nudge !border-ink-400")}
+            className={cn("input pr-12", passwordAlerting && "animate-editorial-nudge !border-ink-400")}
             type={showPassword ? "text" : "password"}
             autoComplete={isRegister ? "new-password" : "current-password"}
             disabled={busy}
@@ -190,7 +196,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
           />
           <button
             type="button"
-            className="absolute inset-y-0 right-0 inline-flex w-10 items-center justify-center rounded-r-md text-ink-400 transition-colors hover:text-ink-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300 disabled:cursor-not-allowed disabled:opacity-45"
+            className="absolute inset-y-0 right-0 inline-flex w-11 touch-manipulation items-center justify-center rounded-r-md text-ink-400 transition-colors hover:text-ink-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300 disabled:cursor-not-allowed disabled:opacity-45"
             onClick={() => setShowPassword((visible) => !visible)}
             disabled={busy}
             aria-label={showPassword ? "Hide password" : "Show password"}
