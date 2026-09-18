@@ -7,6 +7,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { api } from "@/lib/client/api";
 import type { UserProfile } from "@/types/auth";
 import { UserMenu } from "./UserMenu";
+import { ScaffoldMark } from "./ScaffoldMark";
 
 export function SiteHeader() {
   const pathname = usePathname();
@@ -124,13 +125,9 @@ function Wordmark({ size = "sm", premium = false }: { size?: "sm" | "lg"; premiu
   const isLg = size === "lg";
   return (
     <span className={`flex items-baseline ${isLg ? "gap-2" : "gap-1.5"} leading-none`}>
-      <span
-        aria-hidden="true"
-        className={`site-wordmark-mark font-serif text-accent-500 ${isLg ? "text-[21px] sm:text-[24px]" : "text-[16px]"}`}
-        style={{ transform: "translateY(0.5px)" }}
-      >
-        §
-      </span>
+      <ScaffoldMark
+        className={`site-wordmark-mark shrink-0 text-accent-500 ${isLg ? "h-[21px] w-[21px] sm:h-[24px] sm:w-[24px]" : "h-[16px] w-[16px]"}`}
+      />
       <span
         className={`font-serif tracking-tightish text-ink-900 ${
           isLg ? "text-[23px] sm:text-[26px]" : "text-[17px]"

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
+import { ScaffoldMark } from "./ScaffoldMark";
 
 // Idle sparkles drift around the glyph at staggered delays so the group
 // breathes out of phase rather than blinking in unison.
@@ -56,7 +57,7 @@ export function LogoCTA({
         className="logo-cta"
       >
         <span aria-hidden="true" className="logo-cta-glow" />
-        <span aria-hidden="true" className="site-wordmark-mark logo-cta-mark">§</span>
+        <ScaffoldMark className="logo-cta-mark" />
 
         {SPARKLES.map((s, i) => (
           <span
