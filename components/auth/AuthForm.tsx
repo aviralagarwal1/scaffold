@@ -174,37 +174,38 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
       </label>
 
       <div className="flex flex-col gap-2">
-        <label htmlFor={passwordInputId} className="type-eyebrow text-ink-400">
-          Password
-        </label>
-        {/* Flex, not block. An input is inline-block, so a block wrapper adds a
-            baseline descender gap below it — the wrapper ends up a few pixels
-            taller than the field, and `inset-y-0` centres the reveal button
-            against the wrapper rather than the input. On a mouse that is an
-            invisible nudge; on a thumb it is the difference between hitting
-            the control and focusing the field behind it. */}
-        <span className="relative flex">
-          <input
-            id={passwordInputId}
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            className={cn("input pr-12", passwordAlerting && "animate-editorial-nudge !border-ink-400")}
-            type={showPassword ? "text" : "password"}
-            autoComplete={isRegister ? "new-password" : "current-password"}
-            disabled={busy}
-            aria-invalid={passwordAlerting || undefined}
-          />
+        {/* The reveal control sits in the label row, not inside the field.
+            iOS Safari draws its own AutoFill and Strong Password affordance
+            inside the right edge of a password input — above page content, so
+            taps there go to Safari rather than to our button. No amount of
+            padding moves it, because Safari places it itself. Out here the
+            control owns its own space, gets a real touch target, and does not
+            crowd the field's border. */}
+        <div className="flex items-center justify-between gap-3">
+          <label htmlFor={passwordInputId} className="type-eyebrow text-ink-400">
+            Password
+          </label>
           <button
             type="button"
-            className="absolute inset-y-0 right-0 inline-flex w-11 touch-manipulation items-center justify-center rounded-r-md text-ink-400 transition-colors hover:text-ink-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300 disabled:cursor-not-allowed disabled:opacity-45"
+            className="-my-1.5 -mr-1.5 touch-manipulation rounded px-1.5 py-1.5 text-[11.5px] font-medium tracking-tightish text-ink-500 transition-colors hover:text-ink-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300 disabled:cursor-not-allowed disabled:opacity-45"
             onClick={() => setShowPassword((visible) => !visible)}
             disabled={busy}
-            aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-controls={passwordInputId}
             aria-pressed={showPassword}
           >
-            <PasswordEyeIcon crossed={showPassword} />
+            {showPassword ? "Hide" : "Show"}
           </button>
-        </span>
+        </div>
+        <input
+          id={passwordInputId}
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          className={cn("input", passwordAlerting && "animate-editorial-nudge !border-ink-400")}
+          type={showPassword ? "text" : "password"}
+          autoComplete={isRegister ? "new-password" : "current-password"}
+          disabled={busy}
+          aria-invalid={passwordAlerting || undefined}
+        />
         {isRegister && (
           <span className="text-[11.5px] leading-snug text-ink-400">At least 8 characters.</span>
         )}
@@ -251,21 +252,3 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
   );
 }
 
-function PasswordEyeIcon({ crossed }: { crossed: boolean }) {
-  return (
-    <svg
-      aria-hidden="true"
-      className="h-4 w-4"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth="1.8"
-    >
-      <path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z" />
-      <circle cx="12" cy="12" r="2.6" />
-      {crossed && <path d="M4.5 4.5 19.5 19.5" />}
-    </svg>
-  );
-}
