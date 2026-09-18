@@ -55,10 +55,7 @@ export async function DELETE() {
       .select({ token: workspaces.token })
       .from(workspaces)
       .where(eq(workspaces.ownerUserId, userId));
-    await deleteWorkspacesByTokens(
-      ownedWorkspaces.map((workspace) => workspace.token).filter((token): token is string => Boolean(token)),
-      { deleteUsageEvents: true },
-    );
+    await deleteWorkspacesByTokens(ownedWorkspaces.map((workspace) => workspace.token).filter((token): token is string => Boolean(token)));
 
     await db.transaction(async (tx) => {
       if (user.email) {

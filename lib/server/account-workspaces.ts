@@ -1,7 +1,7 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import type { AccountPlanSummary, AccountWorkspaceSummary, WorkspaceStatus } from "@/types/workspace";
 import { getDb } from "@/lib/server/db";
-import { users, workspaceMemberships, workspaces } from "@/lib/server/db/schema";
+import { tokenUsageEvents, users, workspaceMemberships, workspaces } from "@/lib/server/db/schema";
 import { planConfig } from "@/lib/server/plans";
 import { AppError } from "@/lib/server/errors";
 import { getAccountTokenUsage, getWorkspaceTokenUsageMap } from "@/lib/server/store";
@@ -208,11 +208,25 @@ export async function updateAccountWorkspacePublicationName(token: string, publi
 
 export async function deleteOwnedAccountWorkspace(userId: string, token: string): Promise<void> {
   const db = getDb();
-  const [deleted] = await db
-    .delete(workspaces)
+  const [target] = await db
+    .select({ id: workspaces.id })
+    .from(workspaces)
     .where(and(eq(workspaces.ownerUserId, userId), eq(workspaces.token, token)))
-    .returning({ id: workspaces.id });
-  if (!deleted) {
+    .limit(1);
+  if (!target) {
     throw new AppError("You can only delete publications you own.", 404);
   }
+
+  // Deleting a publication frees the slot but must not refund the tokens it
+  // already spent — the month's usage keeps counting against the account.
+  // Usage rows are written with the owner stamped, and the workspace
+  // reference sets null when the row goes, so the total survives. This claims
+  // any row that somehow has no owner, and it has to happen while the
+  // workspace id is still on those rows to identify them by.
+  await db
+    .update(tokenUsageEvents)
+    .set({ userId })
+    .where(and(eq(tokenUsageEvents.workspaceId, target.id), isNull(tokenUsageEvents.userId)));
+
+  await db.delete(workspaces).where(eq(workspaces.id, target.id));
 }

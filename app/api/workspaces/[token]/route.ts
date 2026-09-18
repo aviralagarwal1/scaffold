@@ -42,7 +42,7 @@ export async function DELETE(_request: Request, context: RouteContext<{ token: s
     if (process.env.DATABASE_URL) {
       await deleteOwnedAccountWorkspace(userId, token);
     }
-    await deleteWorkspacesByTokens([token], { retainUsageForUserId: userId });
+    await deleteWorkspacesByTokens([token]);
     return NextResponse.json({ ok: true });
   } catch (error) {
     return apiError(error, "Could not delete publication.");

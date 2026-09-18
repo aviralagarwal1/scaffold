@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   doublePrecision,
   index,
   integer,
@@ -300,6 +301,40 @@ export const savedReviews = pgTable(
   },
   (table) => ({
     workspaceIdIdx: index("saved_reviews_workspace_id_idx").on(table.workspaceId),
+  }),
+);
+
+/**
+ * One row per model call.
+ *
+ * The delete rules carry product meaning and are not interchangeable.
+ * `workspace_id` sets null rather than cascading, because deleting a
+ * publication frees the slot but must not refund the tokens it already spent
+ * — the usage keeps counting against the account until the monthly reset.
+ * `user_id` cascades, because deleting an account really does remove
+ * everything.
+ */
+export const tokenUsageEvents = pgTable(
+  "token_usage_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+    workspaceId: uuid("workspace_id").references(() => workspaces.id, { onDelete: "set null" }),
+    feature: varchar("feature", { length: 32 }).notNull(),
+    label: varchar("label", { length: 80 }).notNull(),
+    tokens: integer("tokens").notNull(),
+    inputTokens: integer("input_tokens"),
+    outputTokens: integer("output_tokens"),
+    costUsdMicros: integer("cost_usd_micros"),
+    provider: varchar("provider", { length: 32 }),
+    model: varchar("model", { length: 64 }),
+    estimated: boolean("estimated").default(true).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    // Both summaries filter by a month window, so the date leads each index.
+    userCreatedIdx: index("token_usage_events_user_created_idx").on(table.userId, table.createdAt),
+    workspaceCreatedIdx: index("token_usage_events_workspace_created_idx").on(table.workspaceId, table.createdAt),
   }),
 );
 
