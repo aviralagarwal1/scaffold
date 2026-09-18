@@ -6,8 +6,8 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState, type ReactNode } from "react";
 import { api } from "@/lib/client/api";
 import type { UserProfile } from "@/types/auth";
-import { UserMenu } from "./UserMenu";
-import { ScaffoldMark } from "./ScaffoldMark";
+import { UserMenu } from "@/components/account/UserMenu";
+import { ScaffoldMark } from "@/components/ui/ScaffoldMark";
 
 export function SiteHeader() {
   const pathname = usePathname();

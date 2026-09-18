@@ -1,9 +1,9 @@
 "use client";
 
-import { useWorkspace } from "@/components/WorkspaceProvider";
-import { DraftFeedbackPanel } from "@/components/DraftFeedbackPanel";
-import { NotReadyNotice } from "@/components/NotReadyNotice";
-import { PageHeader } from "@/components/PageHeader";
+import { useWorkspace } from "@/components/workspace/WorkspaceProvider";
+import { DraftFeedbackPanel } from "@/components/workspace/DraftFeedbackPanel";
+import { NotReadyNotice } from "@/components/workspace/NotReadyNotice";
+import { PageHeader } from "@/components/workspace/PageHeader";
 
 export default function DraftPage() {
   const { token, overview } = useWorkspace();

@@ -7,7 +7,7 @@ import type { UserProfile } from "@/types/auth";
 import type { AccountWorkspaceSummary, WorkspaceStatus } from "@/types/workspace";
 import { api, ApiClientError } from "@/lib/client/api";
 import { formatRelative, hostnameOf, statusLabel } from "@/lib/client/format";
-import { LoadingState } from "./states";
+import { LoadingState } from "@/components/ui/states";
 
 export function AccountPanel() {
   const params = useSearchParams();

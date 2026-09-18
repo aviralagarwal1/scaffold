@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
-import { ScaffoldMark } from "./ScaffoldMark";
+import { ScaffoldMark } from "@/components/ui/ScaffoldMark";
 
 // Idle sparkles drift around the glyph at staggered delays so the group
 // breathes out of phase rather than blinking in unison.

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { AccountProfilePanel } from "@/components/AccountProfilePanel";
+import { AccountProfilePanel } from "@/components/account/AccountProfilePanel";
 import { getCurrentUserId } from "@/lib/server/auth/current";
 
 export const metadata = {

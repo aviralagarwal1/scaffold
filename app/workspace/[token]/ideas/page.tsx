@@ -1,9 +1,9 @@
 "use client";
 
-import { useWorkspace } from "@/components/WorkspaceProvider";
-import { IdeasPanel } from "@/components/IdeasPanel";
-import { NotReadyNotice } from "@/components/NotReadyNotice";
-import { PageHeader } from "@/components/PageHeader";
+import { useWorkspace } from "@/components/workspace/WorkspaceProvider";
+import { IdeasPanel } from "@/components/workspace/IdeasPanel";
+import { NotReadyNotice } from "@/components/workspace/NotReadyNotice";
+import { PageHeader } from "@/components/workspace/PageHeader";
 
 export default function IdeasPage() {
   const { token, overview } = useWorkspace();

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { PlanUpgradePanel } from "@/components/PlanUpgradePanel";
+import { PlanUpgradePanel } from "@/components/account/PlanUpgradePanel";
 import { getAccountPlanSummary } from "@/lib/server/account-workspaces";
 import { getCurrentUserId } from "@/lib/server/auth/current";
 import { syncCheckoutSessionForUser } from "@/lib/server/billing";

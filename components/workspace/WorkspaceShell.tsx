@@ -2,9 +2,9 @@
 
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { WorkspaceNav } from "./WorkspaceNav";
-import { useWorkspace } from "./WorkspaceProvider";
-import { LoadingState, ErrorState } from "./states";
+import { WorkspaceNav } from "@/components/workspace/WorkspaceNav";
+import { useWorkspace } from "@/components/workspace/WorkspaceProvider";
+import { LoadingState, ErrorState } from "@/components/ui/states";
 
 export function WorkspaceShell({ children }: { children: ReactNode }) {
   const { overview, loading, error, token } = useWorkspace();

@@ -7,8 +7,8 @@ import { useEffect, useRef, useState } from "react";
 import type { UserProfile } from "@/types/auth";
 import { api, ApiClientError } from "@/lib/client/api";
 import { cn } from "@/lib/client/cn";
-import { DangerConfirmDialog } from "./DangerConfirmDialog";
-import { LoadingState } from "./states";
+import { DangerConfirmDialog } from "@/components/ui/DangerConfirmDialog";
+import { LoadingState } from "@/components/ui/states";
 
 const FULL_NAME_MAX = 100;
 

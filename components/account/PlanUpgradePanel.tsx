@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { BillingPortalButton, ButtonLoadingDot } from "@/components/BillingPortalButton";
+import { BillingPortalButton, ButtonLoadingDot } from "@/components/account/BillingPortalButton";
 import type { AccountPlanSummary } from "@/types/workspace";
 import type { PlanConfig } from "@/lib/server/plans";
 import { api, ApiClientError } from "@/lib/client/api";

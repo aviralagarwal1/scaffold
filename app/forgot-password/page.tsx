@@ -1,6 +1,6 @@
 import { Suspense } from "react";
-import { AuthSurface } from "@/components/AuthSurface";
-import { ForgotPasswordForm } from "@/components/ForgotPasswordForm";
+import { AuthSurface } from "@/components/auth/AuthSurface";
+import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 
 export const metadata = {
   title: "Reset password - Scaffold",

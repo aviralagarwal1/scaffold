@@ -3,11 +3,11 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { DraftFeedbackResponse, SavedDraftFeedback } from "@/types/ai";
 import { api, ApiClientError } from "@/lib/client/api";
-import { SavedHistoryStrip } from "./SavedHistoryStrip";
+import { SavedHistoryStrip } from "@/components/workspace/SavedHistoryStrip";
 import { cn } from "@/lib/client/cn";
-import { Markdown } from "./Markdown";
-import { SourceCitationList } from "./SourceCitation";
-import { LoadingState } from "./states";
+import { Markdown } from "@/components/ui/Markdown";
+import { SourceCitationList } from "@/components/workspace/SourceCitation";
+import { LoadingState } from "@/components/ui/states";
 
 // Core dimensions stay first. Additional rows move from larger editorial
 // mechanics toward more granular line/argument controls.

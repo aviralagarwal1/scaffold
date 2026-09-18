@@ -5,7 +5,7 @@ import type { SearchResponse, SearchResult, SearchSnippet } from "@/types/ai";
 import { api, ApiClientError } from "@/lib/client/api";
 import { cn } from "@/lib/client/cn";
 import { formatDate, hostnameOf, pluralize } from "@/lib/client/format";
-import { PaperConstellation } from "./PaperConstellation";
+import { PaperConstellation } from "@/components/marketing/PaperConstellation";
 
 export function SearchPanel({ token, disabled }: { token: string; disabled?: boolean }) {
   const [query, setQuery] = useState("");

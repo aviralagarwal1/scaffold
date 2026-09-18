@@ -3,10 +3,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { AskResponse, ChatSession, SourceCitation } from "@/types/ai";
 import { api, ApiClientError } from "@/lib/client/api";
-import { SavedHistoryStrip } from "./SavedHistoryStrip";
-import { ScaffoldMark } from "./ScaffoldMark";
-import { Markdown } from "./Markdown";
-import { SourceCitationList } from "./SourceCitation";
+import { SavedHistoryStrip } from "@/components/workspace/SavedHistoryStrip";
+import { ScaffoldMark } from "@/components/ui/ScaffoldMark";
+import { Markdown } from "@/components/ui/Markdown";
+import { SourceCitationList } from "@/components/workspace/SourceCitation";
 
 type Turn =
   | { id: string; role: "user"; content: string }

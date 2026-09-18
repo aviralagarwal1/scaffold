@@ -4,9 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import type { DistributionPlatform, RepurposeDraft, RepurposeDraftStatus } from "@/types/ai";
 import type { PostSummary } from "@/types/post";
 import { api, ApiClientError } from "@/lib/client/api";
-import { RepurposeDraftCard } from "./RepurposeDraftCard";
-import { PlatformIcon } from "./PlatformIcon";
-import { EmptyState, LoadingState } from "./states";
+import { RepurposeDraftCard } from "@/components/workspace/RepurposeDraftCard";
+import { PlatformIcon } from "@/components/workspace/PlatformIcon";
+import { EmptyState, LoadingState } from "@/components/ui/states";
 import { cn } from "@/lib/client/cn";
 import { platformLabel } from "@/lib/client/format";
 

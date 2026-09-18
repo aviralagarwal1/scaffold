@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { LogoCTA } from "@/components/LogoCTA";
-import { ScaffoldMark } from "@/components/ScaffoldMark";
-import { SubstackUrlForm } from "@/components/SubstackUrlForm";
+import { LogoCTA } from "@/components/marketing/LogoCTA";
+import { ScaffoldMark } from "@/components/ui/ScaffoldMark";
+import { PublicationUrlForm } from "@/components/marketing/PublicationUrlForm";
 import { planConfig } from "@/lib/server/plans";
 import {
   formatPlanPrice,
@@ -63,7 +63,7 @@ export default function HomePage() {
     <>
       {/* Logged-in visitors stay on the landing — they may want to re-read
           the brand, share the link, or just look around. The nav UserMenu
-          and the swapped hero CTA ("Open my desk →" via SubstackUrlForm's
+          and the swapped hero CTA ("Open my desk →" via PublicationUrlForm's
           authenticatedFallback) make the logged-in state obvious without
           forcing a redirect. */}
 
@@ -103,7 +103,7 @@ export default function HomePage() {
             </p>
 
             <div className="animate-rise animate-delay-3 mt-10 max-w-xl">
-              <SubstackUrlForm
+              <PublicationUrlForm
                 captureGlobalKeystrokes
                 routeToRegister
                 authenticatedFallback={<ReturningVisitorCTA />}
@@ -328,7 +328,7 @@ export default function HomePage() {
  * Hero CTA for returning, signed-in visitors. The composer asks for a URL
  * we already have on file, so we replace it with one black button that
  * takes them back to their desk. Same animated arrow signature as the
- * SubstackUrlForm submit so the swap feels like a quieter version of the
+ * PublicationUrlForm submit so the swap feels like a quieter version of the
  * same affordance, not a different surface.
  */
 function ReturningVisitorCTA() {

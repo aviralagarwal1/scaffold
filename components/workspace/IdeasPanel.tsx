@@ -6,9 +6,9 @@ import type { Idea, IdeasResponse, SavedIdea } from "@/types/ai";
 import { api, ApiClientError } from "@/lib/client/api";
 import { cn } from "@/lib/client/cn";
 import { formatRelative, pluralize } from "@/lib/client/format";
-import { IdeaCard } from "./IdeaCard";
-import { LoadingState } from "./states";
-import { useWorkspace } from "./WorkspaceProvider";
+import { IdeaCard } from "@/components/workspace/IdeaCard";
+import { LoadingState } from "@/components/ui/states";
+import { useWorkspace } from "@/components/workspace/WorkspaceProvider";
 
 const CUSTOM_THEME_MAX = 32;
 

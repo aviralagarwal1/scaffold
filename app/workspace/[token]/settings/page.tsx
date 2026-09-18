@@ -2,9 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { DangerConfirmDialog } from "@/components/DangerConfirmDialog";
-import { PageHeader } from "@/components/PageHeader";
-import { useWorkspace } from "@/components/WorkspaceProvider";
+import { DangerConfirmDialog } from "@/components/ui/DangerConfirmDialog";
+import { PageHeader } from "@/components/workspace/PageHeader";
+import { useWorkspace } from "@/components/workspace/WorkspaceProvider";
 import { api, ApiClientError } from "@/lib/client/api";
 import { cn } from "@/lib/client/cn";
 import { formatDate, hostnameOf, pluralize } from "@/lib/client/format";
@@ -106,7 +106,9 @@ export default function SettingsPage() {
 
         <dl className="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-6 gap-y-1.5 border-t border-ink-200/60 pt-3 text-[12.5px] text-ink-700">
           <dt className="text-ink-500">URL</dt>
-          <dd className="font-mono text-[12px] text-ink-600">{overview.publicationUrl}</dd>
+          {/* A URL has no spaces to wrap at, so it overflows the grid cell on a
+              phone unless it is allowed to break mid-string. */}
+          <dd className="break-all font-mono text-[12px] text-ink-600">{overview.publicationUrl}</dd>
           <dt className="text-ink-500">Library</dt>
           <dd className="font-mono text-[12px] text-ink-600">{pluralize(overview.postCount, "post")}</dd>
           <dt className="text-ink-500">Themes</dt>

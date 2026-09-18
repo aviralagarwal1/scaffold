@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import type { GrammarAuditResponse, GrammarIssue } from "@/types/ai";
 import type { PostSummary } from "@/types/post";
 import { api, ApiClientError } from "@/lib/client/api";
-import { GrammarIssueCard } from "./GrammarIssueCard";
-import { EmptyState, ErrorState, LoadingState } from "./states";
+import { GrammarIssueCard } from "@/components/workspace/GrammarIssueCard";
+import { EmptyState, ErrorState, LoadingState } from "@/components/ui/states";
 
 export function GrammarAuditPanel({
   token,

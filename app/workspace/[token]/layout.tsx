@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { notFound, redirect } from "next/navigation";
-import { WorkspaceProvider } from "@/components/WorkspaceProvider";
-import { WorkspaceShell } from "@/components/WorkspaceShell";
+import { WorkspaceProvider } from "@/components/workspace/WorkspaceProvider";
+import { WorkspaceShell } from "@/components/workspace/WorkspaceShell";
 import { canViewAccountWorkspace } from "@/lib/server/account-workspaces";
 import { getCurrentUserId } from "@/lib/server/auth/current";
 

@@ -22,7 +22,7 @@ const SLOW_NOTICES = [
   { startsAt: 150000, lastsFor: 30000, message: "This is taking longer than usual. Keep this tab open." },
 ] as const;
 
-export function SubstackUrlForm({
+export function PublicationUrlForm({
   autoFocus = false,
   initialUrl = "",
   redirect = true,

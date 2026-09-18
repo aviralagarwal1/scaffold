@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { SiteHeader } from "./SiteHeader";
-import { SiteFooter } from "./SiteFooter";
+import { SiteHeader } from "@/components/shell/SiteHeader";
+import { SiteFooter } from "@/components/shell/SiteFooter";
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (

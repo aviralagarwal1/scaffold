@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { getServerSession } from "next-auth";
 import "./globals.css";
-import { AppShell } from "@/components/AppShell";
-import { Providers } from "@/components/Providers";
+import { AppShell } from "@/components/shell/AppShell";
+import { Providers } from "@/components/shell/Providers";
 import { authOptions } from "@/lib/server/auth/options";
 import { PRODUCT_DESCRIPTION, PRODUCT_NAME } from "@/lib/copy";
 

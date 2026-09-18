@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { Idea } from "@/types/ai";
-import { SourceCitation } from "./SourceCitation";
+import { SourceCitation } from "@/components/workspace/SourceCitation";
 
 export function IdeaCard({ idea, action, meta }: { idea: Idea; action?: ReactNode; meta?: string }) {
   return (

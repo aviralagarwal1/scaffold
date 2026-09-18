@@ -3,9 +3,9 @@
 import { useState } from "react";
 import type { RepurposeDraft, RepurposeDraftStatus } from "@/types/ai";
 import { api, ApiClientError } from "@/lib/client/api";
-import { ConfirmButton } from "./ConfirmButton";
-import { DraftStatusBadge } from "./DraftStatusBadge";
-import { PlatformIcon } from "./PlatformIcon";
+import { ConfirmButton } from "@/components/ui/ConfirmButton";
+import { DraftStatusBadge } from "@/components/workspace/DraftStatusBadge";
+import { PlatformIcon } from "@/components/workspace/PlatformIcon";
 import { cn } from "@/lib/client/cn";
 import { formatRelative, platformCharLimit, platformLabel } from "@/lib/client/format";
 

@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { PostSummary } from "@/types/post";
 import { api, ApiClientError } from "@/lib/client/api";
-import { PostCard } from "./PostCard";
-import { EmptyState } from "./states";
+import { PostCard } from "@/components/workspace/PostCard";
+import { EmptyState } from "@/components/ui/states";
 
-export function ArchiveBrowser({
+export function LibraryBrowser({
   token,
   posts,
   onPostSynced,
