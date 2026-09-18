@@ -27,16 +27,18 @@
 export const PRODUCT_NAME = "Scaffold";
 
 /**
- * Hero headline, laid out as a three-line pyramid that tapers to the warm
- * word. Exported as parts because the landing page sets each line as its own
- * block and accents the middle one.
+ * The hero headline, as one sentence. Used for social image alt text.
+ *
+ * The landing page sets it as a two-line pyramid with the accent on "entire",
+ * which needs bespoke markup, so those words are written there rather than
+ * mapped from here. Change one, change the other — they are the same claim.
  *
  * It promises access, not preservation. An earlier draft said the work was
- * "still here", which answers a problem nobody has — the posts were never
+ * "still here", which answers a problem nobody has: the posts were never
  * lost, they are sitting on the publication right now. The difficulty is that
- * an archive is inert: you cannot get at it, so you never use it.
+ * a body of published work is inert — you cannot get at it, so you never use
+ * it.
  */
-export const PRODUCT_PROMISE_LINES = ["Write with your", "entire library."] as const;
 export const PRODUCT_PROMISE = "Write with your entire library.";
 
 /**
@@ -57,10 +59,6 @@ export const PRODUCT_SUBHEAD =
 /** How it works, in one line. */
 export const PRODUCT_MECHANIC =
   "Paste a publication link. Scaffold reads the public posts, builds them into a library, and answers from the passages it finds there.";
-
-/** What the product is for, in the writer's terms rather than the tool's. */
-export const PRODUCT_FOR_WRITERS =
-  "Most writers lose their own work. Not the files — the thread. You cannot remember what you argued four years ago, so you argue it again, slightly worse. Scaffold keeps the whole body of work within reach while you write the next piece.";
 
 // ---------------------------------------------------------------------------
 // Vocabulary
