@@ -17,7 +17,7 @@ export default function IdeasPage() {
         title="Explore your ideas."
         meta={ready ? "Ideas rise from gaps and recurring patterns in your library. Expect sequels, contrarian angles, and themes worth revisiting." : undefined}
       />
-      {!ready ? <NotReadyNotice status={overview.status} token={token} feature="Ideas" /> : <IdeasPanel token={token} />}
+      {!ready ? <NotReadyNotice status={overview.status} token={token} feature="Exploration" /> : <IdeasPanel token={token} />}
     </div>
   );
 }

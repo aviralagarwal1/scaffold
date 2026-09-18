@@ -39,7 +39,7 @@ export default function GrammarPage() {
         meta={ready ? "Notes are surfaced from across your library, not from generic spellcheck. Your voice always stays intact." : undefined}
       />
       {!ready ? (
-        <NotReadyNotice status={overview.status} token={token} feature="Audit" />
+        <NotReadyNotice status={overview.status} token={token} feature="Proofreading" />
       ) : posts === null ? (
         <LoadingState label="Loading your posts..." />
       ) : (

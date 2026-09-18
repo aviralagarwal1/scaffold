@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
+import { PRODUCT_NAME, PRODUCT_PROMISE } from "@/lib/copy";
 
-export const alt = "Scaffold — a working memory of everything you've written";
+export const alt = `${PRODUCT_NAME} — ${PRODUCT_PROMISE}`;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -11,9 +12,9 @@ export const contentType = "image/png";
  * bronze accent wash top-left, the § wordmark up top, the 3-2-1 pyramid
  * headline on the left, and — the part that makes the card unmistakably
  * Scaffold — a condensed "Ask your library" answer card on the right,
- * carrying a Curator response and two numbered citations. Even at feed
+ * carrying an answer and two numbered citations. Even at feed
  * thumbnail scale the card silhouette (status dot, dark question bubble,
- * highlighted phrase, cited rows) reads as "an agent answering about your
+ * highlighted phrase, cited rows) reads as "an answer drawn from your
  * own writing," which is the product's whole claim.
  *
  * Satori constraints honored throughout: flexbox + absolute only, every
@@ -90,9 +91,9 @@ export default function OpenGraphImage() {
               color: "#141311",
             }}
           >
-            <span style={{ display: "flex" }}>Agents that know</span>
+            <span style={{ display: "flex" }}>Everything you wrote</span>
             <span style={{ display: "flex", alignItems: "baseline" }}>
-              <span>your&nbsp;</span>
+              <span>is&nbsp;</span>
               <span style={{ display: "flex", flexDirection: "column", position: "relative" }}>
                 <span
                   style={{
@@ -102,7 +103,7 @@ export default function OpenGraphImage() {
                     lineHeight: 1,
                   }}
                 >
-                  entire
+                  still
                 </span>
                 {/* Bronze underline wash sitting just under the word, matching
                     the hero's accent-200/55. Anchored to the text box bottom so
@@ -120,7 +121,7 @@ export default function OpenGraphImage() {
                 />
               </span>
             </span>
-            <span style={{ display: "flex" }}>library.</span>
+            <span style={{ display: "flex" }}>here.</span>
           </div>
         </div>
 
@@ -203,7 +204,7 @@ export default function OpenGraphImage() {
               </span>
             </div>
 
-            {/* Curator response */}
+            {/* Answer */}
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ display: "flex", width: 24, height: 1, background: "#c87a48" }} />

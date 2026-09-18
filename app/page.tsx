@@ -2,6 +2,13 @@ import Link from "next/link";
 import { LogoCTA } from "@/components/LogoCTA";
 import { SubstackUrlForm } from "@/components/SubstackUrlForm";
 import { planConfig } from "@/lib/server/plans";
+import {
+  formatPlanPrice,
+  formatTokenAllowance,
+  formatWorkspaceCapacity,
+  PLAN_SCOPE,
+  PRODUCT_SUBHEAD,
+} from "@/lib/copy";
 
 export const metadata = {
   alternates: {
@@ -12,20 +19,20 @@ export const metadata = {
 const STEPS = [
   {
     title: "Start your workspace.",
-    body: "Paste your publication URL or custom domain. We only read public posts.",
+    body: "Paste a publication link or custom domain. Only public posts are read.",
   },
   {
-    title: "We read your library.",
-    body: "Posts are parsed, indexed, and grounded in a workspace.",
+    title: "The archive is read.",
+    body: "Every public post is pulled in, split into passages, and indexed.",
   },
   {
-    title: "We surface patterns and insights.",
-    body: "Ask questions, revisit old ideas, and refine new drafts in your voice.",
+    title: "The work comes back.",
+    body: "Put questions to it, find old lines, and write against what is already there.",
   },
 ];
 
 // The §03 section reuses the SampleAnswerCard's library context — the three posts
-// the AI cites in its primary answer. Same titles, same dates as the hero
+// cited in the primary answer. Same titles, same dates as the hero
 // preview, so the brand world stays internally consistent: this is a real
 // library surface that cites the same evidence wherever you encounter it.
 const CITED_POSTS = [
@@ -74,28 +81,27 @@ export default function HomePage() {
         <div className="mx-auto grid max-w-6xl gap-12 px-6 py-20 md:grid-cols-12 md:items-start md:gap-x-10 md:py-28">
           <div className="md:col-span-7 md:pr-4 lg:col-span-6">
             {/* Headline laid out as a 3-2-1 word pyramid via explicit block
-                lines: "Agents that know" / "your entire" / "library." Each
+                lines: "Everything you wrote" / "is still" / "here." Each
                 line is shorter than the last, tapering toward the warm
                 punchline noun. The em with the underline accent sits on
                 line two so the eye lands on it before the final word. */}
             <h1 className="animate-rise animate-delay-1 font-serif text-[40px] leading-[1.04] tracking-tighter2 text-ink-900 min-[390px]:text-[44px] md:text-[60px] md:leading-[1.02]">
-              <span className="block">Agents that know</span>
+              <span className="block">Everything you wrote</span>
               <span className="block">
-                your {" "}
+                is {" "}
                 <span className="relative inline-block whitespace-nowrap">
-                  <em className="font-serif font-normal italic">entire</em>
+                  <em className="font-serif font-normal italic">still</em>
                   <span
                     aria-hidden="true"
                     className="absolute -bottom-0.5 left-0 right-0 h-[7px] -skew-x-6 rounded-sm bg-accent-200/55"
                   />
                 </span>
               </span>
-              <span className="block">library.</span>
+              <span className="block">here.</span>
             </h1>
 
             <p className="animate-rise animate-delay-2 mt-7 max-w-[46ch] font-serif text-[18px] leading-[1.55] text-ink-700 md:text-[19px]">
-              A working memory of everything you've written. The patterns you stopped noticing resurface, the
-              half-finished essays reconnect, and every note cites the evidence behind it.
+              {PRODUCT_SUBHEAD}
             </p>
 
             <div className="animate-rise animate-delay-3 mt-10 max-w-xl">
@@ -155,7 +161,7 @@ export default function HomePage() {
       </section>
 
       {/* § — Why it works
-          The composition makes the editorial claim literal: a single AI
+          The composition makes the editorial claim literal: a single
           answer (left, primary) carries inline citation markers, and the
           right column is the actual evidence — three numbered post-citations
           pulled from the library. The shared numbers tether the two sides
@@ -213,20 +219,20 @@ export default function HomePage() {
           <div className="grid gap-4 md:grid-cols-2">
             <LandingPlanCard
               title={freePlan.label}
-              price="Free"
+              price={formatPlanPrice(freePlan.priceCents)}
               features={[
-                { label: "Tokens", value: `${formatTokens(freePlan.monthlyTokenLimit)}/month` },
-                { label: "Workspaces", value: `${freePlan.activePublicationLimit} publication` },
-                { label: "Scope", value: "One library with conversation, search, and draft feedback" },
+                { label: "Tokens", value: formatTokenAllowance(freePlan.monthlyTokenLimit) },
+                { label: "Workspaces", value: formatWorkspaceCapacity(freePlan.activePublicationLimit) },
+                { label: "Scope", value: PLAN_SCOPE.free },
               ]}
             />
             <LandingPlanCard
               title={premiumPlan.label}
-              price={`$${(premiumPlan.priceCents / 100).toFixed(0)}/month`}
+              price={formatPlanPrice(premiumPlan.priceCents)}
               features={[
-                { label: "Tokens", value: `${formatTokens(premiumPlan.monthlyTokenLimit)}/month` },
-                { label: "Workspaces", value: `${premiumPlan.activePublicationLimit} publications` },
-                { label: "Scope", value: "Multiple libraries with stronger memory and deeper analysis" },
+                { label: "Tokens", value: formatTokenAllowance(premiumPlan.monthlyTokenLimit) },
+                { label: "Workspaces", value: formatWorkspaceCapacity(premiumPlan.activePublicationLimit) },
+                { label: "Scope", value: PLAN_SCOPE.pro },
               ]}
             />
           </div>
@@ -434,10 +440,6 @@ function LandingPlanCard({
   );
 }
 
-function formatTokens(value: number) {
-  return value.toLocaleString();
-}
-
 /**
  * Inline citation marker. Tiny mono superscript in accent color, sits next
  * to the phrase it supports. Numbers match the citation cards on the right
@@ -455,7 +457,7 @@ function Cite({ n }: { n: number }) {
 }
 
 /**
- * Primary answer card — the AI's voice. Drop-cap quote mark, serif body,
+ * Primary answer card — the answer's voice. Drop-cap quote mark, serif body,
  * inline citation markers, and a curator footer that explicitly names how
  * many posts grounded the response. The footer's "grounded in N posts"
  * cross-references the citation column.
@@ -477,13 +479,13 @@ function PrimaryAnswerCard() {
           Across your library, your strongest pieces open with a{" "}
           <mark className="rounded-sm bg-accent-100/70 px-0.5 text-ink-900">personal observation</mark>
           <Cite n={1} /> before moving into a broader product or culture argument
-          <Cite n={2} />. Your recent essays on AI tools use this structure less
+          <Cite n={2} />. Your recent essays on interface design use this structure less
           <Cite n={3} />, which makes them feel more like commentary than your best work.
         </blockquote>
         <figcaption className="mt-7 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-ink-200/60 pt-4">
           <span className="flex items-center gap-2">
             <span className="accent-rule" />
-            <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent-700">Curator</span>
+            <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent-700">Scaffold</span>
           </span>
           <span className="text-ink-300" aria-hidden="true">
             ·
@@ -604,11 +606,11 @@ function SampleAnswerCard() {
             </div>
           </div>
 
-          {/* Curator response */}
+          {/* Answer */}
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-2">
               <span className="accent-rule" />
-              <span className="text-eyebrow font-medium uppercase text-accent-700">Curator</span>
+              <span className="text-eyebrow font-medium uppercase text-accent-700">Scaffold</span>
               <span className="text-ink-300" aria-hidden="true">
               </span>
               <span className="text-[11px] normal-case tracking-normal text-ink-500"></span>
@@ -622,7 +624,7 @@ function SampleAnswerCard() {
                 before moving into a broader product or culture argument.
               </p>
               <p>
-                Your recent essays on AI tools use this structure less. They read more like commentary than your best
+                Your recent essays on interface design use this structure less. They read more like commentary than your best
                 work.
               </p>
             </div>

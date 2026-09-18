@@ -1,6 +1,13 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { planConfig } from "@/lib/server/plans";
+import {
+  formatPlanPrice,
+  formatWorkspaceCapacity,
+  MODEL_DISCLOSURE,
+  PRODUCT_DESCRIPTION_LONG,
+  PRODUCT_MECHANIC,
+} from "@/lib/copy";
 
 export const metadata = {
   title: "Support - Scaffold",
@@ -58,13 +65,11 @@ function buildQuestions(
   return [
     {
       question: "What is Scaffold?",
-      answer:
-        "Scaffold is a workspace for writers to revisit and develop their ideas. It reads your publications, organizes recurring themes, and gives you a private place to ask questions, evaluate drafts, search old lines, and explore new angles.",
+      answer: PRODUCT_DESCRIPTION_LONG,
     },
     {
       question: "How does Scaffold work?",
-      answer:
-        "Add a publication URL. Scaffold reads public posts, stores them as a workspace, and answers or drafts from retrieved passages in your library.",
+      answer: PRODUCT_MECHANIC,
     },
     {
       question: "What does it mean to sync a workspace or post?",
@@ -80,18 +85,18 @@ function buildQuestions(
           <Link href="/account/plan" className="btn-link">
             here
           </Link>{" "}
-          at {formatPrice(premiumPlan)}.
+          at {formatPlanPrice(premiumPlan.priceCents)}.
         </>
       ),
     },
     {
       question: `What is the difference between ${basicPlan.label} and ${premiumPlan.label}?`,
-      answer: `${basicPlan.label} includes ${formatTokens(basicPlan.monthlyTokenLimit)} monthly account tokens and ${pluralize(basicPlan.activePublicationLimit, "workspace")}. ${premiumPlan.label} includes ${formatTokens(premiumPlan.monthlyTokenLimit)} monthly account tokens and ${pluralize(premiumPlan.activePublicationLimit, "workspace")}.`,
+      answer: `${basicPlan.label} includes ${basicPlan.monthlyTokenLimit.toLocaleString()} monthly account tokens and ${formatWorkspaceCapacity(basicPlan.activePublicationLimit)}. ${premiumPlan.label} includes ${premiumPlan.monthlyTokenLimit.toLocaleString()} monthly account tokens and ${formatWorkspaceCapacity(premiumPlan.activePublicationLimit)}.`,
     },
     {
       question: "How does usage work?",
       answer:
-        "Scaffold features draw from Anthropic's API. Usage is measured in tokens, and tokens reset on the first day of every month at 12:00 AM.",
+        "Usage is measured in tokens and resets on the first day of every month at 12:00 AM. Reading your library costs tokens, and so does every answer composed from it.",
     },
     {
       question: "How can I save usage?",
@@ -100,7 +105,7 @@ function buildQuestions(
     },
     {
       question: `How much does ${premiumPlan.label} cost?`,
-      answer: `${premiumPlan.label} costs ${formatPrice(premiumPlan)}.`,
+      answer: `${premiumPlan.label} costs ${formatPlanPrice(premiumPlan.priceCents)}.`,
     },
     {
       question: `How do I sign up for ${premiumPlan.label}?`,
@@ -120,14 +125,13 @@ function buildQuestions(
         "Deleting a publication frees that publication slot. Monthly account usage still counts until the next reset.",
     },
     {
-      question: "If Scaffold uses AI, why should writers trust it?",
-      answer:
-        "Scaffold is not trying to replace the writer. It helps writers reconnect with their own voice, patterns, and ideas. Responses are grounded in your writing library, so Scaffold acts more like a curator of your work than a generator of generic content.",
+      question: "What happens to my writing?",
+      answer: MODEL_DISCLOSURE,
     },
     {
-      question: "How is Scaffold different from ChatGPT or Claude?",
+      question: "Why not just paste my posts into a chatbot?",
       answer:
-        "ChatGPT and Claude are general-purpose assistants built to answer almost anything. Scaffold is built for writers: one workspace with long-term context across your library, designed for reflection, retrieval, and editorial support instead of generic content generation.",
+        "Because you would do it again every time. Scaffold reads the whole archive once, keeps it, and stays current as you publish — so an answer can draw on something you wrote years ago without you remembering it existed, and can tell you which post it came from.",
     },
     {
       question: "Who built Scaffold?",
@@ -142,16 +146,4 @@ function buildQuestions(
       ),
     },
   ];
-}
-
-function formatPrice(plan: ReturnType<typeof planConfig>): string {
-  return plan.priceCents === 0 ? "free" : `$${(plan.priceCents / 100).toFixed(0)}/month`;
-}
-
-function formatTokens(value: number): string {
-  return value.toLocaleString();
-}
-
-function pluralize(count: number, noun: string): string {
-  return `${count.toLocaleString()} ${noun}${count === 1 ? "" : "s"}`;
 }
