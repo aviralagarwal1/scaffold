@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { AskResponse, ChatSession, SourceCitation } from "@/types/ai";
 import { api, ApiClientError } from "@/lib/client/api";
+import { SavedHistoryStrip } from "./SavedHistoryStrip";
 import { Markdown } from "./Markdown";
 import { SourceCitationList } from "./SourceCitation";
 
@@ -50,11 +51,9 @@ const promptKey = (value: string) =>
 export function ChatPanel({
   token,
   disabled,
-  curatorName = "Curator",
 }: {
   token: string;
   disabled?: boolean;
-  curatorName?: string;
 }) {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -182,7 +181,7 @@ export function ChatPanel({
       ]);
       void loadHistory();
     } catch (err) {
-      const msg = err instanceof ApiClientError ? err.message : "We couldn't reach your curator. Try again.";
+      const msg = err instanceof ApiClientError ? err.message : "Something went wrong. Try again.";
       setError(msg);
     } finally {
       setBusy(false);
@@ -196,12 +195,16 @@ export function ChatPanel({
 
   return (
     <div className={`flex flex-col gap-4 ${empty ? "" : "h-full min-h-[60vh]"}`}>
-      <ConversationHistory
-        sessions={savedSessions}
+      <SavedHistoryStrip
+        label="Previous conversations"
+        removeLabel="Remove conversation"
+        items={savedSessions.map((session) => ({ id: session.id, title: session.title }))}
         loading={historyLoading}
-        activeSessionId={sessionId}
+        activeId={sessionId}
         disabled={busy}
-        onOpen={(session) => {
+        onOpen={(id) => {
+          const session = savedSessions.find((item) => item.id === id);
+          if (!session) return;
           setSessionId(session.id);
           setTurns(
             session.turns.map((turn) =>
@@ -213,7 +216,7 @@ export function ChatPanel({
           setDraft("");
           setError(null);
         }}
-        onDelete={async (id) => {
+        onRemove={async (id) => {
           await api.deleteChatSession(token, id);
           setSavedSessions((sessions) => sessions.filter((session) => session.id !== id));
           if (sessionId === id) resetThread();
@@ -223,11 +226,7 @@ export function ChatPanel({
         <div className="panel p-7 sm:p-8">
           <div className="flex flex-col gap-6">
             <div>
-              <div className="flex items-center gap-2 type-eyebrow">
-                <span className="accent-rule" />
-                {curatorName}
-              </div>
-              <div className="mt-2 type-h3">Ask about anything from your writing history.</div>
+              <div className="type-h3">Ask about anything from your writing history.</div>
               <p className="mt-1.5 text-[14px] text-ink-500">
                 Try one of these to get started, or ask your own question.
               </p>
@@ -331,10 +330,6 @@ export function ChatPanel({
                   </div>
                 ) : (
                   <div key={turn.id} className="flex flex-col gap-3">
-                    <div className="flex items-center gap-2 type-eyebrow">
-                      <span className="accent-rule" />
-                      {curatorName}
-                    </div>
                     <div className="prose-editorial">
                       <Markdown text={turn.content} />
                     </div>
@@ -342,15 +337,7 @@ export function ChatPanel({
                   </div>
                 ),
               )}
-              {busy && (
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2 type-eyebrow">
-                    <span className="accent-rule" />
-                    {curatorName}
-                  </div>
-                  <ThinkingDots />
-                </div>
-              )}
+              {busy && <ThinkingDots />}
               {!busy && (
                 <BubbleComposer
                   draft={draft}
@@ -369,70 +356,6 @@ export function ChatPanel({
         </div>
       )}
     </div>
-  );
-}
-
-function ConversationHistory({
-  sessions,
-  loading,
-  activeSessionId,
-  disabled,
-  onOpen,
-  onDelete,
-}: {
-  sessions: ChatSession[];
-  loading: boolean;
-  activeSessionId: string | null;
-  disabled?: boolean;
-  onOpen: (session: ChatSession) => void;
-  onDelete: (id: string) => Promise<void>;
-}) {
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  if (loading || sessions.length === 0) return null;
-
-  return (
-    <section className="panel flex flex-col gap-3 p-4">
-      <span className="type-eyebrow text-ink-400">Previous conversations</span>
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {sessions.map((session) => {
-          const active = session.id === activeSessionId;
-          return (
-            <div
-              key={session.id}
-              className={`inline-flex max-w-[360px] shrink-0 items-center gap-2.5 rounded-md border px-3 py-2.5 ${
-                active ? "border-accent-300 bg-accent-50/40" : "border-ink-200 bg-white"
-              }`}
-            >
-              <button
-                type="button"
-                onClick={() => onOpen(session)}
-                disabled={disabled}
-                className="min-w-0 text-left text-[13px] leading-snug text-ink-700 transition-colors hover:text-ink-950 disabled:cursor-not-allowed disabled:opacity-60"
-                title={session.title}
-              >
-                <span className="block truncate">{session.title}</span>
-              </button>
-              <button
-                type="button"
-                aria-label="Delete conversation"
-                disabled={disabled || deletingId === session.id}
-                onClick={async () => {
-                  setDeletingId(session.id);
-                  try {
-                    await onDelete(session.id);
-                  } finally {
-                    setDeletingId(null);
-                  }
-                }}
-                className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[17px] leading-none text-ink-300 transition-colors duration-150 ease-editorial hover:bg-critical-100/45 hover:text-critical-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-critical-500/35 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <span aria-hidden="true">&times;</span>
-              </button>
-            </div>
-          );
-        })}
-      </div>
-    </section>
   );
 }
 

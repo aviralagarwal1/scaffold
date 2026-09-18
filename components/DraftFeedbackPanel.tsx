@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { DraftFeedbackResponse, SavedDraftFeedback } from "@/types/ai";
 import { api, ApiClientError } from "@/lib/client/api";
+import { SavedHistoryStrip } from "./SavedHistoryStrip";
 import { cn } from "@/lib/client/cn";
 import { Markdown } from "./Markdown";
 import { SourceCitationList } from "./SourceCitation";
@@ -214,12 +215,20 @@ export function DraftFeedbackPanel({ token, disabled }: { token: string; disable
       </form>
 
       <div className="flex flex-col gap-4">
-        <DraftHistory
-          reviews={savedReviews}
+        <SavedHistoryStrip
+          label="Previous drafts"
+          removeLabel="Remove prior draft"
+          items={savedReviews.map((review) => ({
+            id: review.id,
+            title: review.title ?? "Saved read",
+            subtitle: new Date(review.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+          }))}
           loading={historyLoading}
           disabled={busy}
-          activeReviewId={result?.id ?? null}
-          onOpen={(review) => {
+          activeId={result?.id ?? null}
+          onOpen={(reviewId) => {
+            const review = savedReviews.find((item) => item.id === reviewId);
+            if (!review) return;
             setDraft(review.draft);
             setResult({
               id: review.id,
@@ -229,7 +238,7 @@ export function DraftFeedbackPanel({ token, disabled }: { token: string; disable
             });
             setError(null);
           }}
-          onDelete={async (reviewId) => {
+          onRemove={async (reviewId) => {
             await api.deleteDraftFeedback(token, reviewId);
             setSavedReviews((reviews) => reviews.filter((review) => review.id !== reviewId));
             if (result?.id === reviewId) setResult(null);
@@ -253,10 +262,7 @@ export function DraftFeedbackPanel({ token, disabled }: { token: string; disable
           <article className="panel-feature animate-rise flex flex-col gap-5 p-6">
             <div>
               <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 type-eyebrow-accent">
-                  <span className="accent-rule" />
-                  Editorial read
-                </div>
+                <div className="type-eyebrow-accent">Editorial read</div>
                 <button
                   type="button"
                   onClick={clearResult}
@@ -278,74 +284,6 @@ export function DraftFeedbackPanel({ token, disabled }: { token: string; disable
         )}
       </div>
     </div>
-  );
-}
-
-function DraftHistory({
-  reviews,
-  loading,
-  disabled,
-  activeReviewId,
-  onOpen,
-  onDelete,
-}: {
-  reviews: SavedDraftFeedback[];
-  loading: boolean;
-  disabled?: boolean;
-  activeReviewId: string | null;
-  onOpen: (review: SavedDraftFeedback) => void;
-  onDelete: (reviewId: string) => Promise<void>;
-}) {
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  if (loading || reviews.length === 0) return null;
-
-  return (
-    <section className="panel flex flex-col gap-3 p-4">
-      <span className="type-eyebrow text-ink-400">Previous drafts</span>
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {reviews.map((review) => {
-          const active = review.id === activeReviewId;
-          const date = new Date(review.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" });
-          return (
-            <div
-              key={review.id}
-              className={`inline-flex max-w-[360px] shrink-0 items-center gap-2.5 rounded-md border px-3 py-2.5 ${
-                active ? "border-accent-300 bg-accent-50/40" : "border-ink-200 bg-white"
-              }`}
-            >
-              <button
-                type="button"
-                onClick={() => onOpen(review)}
-                disabled={disabled}
-                className="min-w-0 text-left text-[13px] leading-snug text-ink-700 transition-colors hover:text-ink-950 disabled:cursor-not-allowed disabled:opacity-60"
-                title={review.title ?? "Saved read"}
-              >
-                <span className="block truncate">{review.title ?? "Saved read"}</span>
-                <span className="mt-0.5 block font-mono text-[10.5px] uppercase tracking-[0.12em] text-ink-400">
-                  {date}
-                </span>
-              </button>
-              <button
-                type="button"
-                aria-label="Delete prior draft"
-                disabled={disabled || deletingId === review.id}
-                onClick={async () => {
-                  setDeletingId(review.id);
-                  try {
-                    await onDelete(review.id);
-                  } finally {
-                    setDeletingId(null);
-                  }
-                }}
-                className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[17px] leading-none text-ink-300 transition-colors duration-150 ease-editorial hover:bg-critical-100/45 hover:text-critical-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-critical-500/35 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <span aria-hidden="true">&times;</span>
-              </button>
-            </div>
-          );
-        })}
-      </div>
-    </section>
   );
 }
 

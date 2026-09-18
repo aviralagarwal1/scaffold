@@ -2,10 +2,9 @@ import { NextResponse } from "next/server";
 import { apiError } from "@/lib/server/errors";
 import { deleteSavedDraftFeedback } from "@/lib/server/history";
 import { requireWorkspaceAccess } from "@/lib/server/workspace-access";
+import type { RouteContext } from "@/types/route";
 
-type RouteContext = { params: Promise<{ token: string; reviewId: string }> };
-
-export async function DELETE(_request: Request, context: RouteContext) {
+export async function DELETE(_request: Request, context: RouteContext<{ token: string; reviewId: string }>) {
   try {
     const { token, reviewId } = await context.params;
     await requireWorkspaceAccess(token, "edit");
