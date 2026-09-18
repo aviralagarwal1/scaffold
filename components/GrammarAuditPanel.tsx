@@ -111,10 +111,7 @@ export function GrammarAuditPanel({
         </div>
         {summary && (
           <div className="animate-rise rounded-md border-l-2 border-accent-500 bg-accent-50/50 px-4 py-3 text-[14px] leading-relaxed text-ink-800">
-            <div className="flex items-center gap-2">
-              <span className="accent-rule" />
-              <span className="text-eyebrow font-medium uppercase text-accent-700">Pattern detected</span>
-            </div>
+            <span className="text-eyebrow font-medium uppercase text-accent-700">Pattern detected</span>
             <p className="mt-1.5">{summary}</p>
           </div>
         )}

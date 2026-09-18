@@ -10,7 +10,6 @@
     "db:studio": "drizzle-kit studio",
     "prod:env:check": "node scripts/check-cloud-run-env.mjs",
     "start": "next start",
-    "lint": "next lint",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

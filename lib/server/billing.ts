@@ -46,21 +46,21 @@ export function appBaseUrl(): string {
   return process.env.APP_BASE_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
 }
 
-export function stripeId(value: string | { id?: string } | null | undefined): string | null {
+function stripeId(value: string | { id?: string } | null | undefined): string | null {
   if (!value) return null;
   if (typeof value === "string") return value;
   return typeof value.id === "string" ? value.id : null;
 }
 
-export function planForStripeStatus(status: string | null | undefined): "free" | "pro" {
+function planForStripeStatus(status: string | null | undefined): "free" | "pro" {
   return status === "active" || status === "trialing" ? "pro" : "free";
 }
 
-export function periodEndDate(value: number | null | undefined): Date | null {
+function periodEndDate(value: number | null | undefined): Date | null {
   return typeof value === "number" && Number.isFinite(value) ? new Date(value * 1000) : null;
 }
 
-export async function retrieveStripeSubscription(subscriptionId: string): Promise<StripeSubscription> {
+async function retrieveStripeSubscription(subscriptionId: string): Promise<StripeSubscription> {
   const response = await fetch(`https://api.stripe.com/v1/subscriptions/${encodeURIComponent(subscriptionId)}`, {
     headers: { authorization: `Bearer ${stripeSecretKey()}` },
     cache: "no-store",
@@ -72,7 +72,7 @@ export async function retrieveStripeSubscription(subscriptionId: string): Promis
   return data;
 }
 
-export async function retrieveStripeCheckoutSession(sessionId: string): Promise<StripeCheckoutSession> {
+async function retrieveStripeCheckoutSession(sessionId: string): Promise<StripeCheckoutSession> {
   const response = await fetch(`https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(sessionId)}`, {
     headers: { authorization: `Bearer ${stripeSecretKey()}` },
     cache: "no-store",
@@ -84,7 +84,7 @@ export async function retrieveStripeCheckoutSession(sessionId: string): Promise<
   return data;
 }
 
-export async function syncSubscriptionToUser(
+async function syncSubscriptionToUser(
   userId: string,
   subscription: StripeSubscription,
   customerIdOverride?: string | null,

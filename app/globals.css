@@ -71,15 +71,6 @@ body {
 
 @layer components {
   /* === Type === */
-  .type-display {
-    @apply font-serif text-[40px] leading-[1.05] tracking-tighter2 text-ink-900;
-  }
-  .type-h1 {
-    @apply font-serif text-3xl leading-[1.1] tracking-tightish text-ink-900;
-  }
-  .type-h2 {
-    @apply font-serif text-2xl leading-[1.15] tracking-tightish text-ink-900;
-  }
   .type-h3 {
     @apply font-serif text-lg leading-snug text-ink-900;
   }
@@ -106,14 +97,8 @@ body {
   .btn-secondary {
     @apply inline-flex h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-md border border-ink-200 bg-white px-3.5 text-[13px] font-medium text-ink-800 transition-colors duration-150 ease-editorial hover:border-ink-300 hover:bg-ink-75 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-50 disabled:cursor-not-allowed disabled:opacity-50;
   }
-  .btn-ghost {
-    @apply inline-flex h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-md px-3 text-[13px] font-medium text-ink-600 transition-colors duration-150 hover:bg-ink-100 hover:text-ink-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300;
-  }
   .btn-link {
     @apply inline-flex items-center gap-1 text-[13px] font-medium text-ink-800 underline-offset-[3px] transition-colors hover:text-accent-700 hover:underline;
-  }
-  .btn-danger-ghost {
-    @apply inline-flex h-9 items-center justify-center rounded-md px-3 text-[13px] font-medium text-critical-700 transition-colors hover:bg-critical-100/60;
   }
   /* === Composer / "Ask anything" button ===
      Editorial submit affordance for writing surfaces. Serif, soft
@@ -130,9 +115,6 @@ body {
   /* === Form === */
   .input {
     @apply h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-[14px] text-ink-900 placeholder-ink-400 transition-colors duration-150 ease-editorial focus:border-ink-400 focus:outline-none focus:ring-2 focus:ring-accent-200/70 disabled:cursor-not-allowed disabled:bg-ink-75/50 disabled:text-ink-500;
-  }
-  .input-lg {
-    @apply h-12 px-4 text-[15px];
   }
   textarea.input {
     @apply h-auto py-2.5 leading-[1.55];
@@ -192,9 +174,6 @@ body {
       linear-gradient(to bottom, rgba(180, 94, 44, 0.04), rgba(180, 94, 44, 0) 64px),
       linear-gradient(to bottom, #ffffff, #ffffff);
   }
-  .panel-quiet {
-    @apply rounded-md border border-ink-200/60 bg-ink-50/40;
-  }
   .hairline {
     @apply border-ink-200/70;
   }
@@ -207,9 +186,6 @@ body {
   /* === Pills, tags, status === */
   .tag {
     @apply inline-flex items-center rounded-full border border-ink-200 bg-ink-50 px-2.5 py-0.5 text-[11px] font-medium tracking-tightish text-ink-600;
-  }
-  .tag-accent {
-    @apply inline-flex items-center rounded-full border border-accent-200 bg-accent-50 px-2.5 py-0.5 text-[11px] font-medium tracking-tightish text-accent-700;
   }
   /* Recurring-theme chip. Calm at rest; on hover the library quietly warms —
      soft accent tint, a delicate ambient ring, and a barely-there lift. Motion
