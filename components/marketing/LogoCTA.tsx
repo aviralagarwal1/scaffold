@@ -22,14 +22,16 @@ const BURST_DIRECTIONS = [0, 45, 90, 135, 180, 225, 270, 315];
 /**
  * The § wordmark as an interactive CTA. Idle: gentle breathe, soft pulsing
  * glow, occasional sparkles around the glyph. Hover: brightens, faster
- * cadence, the label fades in. Touch screens have no hover, so the label
- * stays visible there. Click: radial sparkle burst, then navigates.
+ * cadence. Click: radial sparkle burst, then navigates.
  *
- * The logged-in props let the same mark serve a returning user without
- * re-pitching the marketing copy. On the landing page, "Build my memory →
- * /register" becomes "Open my desk → /account" once the visitor is
- * authenticated, so the CTA stops asking them to sign up for an account
- * they already have.
+ * There is no visible caption. The surrounding section already says what the
+ * mark does, and a hover-only caption would have needed a separate touch
+ * treatment. `label` is the link's accessible name, so it stays plain rather
+ * than a tagline.
+ *
+ * The logged-in props let the same mark serve a returning user: it goes to
+ * /account instead of /register, so it stops asking them to sign up for an
+ * account they already have.
  */
 export function LogoCTA({
   href,
@@ -50,56 +52,51 @@ export function LogoCTA({
   const finalLabel = isAuthenticated && authenticatedLabel ? authenticatedLabel : label;
 
   return (
-    <div className="group flex flex-col items-center gap-3">
-      <Link
-        href={finalHref}
-        onClick={() => setBurstKey((k) => k + 1)}
-        aria-label={finalLabel}
-        className="logo-cta"
-      >
-        <span aria-hidden="true" className="logo-cta-glow" />
-        <ScaffoldMark className="logo-cta-mark" />
+    <Link
+      href={finalHref}
+      onClick={() => setBurstKey((k) => k + 1)}
+      aria-label={finalLabel}
+      className="logo-cta"
+    >
+      <span aria-hidden="true" className="logo-cta-glow" />
+      <ScaffoldMark className="logo-cta-mark" />
 
-        {SPARKLES.map((s, i) => (
-          <span
-            key={i}
-            aria-hidden="true"
-            className="logo-cta-sparkle"
-            style={{
-              top: s.top,
-              bottom: s.bottom,
-              left: s.left,
-              right: s.right,
-              fontSize: s.fontSize,
-              animationDelay: s.delay,
-            }}
-          >
-            ✦
-          </span>
-        ))}
+      {SPARKLES.map((s, i) => (
+        <span
+          key={i}
+          aria-hidden="true"
+          className="logo-cta-sparkle"
+          style={{
+            top: s.top,
+            bottom: s.bottom,
+            left: s.left,
+            right: s.right,
+            fontSize: s.fontSize,
+            animationDelay: s.delay,
+          }}
+        >
+          ✦
+        </span>
+      ))}
 
-        {burstKey > 0 && (
-          <span key={burstKey} aria-hidden="true" className="logo-cta-burst">
-            {BURST_DIRECTIONS.map((deg, i) => {
-              const rad = (deg * Math.PI) / 180;
-              const x = Math.cos(rad) * 60;
-              const y = Math.sin(rad) * 60;
-              return (
-                <span
-                  key={i}
-                  className="logo-cta-burst-particle"
-                  style={{ "--bx": `${x}px`, "--by": `${y}px` } as React.CSSProperties}
-                >
-                  ✦
-                </span>
-              );
-            })}
-          </span>
-        )}
-      </Link>
-      <span className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-ink-400 opacity-0 transition-opacity duration-300 ease-editorial group-hover:opacity-100 [@media(hover:none)]:opacity-100">
-        {finalLabel}
-      </span>
-    </div>
+      {burstKey > 0 && (
+        <span key={burstKey} aria-hidden="true" className="logo-cta-burst">
+          {BURST_DIRECTIONS.map((deg, i) => {
+            const rad = (deg * Math.PI) / 180;
+            const x = Math.cos(rad) * 60;
+            const y = Math.sin(rad) * 60;
+            return (
+              <span
+                key={i}
+                className="logo-cta-burst-particle"
+                style={{ "--bx": `${x}px`, "--by": `${y}px` } as React.CSSProperties}
+              >
+                ✦
+              </span>
+            );
+          })}
+        </span>
+      )}
+    </Link>
   );
 }

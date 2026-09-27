@@ -307,7 +307,7 @@ export default function HomePage() {
             <div className="mt-10 flex justify-center md:mt-12">
               <LogoCTA
                 href="/register"
-                label="Build my memory"
+                label="Create your account"
                 authenticatedHref="/account"
                 authenticatedLabel="Open my desk"
               />
