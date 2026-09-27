@@ -55,7 +55,7 @@ export default function AboutPage() {
             >
               aviralwrites.com
             </a>
-            , and it&apos;s been a deeply fulfilling creative process. The more I write, the more I want to return to old ideas and see what they might inspire next.
+            , and it&apos;s been a deeply fulfilling creative process.
           </p>
           <p>
             However capable AI becomes, I don&apos;t believe it can replace a writer&apos;s voice. But it can be a good reader: one that remembers what you&apos;ve written, notices when themes echo across pieces, and points you back to where a thread first began. That&apos;s what I wanted Scaffold to be.
