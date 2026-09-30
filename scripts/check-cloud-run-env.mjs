@@ -5,9 +5,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 
 const defaults = {
-  project: "scaffold-496000",
+  project: "scaffold-production",
   region: "us-east1",
-  service: "substack-ai",
+  service: "scaffold",
 };
 
 const expectedLiterals = {
@@ -26,13 +26,13 @@ const expectedLiterals = {
 };
 
 const expectedSecrets = {
-  DATABASE_URL: "substack-ai-database-url",
-  NEXTAUTH_SECRET: "substack-ai-nextauth-secret",
-  RESEND_API_KEY: "substack-ai-resend-api-key",
-  ANTHROPIC_API_KEY: "substack-ai-anthropic-api-key",
-  STRIPE_SECRET_KEY: "substack-ai-stripe-secret-key",
-  STRIPE_PRO_PRICE_ID: "substack-ai-stripe-pro-price-id",
-  STRIPE_WEBHOOK_SECRET: "substack-ai-stripe-webhook-secret",
+  DATABASE_URL: "scaffold-database-url",
+  NEXTAUTH_SECRET: "scaffold-nextauth-secret",
+  RESEND_API_KEY: "scaffold-resend-api-key",
+  ANTHROPIC_API_KEY: "scaffold-anthropic-api-key",
+  STRIPE_SECRET_KEY: "scaffold-stripe-secret-key",
+  STRIPE_PRO_PRICE_ID: "scaffold-stripe-pro-price-id",
+  STRIPE_WEBHOOK_SECRET: "scaffold-stripe-webhook-secret",
 };
 
 const args = parseArgs(process.argv.slice(2));
