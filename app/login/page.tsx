@@ -37,7 +37,7 @@ export default async function LoginPage({
         emailJustVerified
           ? "Sign in to open your desk and add publications."
           : emailVerificationFailed
-            ? "That verification link is invalid, expired, or already used. Sign in below, or register again to send a fresh link."
+            ? "That verification link is invalid, expired, or already used. Sign in below, or create your account again to get a fresh link."
             : "Your workspaces, your saved ideas, and your library — all where you left them."
       }
     >

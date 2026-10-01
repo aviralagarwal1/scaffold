@@ -41,7 +41,7 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-30 border-b border-ink-200/60 bg-ink-50/85 backdrop-blur-md">
-      <div className={`mx-auto flex max-w-6xl items-center justify-between px-4 sm:px-6 ${isLanding ? "h-16 md:h-[72px]" : isWorkspace ? "min-h-14 flex-wrap gap-x-4 gap-y-2 py-2" : "h-14"}`}>
+      <div className={`mx-auto flex max-w-6xl items-center justify-between px-4 max-[359px]:px-3 sm:px-6 ${isLanding ? "h-16 md:h-[72px]" : isWorkspace ? "min-h-14 flex-wrap gap-x-4 gap-y-2 py-2" : "h-14"}`}>
         <Link
           href="/"
           className="group flex items-center transition-opacity duration-200 ease-editorial hover:opacity-80"
@@ -49,7 +49,7 @@ export function SiteHeader() {
         >
           <Wordmark size={isLanding ? "lg" : "sm"} premium={isPremium} />
         </Link>
-        <nav className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">{renderNavItems(pathname, isAuthenticated)}</nav>
+        <nav className="ml-auto flex shrink-0 items-center gap-2 max-[359px]:gap-1.5 sm:gap-3">{renderNavItems(pathname, isAuthenticated)}</nav>
       </div>
     </header>
   );
@@ -61,7 +61,9 @@ export function SiteHeader() {
 //   the global UserMenu. Sync belongs inside Settings.
 // - About is a landing-page affordance only. Once someone is registering,
 //   setting up, or working, the nav should stay task-focused.
-// - Auth chips depend on session. Logged out → Sign in + Register. Logged in
+// - Auth chips depend on session. Logged out → Sign in + Create account.
+//   Below 360px the chips and header padding tighten so both fit beside the
+//   landing wordmark at 320px (iPhone SE with Display Zoom). Logged in
 //   → UserMenu (which reveals the email, an Account link, and Sign out).
 //   Account is no longer a separate chip — it lives inside the menu so the
 //   nav stays compact and there's exactly one identity surface to look at.
@@ -92,13 +94,13 @@ function renderNavItems(pathname: string | null, isAuthenticated: boolean): Reac
       ) : (
         <>
           {pathname !== "/login" && (
-            <Link href="/login" className="btn-secondary">
+            <Link href="/login" className="btn-secondary max-[359px]:px-2.5">
               Sign in
             </Link>
           )}
           {pathname !== "/register" && (
-            <Link href="/register" className="btn-secondary">
-              Register
+            <Link href="/register" className="btn-secondary max-[359px]:px-2.5">
+              Create account
             </Link>
           )}
         </>
