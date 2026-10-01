@@ -30,7 +30,6 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
     return raw.trim();
   }, [params]);
   const emailJustVerified = params?.get("verified") === "1";
-  const emailVerificationFailed = (params?.get("verified") ?? params?.get("emailVerified")) === "0";
   const accountDeleted = isRegister && params?.get("deleted") === "1";
 
   const [email, setEmail] = useState(initialEmail);
@@ -150,12 +149,6 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
       {!isRegister && emailJustVerified && (
         <div className="-mt-1 rounded-md border border-positive-100 bg-positive-100/40 px-3 py-2 text-[13px] text-positive-700">
           Your email is verified. Let's get started.
-        </div>
-      )}
-
-      {!isRegister && emailVerificationFailed && (
-        <div className="-mt-1 rounded-md border border-critical-100 bg-critical-100/35 px-3 py-2 text-[13px] leading-relaxed text-critical-700">
-          That verification link is invalid, expired, or already used. Sign in below, or register again to send a fresh link.
         </div>
       )}
 
