@@ -47,7 +47,24 @@ function LandingFooter({ year }: { year: number }) {
             ·
           </span>
           <span>
-            Built by <span className="text-ink-500">Aviral Agarwal</span>
+            Built by{" "}
+            <a href="https://aviralagarwal.com" target="_blank" rel="noopener noreferrer" className="colophon-link">
+              Aviral Agarwal
+            </a>
+          </span>
+          <span aria-hidden="true" className="text-ink-300">
+            ·
+          </span>
+          <span>
+            Open source on{" "}
+            <a
+              href="https://github.com/aviralagarwal1/scaffold"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="colophon-link"
+            >
+              GitHub
+            </a>
           </span>
         </p>
       </div>

@@ -100,6 +100,12 @@ body {
   .btn-link {
     @apply inline-flex items-center gap-1 rounded-sm text-[13px] font-medium text-ink-800 underline-offset-[3px] transition-colors hover:text-accent-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300 disabled:cursor-not-allowed disabled:opacity-50;
   }
+  /* Inline credit links in the footer colophon. The underline is always
+     shown, unlike btn-link's hover underline, because touch screens never
+     hover and a link must look like one without it. */
+  .colophon-link {
+    @apply inline-flex items-center rounded-sm text-ink-500 underline decoration-ink-300 underline-offset-[3px] transition-colors hover:text-accent-700 hover:decoration-accent-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-300;
+  }
   .btn-remove {
     @apply hover:border-critical-100 hover:bg-critical-100/40 hover:text-critical-700;
   }
@@ -545,6 +551,7 @@ body {
   .btn-primary,
   .btn-secondary,
   .btn-link,
+  .colophon-link,
   .input,
   textarea.input,
   select.input {
