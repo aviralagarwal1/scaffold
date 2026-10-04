@@ -1,10 +1,13 @@
-// Check the local documentation set. Every doc is gitignored, so a clone or
-// CI run has none and the check passes with nothing to read.
+// Check the documentation set. README.md is the only tracked doc; the rest are
+// gitignored, so a clone or CI run checks the README alone.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { dirname, relative, resolve } from "node:path";
 
 const docs = existsSync("docs") ? readdirSync("docs").filter((name) => name.endsWith(".md")).map((name) => `docs/${name}`) : [];
-const files = ["AGENTS.md", ...docs].filter((file) => existsSync(file));
+const files = ["README.md", "AGENTS.md", ...docs].filter((file) => existsSync(file));
+// A README link into the private docs resolves here but is broken for every
+// public reader, who never has them.
+const privateDoc = (path) => /^(AGENTS\.md|CLAUDE\.md|docs\/)/.test(relative(process.cwd(), path).replace(/\\/g, "/"));
 const errors = [];
 let checked = 0;
 const slug = (text) => text.toLowerCase().replace(/[`*_]/g, "").replace(/[^\p{L}\p{N}_\-\s]/gu, "").trim().replace(/\s/g, "-");
@@ -46,7 +49,9 @@ for (const file of files) {
       if (/^[a-z][\w+.-]*:/i.test(target)) continue;
       const [path, anchor] = target.split("#");
       const destination = path ? resolve(dirname(file), decodeURIComponent(path)) : resolve(file);
-      if (!existsSync(destination)) {
+      if (file === "README.md" && privateDoc(destination)) {
+        errors.push(`${at}: README links to private doc ${target}`);
+      } else if (!existsSync(destination)) {
         errors.push(`${at}: missing link target ${target}`);
       } else if (anchor && destination.endsWith(".md")) {
         const headings = [...readFileSync(destination, "utf8").matchAll(/^#{1,6}\s+(.+)$/gm)].map((match) => slug(match[1]));

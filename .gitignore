@@ -74,9 +74,10 @@ Desktop.ini
 .idea/
 .vscode/
 
-# Private docs and agent instructions. Every Markdown file is local:
-# AGENTS.md, CLAUDE.md and docs/ are written for Aviral and his agents only.
-*.md
-*.MD
+# Private docs and agent instructions (see AGENTS.md). README.md is the one
+# public Markdown file; AGENTS.md, CLAUDE.md and docs/ are for Aviral and his
+# agents only.
+AGENTS.md
+CLAUDE.md
 docs/
 .claude/
