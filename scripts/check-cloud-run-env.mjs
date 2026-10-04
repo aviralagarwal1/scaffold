@@ -22,7 +22,6 @@ const expectedLiterals = {
   PRO_ACTIVE_PUBLICATION_LIMIT: "3",
   PRO_PRICE_CENTS: "800",
   TOKEN_USAGE_TIME_ZONE: "America/New_York",
-  PYTHON: "python3",
 };
 
 const expectedSecrets = {

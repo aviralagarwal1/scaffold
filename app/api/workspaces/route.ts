@@ -10,7 +10,7 @@ import {
 import { apiError, AppError } from "@/lib/server/errors";
 import { readJson, requireString } from "@/lib/server/http";
 import { ingestWorkspaceWithFeed } from "@/lib/server/ingestion";
-import { fetchPublicationFeed, materializeFeedPosts } from "@/lib/server/rss";
+import { FeedRefusedError, fetchPublicationFeed, materializeFeedPosts } from "@/lib/server/rss";
 import { createWorkspace, findWorkspaceByToken, getWorkspaceOverview } from "@/lib/server/store";
 import { normalizePublicationUrl } from "@/lib/server/url";
 
@@ -70,7 +70,10 @@ async function readInitialPublicationFeed(publicationUrl: string) {
   let feed: Awaited<ReturnType<typeof fetchPublicationFeed>>;
   try {
     feed = await fetchPublicationFeed(publicationUrl);
-  } catch {
+  } catch (error) {
+    // A refusal means the feed exists; "couldn't find" would send the writer
+    // hunting for a different URL that will be refused the same way.
+    if (error instanceof FeedRefusedError) throw error;
     throw new AppError("We couldn't find a public publication feed at that URL. Try the publication homepage.", 400);
   }
 

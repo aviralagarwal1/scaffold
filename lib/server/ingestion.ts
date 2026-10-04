@@ -2,7 +2,7 @@ import type { Post } from "@/types/post";
 import type { Workspace } from "@/types/workspace";
 import type { ParsedFeedPost } from "./rss";
 import { syncAccountWorkspaceState } from "./account-workspaces";
-import { fetchPublicationFeed, fetchSubstackFeed } from "./rss";
+import { FeedRefusedError, fetchPublicationFeed, fetchSubstackFeed } from "./rss";
 import {
   assertWorkspaceTokenBudget,
   getPost,
@@ -55,7 +55,8 @@ export async function ingestWorkspaceWithFeed(
       throw error;
     }
     console.error("Workspace sync failed", error);
-    return mirrorWorkspaceState(await setWorkspaceStatus(token, "failed", INGESTION_FAILURE));
+    const message = error instanceof FeedRefusedError ? error.message : INGESTION_FAILURE;
+    return mirrorWorkspaceState(await setWorkspaceStatus(token, "failed", message));
   }
 }
 

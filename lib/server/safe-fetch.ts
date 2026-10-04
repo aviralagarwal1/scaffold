@@ -158,14 +158,3 @@ async function readCapped(response: Response, maxBytes: number): Promise<{ body:
 
   return { body: chunks.join(""), truncated };
 }
-
-/** Exposed for the Python fallback, which needs the same answer before it runs. */
-export async function assertFetchableUrl(rawUrl: string): Promise<void> {
-  let url: URL;
-  try {
-    url = new URL(rawUrl);
-  } catch {
-    throw new AppError("Enter a valid publication URL.", 400);
-  }
-  await assertPublicDestination(url);
-}

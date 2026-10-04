@@ -1,30 +1,17 @@
 import type { Post } from "@/types/post";
-import { execFile } from "child_process";
 import { randomUUID } from "crypto";
-import path from "path";
-import { promisify } from "util";
+import { AppError } from "./errors";
 import { feedUrlForPublication } from "./url";
-import { assertFetchableUrl, safeFetch } from "./safe-fetch";
+import { safeFetch } from "./safe-fetch";
 import { decodeEntities, stripHtml, wordCount } from "./text";
 
-const execFileAsync = promisify(execFile);
-
+// Scaffold says what it is. A feed that refuses this request is not
+// retried in disguise: an earlier version resent it with a browser's TLS
+// fingerprint, which is getting past a site's bot protection, not reading a
+// public feed.
 const RSS_HEADERS = {
   accept: "application/rss+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.7",
-  "accept-language": "en-US,en;q=0.9",
-  "cache-control": "no-cache",
-  pragma: "no-cache",
-  priority: "u=0, i",
-  "sec-ch-ua": '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
-  "sec-ch-ua-mobile": "?0",
-  "sec-ch-ua-platform": '"Windows"',
-  "sec-fetch-dest": "document",
-  "sec-fetch-mode": "navigate",
-  "sec-fetch-site": "none",
-  "sec-fetch-user": "?1",
-  "upgrade-insecure-requests": "1",
-  "user-agent":
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+  "user-agent": "Scaffold/0.1 (+https://github.com/aviralagarwal1/scaffold)"
 };
 
 export interface ParsedFeedPost {
@@ -95,8 +82,15 @@ function parseDate(value: string | null): string | null {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
-function isBlockingStatus(status: number): boolean {
-  return status === 401 || status === 403 || status === 429 || status === 503;
+function isRefusalStatus(status: number): boolean {
+  return status === 401 || status === 403 || status === 429;
+}
+
+/** The feed exists but turned the request away, usually bot protection. */
+export class FeedRefusedError extends AppError {
+  constructor(status: number) {
+    super(`This publication's feed refused the request (HTTP ${status}), so Scaffold can't read it.`, 502);
+  }
 }
 
 function looksLikeXml(value: string): boolean {
@@ -111,104 +105,26 @@ async function fetchFeedXml(feedUrl: string): Promise<{ xml: string; feedUrl: st
 
 async function fetchFeedXmlCandidate(feedUrl: string, attempted: Set<string>): Promise<{ xml: string; feedUrl: string }> {
   attempted.add(feedUrl);
-  try {
-    // safeFetch resolves the host and checks every redirect hop, so a public
-    // URL cannot bounce the request onto a private address.
-    const response = await safeFetch(feedUrl, { headers: RSS_HEADERS });
+  // safeFetch resolves the host and checks every redirect hop, so a public
+  // URL cannot bounce the request onto a private address.
+  const response = await safeFetch(feedUrl, { headers: RSS_HEADERS });
 
-    const body = response.body;
-    if (response.ok && looksLikeXml(body)) {
-      return { xml: body, feedUrl: response.url || feedUrl };
-    }
-
-    const redirectedFeedUrl = redirectedOriginFeedUrl(feedUrl, response.url);
-    if (redirectedFeedUrl && !attempted.has(redirectedFeedUrl)) {
-      return fetchFeedXmlCandidate(redirectedFeedUrl, attempted);
-    }
-
-    if (isBlockingStatus(response.status) || (response.ok && !looksLikeXml(body))) {
-      const fallback = await fetchFeedXmlWithCurlCffi(feedUrl);
-      if (fallback) return { xml: fallback, feedUrl };
-    }
-
-    const reason = response.ok ? "RSS endpoint did not return XML." : `RSS endpoint returned ${response.status}.`;
-    throw new FeedFetchError(`${reason} Feed URL: ${feedUrl}`);
-  } catch (error) {
-    if (error instanceof FeedFetchError) {
-      throw error;
-    }
-
-    const fallback = await fetchFeedXmlWithCurlCffi(feedUrl);
-    if (fallback) return { xml: fallback, feedUrl };
-
-    throw error;
-  }
-}
-
-class FeedFetchError extends Error {}
-
-async function fetchFeedXmlWithCurlCffi(feedUrl: string): Promise<string | null> {
-  // The guard cannot see inside curl_cffi, so the destination is checked here
-  // and redirects are refused below — a redirect the guard never inspects is
-  // exactly the hole this whole module exists to close. A feed that only
-  // works via a redirect will fail rather than be followed blind.
-  try {
-    await assertFetchableUrl(feedUrl);
-  } catch {
-    return null;
+  const body = response.body;
+  if (response.ok && looksLikeXml(body)) {
+    return { xml: body, feedUrl: response.url || feedUrl };
   }
 
-  const script = [
-    "import json, sys",
-    "from curl_cffi import requests",
-    "url = sys.argv[1]",
-    "headers = json.loads(sys.argv[2])",
-    "response = requests.get(url, headers=headers, impersonate='chrome124', timeout=20, allow_redirects=False)",
-    "sys.stdout.write(response.text)",
-    "sys.exit(0 if response.status_code < 400 else response.status_code)"
-  ].join("\n");
-
-  for (const command of pythonCommands()) {
-    try {
-      const { stdout } = await execFileAsync(command, ["-c", script, feedUrl, JSON.stringify(RSS_HEADERS)], {
-        env: withoutProxyEnvironment(),
-        timeout: 25_000,
-        maxBuffer: 8 * 1024 * 1024,
-        windowsHide: true
-      });
-
-      if (looksLikeXml(stdout)) {
-        return stdout;
-      }
-    } catch (error) {
-      console.warn(`curl_cffi RSS fallback failed with ${command}.`, error);
-    }
+  const redirectedFeedUrl = redirectedOriginFeedUrl(feedUrl, response.url);
+  if (redirectedFeedUrl && !attempted.has(redirectedFeedUrl)) {
+    return fetchFeedXmlCandidate(redirectedFeedUrl, attempted);
   }
 
-  return null;
-}
-
-function pythonCommands(): string[] {
-  return [
-    ...new Set(
-      [
-        process.env.PYTHON,
-        path.join(process.cwd(), ".venv", "Scripts", "python.exe"),
-        path.join(process.cwd(), ".venv", "bin", "python"),
-        "python",
-        "python3",
-        "py"
-      ].filter((command): command is string => Boolean(command))
-    )
-  ];
-}
-
-function withoutProxyEnvironment(): NodeJS.ProcessEnv {
-  const env = { ...process.env };
-  for (const key of ["HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy"]) {
-    delete env[key];
+  if (isRefusalStatus(response.status)) {
+    throw new FeedRefusedError(response.status);
   }
-  return env;
+
+  const reason = response.ok ? "RSS endpoint did not return XML." : `RSS endpoint returned ${response.status}.`;
+  throw new Error(`${reason} Feed URL: ${feedUrl}`);
 }
 
 export async function fetchSubstackFeed(publicationUrl: string, workspaceId: string): Promise<{
